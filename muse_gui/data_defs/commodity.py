@@ -2,14 +2,17 @@ from typing import Dict
 import PySimpleGUI as sg
 from PySimpleGUI.PySimpleGUI import Element
 from enum import Enum
+
+from pydantic import BaseModel
 from muse_gui.data_defs.abstract import Data
 
 
-class CommodityType(Enum):
+class CommodityType(str, Enum):
     energy = 'energy'
-    environmental='environmental'
+    environmental = 'environmental'
 
-class Commodity(Data):
+
+class Commodity(BaseModel):
     commodity: str
     commodity_type: CommodityType
     commodity_name: str
@@ -17,15 +20,23 @@ class Commodity(Data):
     heat_rate: float
     unit: str
 
-    def item(self) -> Dict[str,Element]:
+
+class CommodityView(Data):
+    model: Commodity
+
+    def item(self) -> Dict[str, Element]:
         return {
-            'commodity': sg.Input(self.commodity),
-            'commodity_type': sg.Input(str(self.commodity_type))
+            'commodity': sg.Input(self.model.commodity),
+            'commodity_type': sg.DropDown([
+                x.name for x in CommodityType
+            ], default_value=self.model.commodity_type.name)
         }
-    
+
     @classmethod
     def heading(cls) -> Dict[str, Element]:
         return {
-            'commodity': sg.Text('Commodity'),
-            'commodity_type': sg.Text('CommodityType'),
+            k: sg.Text(k.replace('_', '').title()) for k in [
+                'commodity',
+                'commodity_type',
+            ]
         }
