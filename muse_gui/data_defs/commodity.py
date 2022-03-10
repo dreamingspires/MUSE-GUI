@@ -12,33 +12,10 @@ class CommodityType(str, Enum):
     environmental = 'environmental'
 
 
-class Commodity(BaseModel):
+class Commodity(Data):
     commodity: str
     commodity_type: CommodityType
     commodity_name: str
     c_emission_factor_co2: float
     heat_rate: float
     unit: str
-
-
-class CommodityView(Data):
-    model: Commodity
-
-    def item(self) -> Dict[str, Element]:
-        return {
-            'commodity': sg.Input(self.model.commodity,expand_x = True, size=(10,10)),
-            'commodity_type': sg.DropDown([
-                x.name for x in CommodityType
-            ], default_value=self.model.commodity_type.name, 
-            expand_x = True,  size=(10,10))
-        }
-
-    @classmethod
-    def heading(cls) -> Dict[str, Element]:
-        return {
-
-            k: sg.Text(k.replace('_', '').title(), expand_x = True) for k in [
-                'commodity',
-                'commodity_type',
-            ]
-        }

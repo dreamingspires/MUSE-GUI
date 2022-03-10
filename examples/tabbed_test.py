@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
-from muse_gui.data_defs.commodity import Commodity, CommodityType, CommodityView
+from muse_gui.data_defs.commodity import Commodity, CommodityType
+from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
 from muse_gui.data_defs.sector import Sector, SectorView
 from muse_gui.data_defs.technology import Technology, TechnologyView
 from muse_gui.data_defs.region import Region, RegionView
@@ -73,16 +74,21 @@ list_of_tech = [
         end_use='gas',
     )
 ]
-commodity_views = [CommodityView(model=x) for x in list_of_com]
+commodity_views = [CommodityView(x) for x in list_of_com]
 region_views = [RegionView(model=x) for x in list_of_regions]
 sector_views = [SectorView(model=x) for x in list_of_sectors]
 agent_views = [AgentView(model=x) for x in list_of_agents]
 tech_views = [TechnologyView(model=x) for x in list_of_tech]
 
+print([i for i in commodity_views])
 layout_com = make_table_layout(
-    [list(CommodityView.heading().values())] +
-    [list(i.item().values()) for i in commodity_views],
+    [sg.Text(k.replace('_', '').title(), expand_x = True) for k in [
+                'commodity',
+                'commodity_type',
+    ]] +
+    [[i for i in commodity_views]],
 )
+"""
 layout_regions = make_table_layout(
     [list(RegionView.heading().values())] +
     [list(i.item().values()) for i in region_views]
@@ -99,15 +105,15 @@ layout_tech = make_table_layout(
     [list(TechnologyView.heading().values())] +
     [list(i.item().values()) for i in tech_views]
 )
-
+"""
 
 layout = [[define_tab_group({
     "Timeslices": [[sg.Text('Hey')]],
-    "Region": layout_regions,
-    "Sector": layout_sectors,
+    #"Region": layout_regions,
+    #"Sector": layout_sectors,
     "Commodities": layout_com,
-    "Agents": layout_agents,
-    "Technologies": layout_tech,
+    #"Agents": layout_agents,
+    #"Technologies": layout_tech,
 })]]
 # Create the Window
 
