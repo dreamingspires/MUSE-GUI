@@ -19,13 +19,13 @@ class Commodity(Data):
 
     def item(self) -> Dict[str,Element]:
         return {
-            'commodity': sg.Input(self.commodity),
-            'commodity_type': sg.Input(str(self.commodity_type))
+            'commodity': sg.Input(self.commodity,expand_x = True, size=(10,10)),
+            'commodity_type': sg.Input(str(self.commodity_type),expand_x = True,  size=(10,10))
         }
     
     @classmethod
     def heading(cls) -> Dict[str, Element]:
         return {
-            'commodity': sg.Text('Commodity'),
-            'commodity_type': sg.Text('CommodityType'),
+            'commodity': sg.Text('Commodity',expand_x = True),
+            'commodity_type': sg.Text('CommodityType',expand_x = True),
         }

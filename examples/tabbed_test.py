@@ -47,7 +47,7 @@ layout = [[define_tab_group({
 })]]
 # Create the Window
 
-window = sg.Window('Window Title', layout, resizable = True, size=(500,500), font = font)
+window = sg.Window('Window Title', layout, resizable = True, size=(500,500), font = font, auto_size_buttons = True, auto_size_text=True)
 # Event Loop to process "events" and get the "values" of the inputs
 while True:
 
