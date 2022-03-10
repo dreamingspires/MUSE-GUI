@@ -17,20 +17,16 @@ class BaseDataView(Generic[DataType]):
         raise NotImplementedError
 
 def attrs_to_dataview(attrs: Dict[str, Callable[[str], Element]], data_type: Type[Data]) -> Type[BaseDataView]:
-
-    class DataView(BaseDataView, Generic[DataType]):
+    class DataView(BaseDataView,Iterable[Element], Generic[DataType]):
         def __init__(self, data: Data) -> None:
             for k, v in attrs.items():
                 setattr(self, k, v(getattr(data, k)))
             self.__attrs___ = attrs
         def __iter__(self) -> Iterable[Element]:
-            raise NotImplementedError
+            self._iterator = iter([getattr(self, i) for i in self.__attrs___.keys()])
             return self
         def __next__(self):
-
-            raise NotImplementedError
-        def __getitem__(self, item: str) -> Element:
-            raise NotImplementedError
+            return next(self._iterator)
     return DataView[data_type]
 
 class DataViewGenerator(Generic[DataType]):

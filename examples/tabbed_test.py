@@ -1,3 +1,4 @@
+from typing import List
 import PySimpleGUI as sg
 from muse_gui.data_defs.commodity import Commodity, CommodityType
 from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
@@ -5,7 +6,7 @@ from muse_gui.data_defs.sector import Sector, SectorView
 from muse_gui.data_defs.technology import Technology, TechnologyView
 from muse_gui.data_defs.region import Region, RegionView
 from muse_gui.data_defs.agent import Agent, AgentView
-
+from PySimpleGUI.PySimpleGUI import Element
 from muse_gui.frontend.widget_funcs.generics import define_tab_group, make_table_layout
 # Add your new theme colors and settings
 light = '#E7F5F9'
@@ -80,14 +81,14 @@ sector_views = [SectorView(model=x) for x in list_of_sectors]
 agent_views = [AgentView(model=x) for x in list_of_agents]
 tech_views = [TechnologyView(model=x) for x in list_of_tech]
 
-print([i for i in commodity_views])
+def format_headings(headers: List[str]) -> List[Element]:
+    return [sg.Text(header.title().replace('_', ''), expand_x = True) for header in headers]
+
 layout_com = make_table_layout(
-    [sg.Text(k.replace('_', '').title(), expand_x = True) for k in [
-                'commodity',
-                'commodity_type',
-    ]] +
-    [[i for i in commodity_views]],
+    [format_headings(['commodity','commodity_type'])]+
+    [[i for i in commodity_view] for commodity_view in commodity_views],
 )
+
 """
 layout_regions = make_table_layout(
     [list(RegionView.heading().values())] +
