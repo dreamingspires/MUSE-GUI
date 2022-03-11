@@ -20,12 +20,35 @@ def capacity_data_frame_to_plots(dataframe: pd.DataFrame) -> List[CapacityPlot]:
     agents = dataframe['agent'].unique()
     sectors = dataframe['sector'].unique()
 
-    final_plots = []
+    plots = []
     for region, agent, sector in list(product(regions, agents, sectors)):
         output = get_data(dataframe, region, agent, sector)
         techs = output['technology'].unique()
         data_dict = {}
         for tech in techs:
             data_dict[tech] = output.loc[(output['technology'] == tech) ][['year', 'capacity']]
-        final_plots.append(CapacityPlot(region=region, agent=agent, sector=sector, data=data_dict))
-    return final_plots
+        plots.append(CapacityPlot(region=region, agent=agent, sector=sector, data=data_dict))
+    return plots
+
+
+@dataclass
+class PricePlot:
+    region: str
+    data: Dict[str, pd.DataFrame]
+
+def price_data_frame_to_plots(dataframe: pd.DataFrame) -> List[PricePlot]:
+    def get_data(all_data: pd.DataFrame, region: str) -> pd.DataFrame:
+        relevant_data = all_data.loc[(all_data['region'] == region)]
+        relevant_data = relevant_data.groupby(['commodity', 'year'], as_index=False)['prices'].sum()
+        return relevant_data[['commodity', 'year', 'prices']]
+        
+    regions = dataframe['region'].unique()
+    plots = []
+    for region in regions:
+        output = get_data(dataframe, region)
+        commodities = output['commodity'].unique()
+        data_dict = {}
+        for commodity in commodities:
+            data_dict[commodity] = output.loc[(output['commodity'] == commodity) ][['year', 'prices']]
+        plots.append(PricePlot(region=region, data=data_dict))
+    return plots

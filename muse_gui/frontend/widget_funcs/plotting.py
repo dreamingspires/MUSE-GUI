@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from PySimpleGUI.PySimpleGUI import Element
-from muse_gui.backend.plots import CapacityPlot
+from muse_gui.backend.plots import CapacityPlot, PricePlot
 
 def _draw_figure(canvas, figure):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -83,6 +83,25 @@ def capacity_plot_to_figure(capacity_plot: CapacityPlot) -> Figure:
         new_ax = ax.plot(x_vals, y_vals)
         axes.append(new_ax)
         headers.append(tech)
+
+    ax.legend(tuple([i[0] for i in axes]), tuple(headers))
+    return fig
+
+def price_plot_to_figure(price_plot: PricePlot) -> Figure:
+    assert len(price_plot.data) > 0
+    fig = plt.figure(num = 3, figsize=(8, 5))
+    ax = fig.add_subplot(1,1,1)
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Price')
+    ax.set_title(f'Region: {price_plot.region}')
+    axes = []
+    headers = []
+    for commodity, data in price_plot.data.items():
+        y_vals = list(data['prices'])
+        x_vals = list(data['year'])
+        new_ax = ax.plot(x_vals, y_vals)
+        axes.append(new_ax)
+        headers.append(commodity)
 
     ax.legend(tuple([i[0] for i in axes]), tuple(headers))
     return fig
