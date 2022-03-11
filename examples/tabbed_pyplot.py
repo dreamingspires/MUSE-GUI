@@ -1,5 +1,6 @@
 from typing import List
 import PySimpleGUI as sg
+from muse_gui.backend.plots import capacity_data_frame_to_plots
 from muse_gui.data_defs.commodity import Commodity, CommodityType
 from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
 from muse_gui.data_defs.sector import Sector, SectorView
@@ -8,8 +9,9 @@ from muse_gui.data_defs.region import Region, RegionView
 from muse_gui.data_defs.agent import Agent, AgentView
 from PySimpleGUI.PySimpleGUI import Element
 from muse_gui.frontend.widget_funcs.generics import define_tab_group, make_table_layout
-from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, generate_plot,  generate_plot_layout
+from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, capacity_plot_to_figure, generate_plot,  generate_plot_layout
 from matplotlib.figure import Figure
+import pandas as pd
 # Add your new theme colors and settings
 light = '#E7F5F9'
 dark = '#D8EEF4'
@@ -91,12 +93,15 @@ layout_com = make_table_layout(
     [[i for i in commodity_view] for commodity_view in commodity_views],
 )
 
+out = pd.read_csv('MCACapacity.csv')
+
+capacity_plots = capacity_data_frame_to_plots(out)
 
 figure_elems = GuiFigureElements(
-    canvas = generate_plot()
+    capacity_plot = capacity_plot_to_figure(capacity_plots[0])
 )
 
-plot_layout = generate_plot_layout(figure_elems, 'canvas')
+plot_layout = generate_plot_layout(figure_elems, 'capacity_plot')
 
 layout = [[define_tab_group({
     "Timeslices": [[sg.Text('Hey')]],
