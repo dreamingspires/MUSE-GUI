@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from PySimpleGUI.PySimpleGUI import Element
+from muse_gui.backend.plots import CapacityPlot
 
 def _draw_figure(canvas, figure):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -65,3 +66,23 @@ def generate_plot_layout(figures: GuiFigureElements, key: str) -> List[List[Elem
         [figures.get_element(key)],
         [sg.OK(pad=((figures.get_size(key)[0] / 2, 0), 3), size=(4, 2))]
     ]
+
+
+def capacity_plot_to_figure(capacity_plot: CapacityPlot) -> Figure:
+    assert len(capacity_plot.data) > 0
+    fig = plt.figure(num = 3, figsize=(8, 5))
+    ax = fig.add_subplot(1,1,1)
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Capacity')
+    ax.set_title(f'Region: {capacity_plot.region}, Agent: {capacity_plot.agent}, Sector: {capacity_plot.sector}')
+    axes = []
+    headers = []
+    for tech, data in capacity_plot.data.items():
+        y_vals = list(data['capacity'])
+        x_vals = list(data['year'])
+        new_ax = ax.plot(x_vals, y_vals)
+        axes.append(new_ax)
+        headers.append(tech)
+
+    ax.legend(tuple([i[0] for i in axes]), tuple(headers))
+    return fig
