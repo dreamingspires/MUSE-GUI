@@ -1,6 +1,6 @@
 from typing import Dict, List
 import PySimpleGUI as sg
-from muse_gui.backend.plots import capacity_data_frame_to_plots
+from muse_gui.backend.plots import capacity_data_frame_to_plots, price_data_frame_to_plots
 from muse_gui.data_defs.commodity import Commodity, CommodityType
 from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
 from muse_gui.data_defs.sector import Sector, SectorView
@@ -108,12 +108,12 @@ layout_com = make_table_layout(
     [[i for i in commodity_view] for commodity_view in commodity_views],
 )
 
-out = pd.read_csv('MCACapacity.csv')
-
+out_cap = pd.read_csv('MCACapacity.csv')
+out_price = pd.read_csv('MCAPrices.csv')
 fig = generate_plot()
 
-capacity_plots = capacity_data_frame_to_plots(out)
-
+capacity_plots = capacity_data_frame_to_plots(out_cap)
+price_plots = price_data_frame_to_plots(out_price)
 figure_elems = GuiFigureElements(
     figure1 = fig
 )
@@ -121,7 +121,7 @@ figure_elems = GuiFigureElements(
 attach_capacity_plot_to_figure(fig ,capacity_plots[0])
 
 
-plot_layout = generate_plot_layout(figure_elems, 'figure1')
+plot_layout = generate_plot_layout(figure_elems, 'figure1', [f'capacity_plot_{c.name}' for c in capacity_plots]+[f'price_plot{r.region}' for r in price_plots])
 
 layout = [[define_tab_group({
     "Timeslices": [[sg.Text('Hey')]],
@@ -133,10 +133,11 @@ window = sg.Window(
     'Window Title', 
     layout, 
     resizable = True,
-    size=(10, 100), 
+    size=(1000, 800), 
     font = font, 
     auto_size_text=True,
-    finalize=True
+    finalize=True,
+    element_justification='c'
 )
 
 
@@ -148,6 +149,14 @@ while True:
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == 'Cancel':  # if user closes window or clicks cancel
         break
+    if event == 'listbox':
+        num = window.Element('listbox').Widget.curselection()[0]
+        if num >= len(capacity_plots):
+            attach_price_plot_to_figure(fig ,price_plots[num-len(capacity_plots)])
+        else:
+            attach_capacity_plot_to_figure(fig ,capacity_plots[num])
+
+        figure_elems.draw_figures()
     if event[0:4] == 'Back':
         if toggle:
             toggle = False

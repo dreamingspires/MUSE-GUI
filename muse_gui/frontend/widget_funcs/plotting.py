@@ -71,11 +71,10 @@ def generate_plot_example(title = 'Plot Title', xaxis= 'X-Axis Values', yaxis='Y
     return fig
 
 
-def generate_plot_layout(figures: GuiFigureElements, key: str) -> List[List[Element]]:
+def generate_plot_layout(figures: GuiFigureElements, key: str, available_plots: List[str]) -> List[List[Element]]:
     return [[sg.Text(key.title(), font='Any 18')],
-        [sg.Button('Back', size=(10,1), expand_x=False,expand_y=False)],
+        [sg.Listbox(available_plots, size=(100,8), enable_events=True, key='listbox')],
         [figures.get_element(key)],
-
     ]
 
 

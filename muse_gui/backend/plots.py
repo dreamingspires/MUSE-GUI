@@ -5,6 +5,7 @@ from itertools import product
 
 @dataclass
 class CapacityPlot:
+    name: str
     region: str
     agent: str
     sector: str
@@ -27,7 +28,7 @@ def capacity_data_frame_to_plots(dataframe: pd.DataFrame) -> List[CapacityPlot]:
         data_dict = {}
         for tech in techs:
             data_dict[tech] = output.loc[(output['technology'] == tech) ][['year', 'capacity']]
-        plots.append(CapacityPlot(region=region, agent=agent, sector=sector, data=data_dict))
+        plots.append(CapacityPlot(name=f'{region}_{agent}_{sector}',region=region, agent=agent, sector=sector, data=data_dict))
     return plots
 
 
