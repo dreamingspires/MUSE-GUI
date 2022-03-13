@@ -13,6 +13,6 @@ def make_table_layout(rows: List[List[Element]]) -> List[List[sg.Column]]:
 
 
 def define_tab_group(tab_layouts: Dict[str, List[List[Element]]]) -> sg.TabGroup:
-    tabs = [sg.Tab(tab_name, layout) for tab_name, layout in tab_layouts.items()]
+    tabs = [sg.Tab(tab_name, layout, key=f'-TAB-{tab_name.upper()}-') for tab_name, layout in tab_layouts.items()]
     return sg.TabGroup([tabs], expand_x = True, expand_y = True)
 

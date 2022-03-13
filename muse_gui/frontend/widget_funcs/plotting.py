@@ -13,9 +13,10 @@ def _draw_figure(canvas, figure):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
+
 def _figure_to_canvas(fig: Figure, key: str = 'canvas') -> sg.Canvas:
     figure_x, figure_y, figure_w, figure_h = fig.bbox.bounds
-    return sg.Canvas(size=(figure_w, figure_h), key=key)
+    return sg.Canvas(key=key, expand_x=True,expand_y=True,size=(1,1))
 
 def _get_figure_size(fig: Figure) -> Tuple[float,float]:
     figure_x, figure_y, figure_w, figure_h = fig.bbox.bounds
@@ -25,6 +26,7 @@ class GuiFigureElements:
     def __init__(self, **figures: Figure) -> None:
         self._figures = figures
 
+
     def get_element(self, arg:str):
         return _figure_to_canvas(self._figures[arg], key=arg)
 
@@ -32,8 +34,10 @@ class GuiFigureElements:
         return _get_figure_size(self._figures[arg])
 
     def draw_figures_in_window(self, window):
+        figure_aggs = []
         for key, fig in self:
-            _draw_figure(window[key].TKCanvas, fig)
+            figure_aggs.append(_draw_figure(window[key].TKCanvas, fig))
+        self._figure_aggs = figure_aggs
 
     def __iter__(self):
         self._iterator = iter(zip(self._figures.keys(), self._figures.values()))
@@ -45,7 +49,7 @@ class GuiFigureElements:
 
 # These are used to demonstate examples, and very replaceable
 
-def generate_plot(title = 'Plot Title', xaxis= 'X-Axis Values', yaxis='Y-Axis Values') -> Figure:
+def generate_plot_example(title = 'Plot Title', xaxis= 'X-Axis Values', yaxis='Y-Axis Values') -> Figure:
     values_to_plot = (20, 35, 30, 35, 27)
     ind = np.arange(len(values_to_plot))
     width = 0.4
@@ -64,14 +68,20 @@ def generate_plot(title = 'Plot Title', xaxis= 'X-Axis Values', yaxis='Y-Axis Va
 def generate_plot_layout(figures: GuiFigureElements, key: str) -> List[List[Element]]:
     return [[sg.Text(key.title(), font='Any 18')],
         [figures.get_element(key)],
-        [sg.OK(pad=((figures.get_size(key)[0] / 2, 0), 3), size=(4, 2))]
+        [sg.Button('Back', size=(10,1))]
     ]
 
 
-def capacity_plot_to_figure(capacity_plot: CapacityPlot) -> Figure:
+def generate_plot() -> Figure:
+    return plt.figure()
+
+def attach_capacity_plot_to_figure(figure: Figure, capacity_plot: CapacityPlot):
     assert len(capacity_plot.data) > 0
-    fig = plt.figure(num = 3, figsize=(8, 5))
-    ax = fig.add_subplot(1,1,1)
+    if len(figure.axes) ==0:
+        ax = figure.add_subplot(1,1,1)
+    else:
+        ax = figure.axes[0]
+        ax.clear()
     ax.set_xlabel('Year')
     ax.set_ylabel('Capacity')
     ax.set_title(f'Region: {capacity_plot.region}, Agent: {capacity_plot.agent}, Sector: {capacity_plot.sector}')
@@ -85,12 +95,17 @@ def capacity_plot_to_figure(capacity_plot: CapacityPlot) -> Figure:
         headers.append(tech)
 
     ax.legend(tuple([i[0] for i in axes]), tuple(headers))
-    return fig
 
-def price_plot_to_figure(price_plot: PricePlot) -> Figure:
+
+def attach_price_plot_to_figure(figure_num: int, price_plot: PricePlot):
     assert len(price_plot.data) > 0
-    fig = plt.figure(num = 3, figsize=(8, 5))
-    ax = fig.add_subplot(1,1,1)
+    figure = plt.figure(num=figure_num)
+    if len(figure.axes) ==0:
+        ax = figure.add_subplot(1,1,1)
+    else:
+        ax = figure.axes[0]
+        ax.clear()
+
     ax.set_xlabel('Year')
     ax.set_ylabel('Price')
     ax.set_title(f'Region: {price_plot.region}')
@@ -104,4 +119,3 @@ def price_plot_to_figure(price_plot: PricePlot) -> Figure:
         headers.append(commodity)
 
     ax.legend(tuple([i[0] for i in axes]), tuple(headers))
-    return fig

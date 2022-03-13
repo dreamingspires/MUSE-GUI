@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 import PySimpleGUI as sg
 from muse_gui.backend.plots import capacity_data_frame_to_plots
 from muse_gui.data_defs.commodity import Commodity, CommodityType
@@ -9,9 +9,24 @@ from muse_gui.data_defs.region import Region, RegionView
 from muse_gui.data_defs.agent import Agent, AgentView
 from PySimpleGUI.PySimpleGUI import Element
 from muse_gui.frontend.widget_funcs.generics import define_tab_group, make_table_layout
-from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, capacity_plot_to_figure, generate_plot,  generate_plot_layout
+from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_capacity_plot_to_figure, generate_plot,  generate_plot_layout, attach_price_plot_to_figure
 from matplotlib.figure import Figure
 import pandas as pd
+
+def layout_cycle(layouts: List[List[List[Element]]], prefix = None, visible_column: int = 0) -> List[List[Element]]:
+    columns = []
+    for i, layout in enumerate(layouts):
+        if prefix is None:
+            key_str = f'-CYCLE-COLUMN-{str(i)}-'
+        else:
+            key_str = f'-CYCLE-COLUMN-{prefix.upper()}-{str(i)}-'
+        if i ==visible_column:
+            columns.append(sg.Column(layout, key=key_str, visible= True, expand_x=True, expand_y = True))
+        else:
+            columns.append(sg.Column(layout, key=key_str, visible= False, expand_x=True, expand_y = True))
+    return [columns]
+
+
 # Add your new theme colors and settings
 light = '#E7F5F9'
 dark = '#D8EEF4'
@@ -95,13 +110,18 @@ layout_com = make_table_layout(
 
 out = pd.read_csv('MCACapacity.csv')
 
+fig = generate_plot()
+
 capacity_plots = capacity_data_frame_to_plots(out)
 
 figure_elems = GuiFigureElements(
-    capacity_plot = capacity_plot_to_figure(capacity_plots[0])
+    figure1 = fig
 )
 
-plot_layout = generate_plot_layout(figure_elems, 'capacity_plot')
+attach_capacity_plot_to_figure(fig ,capacity_plots[0])
+
+
+plot_layout = generate_plot_layout(figure_elems, 'figure1')
 
 layout = [[define_tab_group({
     "Timeslices": [[sg.Text('Hey')]],
@@ -113,19 +133,36 @@ window = sg.Window(
     'Window Title', 
     layout, 
     resizable = True,
-    size=(500,500), 
+    size=(1000,1000), 
     font = font, 
-    auto_size_buttons = True, 
+    #auto_size_buttons = False, 
     auto_size_text=True,
     finalize=True
 )
+
+
 figure_elems.draw_figures_in_window(window)
 
-while True:
 
+toggle =False
+while True:
+    #figure_elems.draw_figures_in_window(window)
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == 'Cancel':  # if user closes window or clicks cancel
         break
+    if event[0:4] == 'Back':
+        if toggle:
+            toggle = False
+            print('attach1')
+            attach_capacity_plot_to_figure(fig ,capacity_plots[0])
+            figure_elems._figure_aggs[0].draw()
+        else:
+            print('attach2')
+            toggle = True
+            attach_capacity_plot_to_figure(fig ,capacity_plots[1])
+            figure_elems._figure_aggs[0].draw()
+
+
     print('You entered ', values[0])
 
 window.close()
