@@ -133,20 +133,18 @@ window = sg.Window(
     'Window Title', 
     layout, 
     resizable = True,
-    size=(1000,1000), 
+    size=(10, 100), 
     font = font, 
-    #auto_size_buttons = False, 
     auto_size_text=True,
     finalize=True
 )
 
 
-figure_elems.draw_figures_in_window(window)
-
+figure_elems.initialise_in_window(window)
+figure_elems.draw_figures()
 
 toggle =False
 while True:
-    #figure_elems.draw_figures_in_window(window)
     event, values = window.read()
     if event == sg.WIN_CLOSED or event == 'Cancel':  # if user closes window or clicks cancel
         break
@@ -155,12 +153,12 @@ while True:
             toggle = False
             print('attach1')
             attach_capacity_plot_to_figure(fig ,capacity_plots[0])
-            figure_elems._figure_aggs[0].draw()
+            figure_elems.draw_figures()
         else:
             print('attach2')
             toggle = True
             attach_capacity_plot_to_figure(fig ,capacity_plots[1])
-            figure_elems._figure_aggs[0].draw()
+            figure_elems.draw_figures()
 
 
     print('You entered ', values[0])

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Tuple
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -7,16 +8,14 @@ from matplotlib.figure import Figure
 from PySimpleGUI.PySimpleGUI import Element
 from muse_gui.backend.plots import CapacityPlot, PricePlot
 
-def _draw_figure(canvas, figure):
+def _initialise_figure(canvas, figure):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
-    figure_canvas_agg.draw()
-    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    figure_canvas_agg.get_tk_widget().pack(side='bottom', fill='both', expand=1)
     return figure_canvas_agg
 
 
 def _figure_to_canvas(fig: Figure, key: str = 'canvas') -> sg.Canvas:
-    figure_x, figure_y, figure_w, figure_h = fig.bbox.bounds
-    return sg.Canvas(key=key, expand_x=True,expand_y=True,size=(1,1))
+    return sg.Canvas(key=key, expand_x=True,expand_y=True)
 
 def _get_figure_size(fig: Figure) -> Tuple[float,float]:
     figure_x, figure_y, figure_w, figure_h = fig.bbox.bounds
@@ -25,7 +24,7 @@ def _get_figure_size(fig: Figure) -> Tuple[float,float]:
 class GuiFigureElements:
     def __init__(self, **figures: Figure) -> None:
         self._figures = figures
-
+        self._figure_aggs = None
 
     def get_element(self, arg:str):
         return _figure_to_canvas(self._figures[arg], key=arg)
@@ -33,11 +32,18 @@ class GuiFigureElements:
     def get_size(self, arg:str):
         return _get_figure_size(self._figures[arg])
 
-    def draw_figures_in_window(self, window):
+    def initialise_in_window(self, window):
         figure_aggs = []
         for key, fig in self:
-            figure_aggs.append(_draw_figure(window[key].TKCanvas, fig))
+            figure_aggs.append(_initialise_figure(window[key].TKCanvas, fig))
         self._figure_aggs = figure_aggs
+    
+    def draw_figures(self):
+        if self._figure_aggs is None:
+            raise ValueError('Please initialise_in_window first')
+        else:
+            for figure_agg in self._figure_aggs:
+                figure_agg.draw()
 
     def __iter__(self):
         self._iterator = iter(zip(self._figures.keys(), self._figures.values()))
@@ -67,13 +73,16 @@ def generate_plot_example(title = 'Plot Title', xaxis= 'X-Axis Values', yaxis='Y
 
 def generate_plot_layout(figures: GuiFigureElements, key: str) -> List[List[Element]]:
     return [[sg.Text(key.title(), font='Any 18')],
+        [sg.Button('Back', size=(10,1), expand_x=False,expand_y=False)],
         [figures.get_element(key)],
-        [sg.Button('Back', size=(10,1))]
+
     ]
 
 
 def generate_plot() -> Figure:
-    return plt.figure()
+    fig = plt.figure(figsize=(1, 1), dpi=130)
+    fig.patch.set_facecolor('#E7F5F9')
+    return fig
 
 def attach_capacity_plot_to_figure(figure: Figure, capacity_plot: CapacityPlot):
     assert len(capacity_plot.data) > 0
@@ -97,9 +106,8 @@ def attach_capacity_plot_to_figure(figure: Figure, capacity_plot: CapacityPlot):
     ax.legend(tuple([i[0] for i in axes]), tuple(headers))
 
 
-def attach_price_plot_to_figure(figure_num: int, price_plot: PricePlot):
+def attach_price_plot_to_figure(figure: Figure, price_plot: PricePlot):
     assert len(price_plot.data) > 0
-    figure = plt.figure(num=figure_num)
     if len(figure.axes) ==0:
         ax = figure.add_subplot(1,1,1)
     else:
