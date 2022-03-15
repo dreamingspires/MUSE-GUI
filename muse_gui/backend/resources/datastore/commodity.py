@@ -25,7 +25,7 @@ class CommodityForwardDependents(BaseForwardDependents):
 
 class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
     _commodities: Dict[str, Commodity]
-    def __init__(self, parent: Datastore, commodities: List[Commodity] = []) -> None:
+    def __init__(self, parent: "Datastore", commodities: List[Commodity] = []) -> None:
         self._commodities = {}
         for commodity in commodities:
             self.create(commodity)

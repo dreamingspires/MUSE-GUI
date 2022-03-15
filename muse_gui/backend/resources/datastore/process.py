@@ -22,8 +22,12 @@ class ProcessForwardDependents(BaseForwardDependents):
 
 class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForwardDependents]):
     _processes: Dict[str, Process]
-    def __init__(self, parent: Datastore, processes: List[Process] = []) -> None:
-        raise NotImplementedError
+    def __init__(self, parent: "Datastore", processes: List[Process] = []) -> None:
+        self._processes = {}
+        for process in processes:
+            self.create(process)
+        self._parent = parent
+
 
     def create(self, model: Process) -> Process:
         raise NotImplementedError

@@ -12,12 +12,12 @@ class CommodityType(str, Enum):
     environmental = 'environmental'
 
 
-class CommodityPrice:
+class CommodityPrice(BaseModel):
     region_name: str
     time: int
     value: float
 
-class CommodityPrices:
+class CommodityPrices(BaseModel):
     unit: str
     prices: List[CommodityPrice]
 

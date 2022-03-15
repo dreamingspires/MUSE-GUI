@@ -21,8 +21,12 @@ class AvailableYearForwardDependents(BaseForwardDependents):
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDependents, AvailableYearForwardDependents]):
     _available_years: Dict[str, AvailableYear]
-    def __init__(self, parent: Datastore, available_years: List[AvailableYear] = []) -> None:
-        raise NotImplementedError
+    def __init__(self, parent: "Datastore", available_years: List[AvailableYear] = []) -> None:
+        self.available_years = {}
+        for available_year in available_years:
+            self.create(available_year)
+        self._parent = parent
+
 
     def create(self, model: AvailableYear) -> AvailableYear:
         raise NotImplementedError

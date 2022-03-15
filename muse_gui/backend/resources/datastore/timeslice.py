@@ -19,7 +19,7 @@ class TimesliceForwardDependents(BaseForwardDependents):
 
 class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, TimesliceForwardDependents]):
     _timeslices: Dict[str, Timeslice]
-    def __init__(self, parent: Datastore, timeslices: List[Timeslice] = []) -> None:
+    def __init__(self, parent: "Datastore", timeslices: List[Timeslice] = []) -> None:
         self._timeslices = {}
         for timeslice in timeslices:
             self.create(timeslice)

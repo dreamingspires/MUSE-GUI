@@ -4,8 +4,9 @@ class Timeslice(Data):
     name: str
     value: float
 
-class LevelName(str, Data):
+class LevelName(Data):
+    level: str
     pass
 
-class AvailableYear(int, Data):
-    pass
+class AvailableYear(Data):
+    year: int

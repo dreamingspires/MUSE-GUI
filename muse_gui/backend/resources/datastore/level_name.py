@@ -18,8 +18,11 @@ class LevelNameForwardDependents(BaseForwardDependents):
 
 class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, LevelNameForwardDependents]):
     _level_names: List[LevelName]
-    def __init__(self, parent: Datastore, level_names: List[LevelName] = []) -> None:
-        raise NotImplementedError
+    def __init__(self, parent: "Datastore", level_names: List[LevelName] = []) -> None:
+        self.level_names = {}
+        for level_name in level_names:
+            self.create(level_name)
+        self._parent = parent
 
     def create(self, model: LevelName) -> LevelName:
         raise NotImplementedError

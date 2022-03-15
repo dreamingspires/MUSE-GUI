@@ -23,7 +23,7 @@ class RegionForwardDependents(BaseForwardDependents):
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
     _regions: Dict[str, Region]
-    def __init__(self, parent: Datastore, regions: List[Region] = []) -> None:
+    def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
         self._regions = {}
         for region in regions:
             self.create(region)

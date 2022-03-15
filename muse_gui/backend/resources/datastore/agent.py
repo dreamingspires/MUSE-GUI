@@ -18,8 +18,11 @@ class AgentForwardDependents(BaseForwardDependents):
 
 class AgentDatastore(BaseDatastore[Agent, AgentBackDependents, AgentForwardDependents]):
     _processes: Dict[str, Agent]
-    def __init__(self, parent: Datastore, agents: List[Agent] = []) -> None:
-        raise NotImplementedError
+    def __init__(self, parent: "Datastore", agents: List[Agent] = []) -> None:
+        self._commodities = {}
+        for agent in agents:
+            self.create(agent)
+        self._parent = parent
 
     def create(self, model: Agent) -> Agent:
         raise NotImplementedError

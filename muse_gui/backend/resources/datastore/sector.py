@@ -19,7 +19,7 @@ class SectorForwardDependents(BaseForwardDependents):
 
 class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardDependents]):
     _sectors: Dict[str, Sector]
-    def __init__(self, parent: Datastore, sectors: List[Sector] = []) -> None:
+    def __init__(self, parent: "Datastore", sectors: List[Sector] = []) -> None:
         self._sectors = {}
         for sector in sectors:
             self.create(sector)
