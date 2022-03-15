@@ -2,30 +2,32 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseBackDependents, BaseDatastore, BaseForwardDependents
-from muse_gui.data_defs.process import Process
+from muse_gui.data_defs.agent import Agent
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
 
 @dataclass
 class AgentBackDependents(BaseBackDependents):
     regions: List[str]
-    #processes: List[str]
 
 @dataclass
 class AgentForwardDependents(BaseForwardDependents):
     pass
 
-class ProcessDatastore(BaseDatastore[Process, AgentBackDependents, AgentForwardDependents]):
-    _processes: Dict[str, Process]
-    def __init__(self) -> None:
+class AgentDatastore(BaseDatastore[Agent, AgentBackDependents, AgentForwardDependents]):
+    _processes: Dict[str, Agent]
+    def __init__(self, parent: Datastore, agents: List[Agent] = []) -> None:
         raise NotImplementedError
 
-    def create(self, model: Process) -> Process:
+    def create(self, model: Agent) -> Agent:
         raise NotImplementedError
     
-    def read(self, key: str) -> Process:
+    def read(self, key: str) -> Agent:
         raise NotImplementedError
     
-    def update(self, key: str, model: Process) -> Process:
+    def update(self, key: str, model: Agent) -> Agent:
         raise NotImplementedError
 
     def delete(self, key: str) -> None:

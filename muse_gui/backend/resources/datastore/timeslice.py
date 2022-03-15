@@ -5,10 +5,13 @@ from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from muse_gui.data_defs.timeslice import Timeslice
 from .exceptions import KeyAlreadyExists, KeyNotFound
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
+
 @dataclass
 class TimesliceBackDependents(BaseBackDependents):
     level_names: List[str]
-    pass
 
 @dataclass
 class TimesliceForwardDependents(BaseForwardDependents):
@@ -16,7 +19,7 @@ class TimesliceForwardDependents(BaseForwardDependents):
 
 class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, TimesliceForwardDependents]):
     _timeslices: Dict[str, Timeslice]
-    def __init__(self, parent, timeslices: List[Timeslice] = []) -> None:
+    def __init__(self, parent: Datastore, timeslices: List[Timeslice] = []) -> None:
         self._timeslices = {}
         for timeslice in timeslices:
             self.create(timeslice)

@@ -5,17 +5,21 @@ from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from muse_gui.data_defs.sector import Sector
 from .exceptions import KeyAlreadyExists, KeyNotFound
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
+
 @dataclass
 class SectorBackDependents(BaseBackDependents):
     pass
 
 @dataclass
 class SectorForwardDependents(BaseForwardDependents):
-    pass
+    processes: List[str]
 
 class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardDependents]):
     _sectors: Dict[str, Sector]
-    def __init__(self, parent, sectors: List[Sector] = []) -> None:
+    def __init__(self, parent: Datastore, sectors: List[Sector] = []) -> None:
         self._sectors = {}
         for sector in sectors:
             self.create(sector)

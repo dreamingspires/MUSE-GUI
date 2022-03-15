@@ -6,6 +6,9 @@ from typing import Dict, List
 from muse_gui.backend.resources.datastore.base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from muse_gui.data_defs.timeslice import AvailableYear
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
 
 @dataclass
 class AvailableYearBackDependents(BaseBackDependents):
@@ -13,17 +16,18 @@ class AvailableYearBackDependents(BaseBackDependents):
 
 @dataclass
 class AvailableYearForwardDependents(BaseForwardDependents):
-    pass
+    commodities: List[str]
+    processes: List[str]
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDependents, AvailableYearForwardDependents]):
     _available_years: Dict[str, AvailableYear]
-    def __init__(self) -> None:
+    def __init__(self, parent: Datastore, available_years: List[AvailableYear] = []) -> None:
         raise NotImplementedError
 
     def create(self, model: AvailableYear) -> AvailableYear:
         raise NotImplementedError
     
-    def read(self, key: str) -> AvailableYear:
+    def read(self, key: int) -> AvailableYear:
         raise NotImplementedError
     
     def update(self, key: str, model: AvailableYear) -> AvailableYear:

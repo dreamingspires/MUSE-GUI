@@ -2,25 +2,30 @@ from typing import Dict, List
 from muse_gui.backend.resources.datastore import available_year
 
 from muse_gui.backend.resources.datastore.region import RegionDatastore
+from muse_gui.data_defs.process import Process
+from muse_gui.data_defs.timeslice import AvailableYear
 
 from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from .exceptions import DependentNotFound, KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.commodity import Commodity
 from muse_gui.data_defs.region import Region
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
 
 @dataclass
 class CommodityBackDependents(BaseBackDependents):
     regions: List[str]
-    available_years: List[str]
+    available_years: List[AvailableYear]
 
 @dataclass
 class CommodityForwardDependents(BaseForwardDependents):
-    pass
+    processes: List[str]
 
 class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
     _commodities: Dict[str, Commodity]
-    def __init__(self, parent, commodities: List[Commodity] = []) -> None:
+    def __init__(self, parent: Datastore, commodities: List[Commodity] = []) -> None:
         self._commodities = {}
         for commodity in commodities:
             self.create(commodity)
@@ -28,7 +33,7 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
 
     def back_dependents(self, model: Commodity) -> CommodityBackDependents:
         regions: List[str] = []
-        available_years: List[str] = []
+        available_years: List[AvailableYear] = []
         for price in model.commodity_prices.prices:
             try:
                 region = self._parent.region.read(price.region_name)

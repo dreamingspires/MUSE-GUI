@@ -5,6 +5,10 @@ from muse_gui.backend.resources.datastore.base import BaseBackDependents, BaseDa
 from muse_gui.data_defs.process import Process
 
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
+
 @dataclass
 class ProcessBackDependents(BaseBackDependents):
     regions: List[str]
@@ -14,12 +18,11 @@ class ProcessBackDependents(BaseBackDependents):
 
 @dataclass
 class ProcessForwardDependents(BaseForwardDependents):
-    #agents: List[str]
     pass
 
 class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForwardDependents]):
     _processes: Dict[str, Process]
-    def __init__(self) -> None:
+    def __init__(self, parent: Datastore, processes: List[Process] = []) -> None:
         raise NotImplementedError
 
     def create(self, model: Process) -> Process:

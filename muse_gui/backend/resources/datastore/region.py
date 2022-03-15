@@ -7,6 +7,10 @@ from muse_gui.data_defs.region import Region
 from .exceptions import KeyAlreadyExists, KeyNotFound
 from dataclasses import dataclass
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import Datastore
+
 @dataclass
 class RegionBackDependents(BaseBackDependents):
     pass
@@ -14,10 +18,12 @@ class RegionBackDependents(BaseBackDependents):
 @dataclass
 class RegionForwardDependents(BaseForwardDependents):
     commodities: List[str]
+    processes: List[str]
+    agents: List[str]
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
     _regions: Dict[str, Region]
-    def __init__(self, parent, regions: List[Region] = []) -> None:
+    def __init__(self, parent: Datastore, regions: List[Region] = []) -> None:
         self._regions = {}
         for region in regions:
             self.create(region)
