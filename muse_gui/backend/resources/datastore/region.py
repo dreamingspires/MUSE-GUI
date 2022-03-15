@@ -1,20 +1,29 @@
 from typing import Dict, List
 
-from .base import BaseDatastore
+from muse_gui.data_defs.commodity import Commodity
+
+from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from muse_gui.data_defs.region import Region
 from .exceptions import KeyAlreadyExists, KeyNotFound
+from dataclasses import dataclass
 
-class RegionDatastore(BaseDatastore[Region]):
+@dataclass
+class RegionBackDependents(BaseBackDependents):
+    pass
+
+@dataclass
+class RegionForwardDependents(BaseForwardDependents):
+    commodities: Dict[str, Commodity]
+
+
+class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
     _regions: Dict[str, Region]
     def __init__(self, parent, regions: List[Region] = []) -> None:
-        new_regions = {}
+        self._regions = {}
         for region in regions:
-            if region.name in new_regions:
-                raise KeyAlreadyExists(region.name, self)
-            else:
-                new_regions[region.name] = region
-        self._regions = new_regions
+            self.create(region)
         self._parent = parent
+
     def create(self, model: Region) -> Region:
         if model.name in self._regions:
             raise KeyAlreadyExists(model.name, self)
@@ -34,9 +43,12 @@ class RegionDatastore(BaseDatastore[Region]):
             return self._regions[key]
 
     def delete(self, key: str) -> None:
-        self.dependents(key)
+        self.back_dependents(key)
         raise NotImplementedError
+    
+    def back_dependents(self, key:str) -> RegionBackDependents:
+        return RegionBackDependents()
 
-    def dependents(self, key: str):
+    def forward_dependents(self, key: str) -> RegionForwardDependents:
         raise NotImplementedError
 

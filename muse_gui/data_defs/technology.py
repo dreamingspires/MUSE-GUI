@@ -1,13 +1,15 @@
 from typing import Dict, Literal
 
 from pydantic import BaseModel, confloat, conint
-from .abstract import Data
+from pydantic.types import NonNegativeInt
+from .abstract import Data, View
 from .region import Region
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
-
-class Technology(BaseModel):
+Float0To100 = confloat(ge=0, le=100)
+Float0To1 = confloat(ge=0, le=1.0)
+class Technology(Data):
     name: str
     region: Region
     level: Literal['fixed', 'flexible'] = 'fixed'
@@ -20,17 +22,17 @@ class Technology(BaseModel):
     fix_exp: float = 1.0
     var_par: float = 0
     var_exp: float = 1.0
-    max_capacity_addition: conint(ge=0) = 0
-    max_capacity_growth: confloat(ge=0, le=100) = 0
-    total_capacity_addition: conint(ge=0) = 0
-    technical_life: conint(ge=0) = 0
-    utilization_factor: confloat(ge=0, le=1.0) = 0
-    efficiency: confloat(ge=0, le=100) = 0
-    scaling_size: confloat(ge=0) = 0
-    interest_rate: confloat(ge=0) = 0
+    max_capacity_addition: NonNegativeInt = 0
+    max_capacity_growth: Float0To100 = 0
+    total_capacity_addition: NonNegativeInt = 0
+    technical_life: NonNegativeInt = 0
+    utilization_factor: Float0To1 = 0
+    efficiency: Float0To100 = 0
+    scaling_size: NonNegativeInt = 0
+    interest_rate: NonNegativeInt = 0
 
 
-class TechnologyView(Data):
+class TechnologyView(View):
     """
     TODO: Fill other values for view
     """

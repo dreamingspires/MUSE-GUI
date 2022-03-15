@@ -2,8 +2,8 @@ import math
 from typing import Dict, Literal, Optional
 
 from pydantic import BaseModel, confloat
-from pydantic.types import PositiveFloat
-from .abstract import Data
+from pydantic.types import NonNegativeFloat, PositiveFloat
+from .abstract import Data, View
 from .region import Region
 import PySimpleGUI as sg
 from PySimpleGUI import Element
@@ -42,7 +42,7 @@ class DecisionMethod(str, Enum):
     SingleObjective = 'single_objective'
 
 
-class Agent(BaseModel):
+class Agent(Data):
     name: str
     type: Literal['New', 'Retrofit']
     region: Region
@@ -53,11 +53,11 @@ class Agent(BaseModel):
     objective_3: Optional[AgentObjective] = None
     search_rule: SearchRule = SearchRule.All
     decision_method: DecisionMethod = DecisionMethod.SingleObjective
-    quantity: PositiveFloat = 1.0
+    quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
 
 
-class AgentView(Data):
+class AgentView(View):
     model: Agent
 
     def item(self):

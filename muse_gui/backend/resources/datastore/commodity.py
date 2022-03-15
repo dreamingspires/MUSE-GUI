@@ -2,29 +2,29 @@ from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.region import RegionDatastore
 
-from .base import BaseDatastore
+from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from .exceptions import DependentNotFound, KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.commodity import Commodity
 from muse_gui.data_defs.region import Region
 from dataclasses import dataclass
 
 @dataclass
-class CommodityDependents:
+class CommodityBackDependents(BaseBackDependents):
     regions: Dict[str, Region]
 
-class CommodityDatastore(BaseDatastore[Commodity]):
+@dataclass
+class CommodityForwardDependents(BaseForwardDependents):
+    pass
+
+class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
     _commodities: Dict[str, Commodity]
     def __init__(self, parent, commodities: List[Commodity] = []) -> None:
-        new_commodities = {}
+        self._commodities = {}
         for commodity in commodities:
-            if commodity.commodity in new_commodities:
-                raise KeyAlreadyExists(commodity.commodity, self)
-            else:
-                new_commodities[commodity.commodity] = commodity
-        self._commodities = new_commodities
+            self.create(commodity)
         self._parent = parent
 
-    def dependents(self, model: Commodity) -> CommodityDependents:
+    def back_dependents(self, model: Commodity) -> CommodityBackDependents:
         regions: Dict[str, Region] = {}
         for price in model.commodity_prices.prices:
             try:
@@ -32,13 +32,16 @@ class CommodityDatastore(BaseDatastore[Commodity]):
             except KeyNotFound:
                 raise DependentNotFound(model, price.region_name, self._parent.region)
             regions[region.name] = region
-        return CommodityDependents(regions)
+        return CommodityBackDependents(regions)
+    
+    def forward_dependents(self, model: Commodity) -> CommodityForwardDependents:
+        raise NotImplementedError
     
     def create(self, model: Commodity) -> Commodity:
         if model.commodity in self._commodities:
             raise KeyAlreadyExists(model.commodity, self)
         else:
-            self.dependents(model)
+            self.back_dependents(model)
             self._commodities[model.commodity] = model
             return model
     def update(self, key: str, model: Commodity) -> Commodity:
@@ -56,7 +59,7 @@ class CommodityDatastore(BaseDatastore[Commodity]):
     def delete(self, key: str) -> None:
         commodity = self.read(key)
 
-        self.dependents(commodity)
+        self.forward_dependents(commodity)
         raise NotImplementedError
 
 

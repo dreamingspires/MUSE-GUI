@@ -1,7 +1,7 @@
 from typing import Dict
 
 from pydantic import BaseModel
-from .abstract import Data
+from .abstract import Data, View
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 from enum import Enum
@@ -29,7 +29,7 @@ class InterpolationType(str, Enum):
     CUBIC = 'cubic'
 
 
-class Sector(BaseModel):
+class Sector(Data):
     """
     TODO: Advanced Mode
     """
@@ -42,7 +42,7 @@ class Sector(BaseModel):
     demand_share = 'new_and_retro'
 
 
-class SectorView(Data):
+class SectorView(View):
     model: Sector
 
     def item(self) -> Dict[str, Element]:

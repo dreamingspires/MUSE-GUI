@@ -1,16 +1,16 @@
 from typing import Dict
 
 from pydantic import BaseModel
-from .abstract import Data
+from .abstract import Data, View
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
 
-class Region(BaseModel):
+class Region(Data):
     name: str
 
 
-class RegionView(Data):
+class RegionView(View):
     model: Region
 
     def item(self) -> Dict[str, Element]:
