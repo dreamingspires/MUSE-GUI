@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import PySimpleGUI as sg
 from PySimpleGUI.PySimpleGUI import Element
 from enum import Enum
@@ -12,6 +12,15 @@ class CommodityType(str, Enum):
     environmental = 'environmental'
 
 
+class CommodityPrice:
+    region_name: str
+    time: int
+    value: float
+
+class CommodityPrices:
+    unit: str
+    prices: List[CommodityPrice]
+
 class Commodity(Data):
     commodity: str
     commodity_type: CommodityType
@@ -19,3 +28,4 @@ class Commodity(Data):
     c_emission_factor_co2: float
     heat_rate: float
     unit: str
+    commodity_prices: CommodityPrices
