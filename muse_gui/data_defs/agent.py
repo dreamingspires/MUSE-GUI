@@ -2,6 +2,7 @@ import math
 from typing import Dict, Literal, Optional
 
 from pydantic import BaseModel, confloat
+from pydantic.types import PositiveFloat
 from .abstract import Data
 from .region import Region
 import PySimpleGUI as sg
@@ -52,7 +53,7 @@ class Agent(BaseModel):
     objective_3: Optional[AgentObjective] = None
     search_rule: SearchRule = SearchRule.All
     decision_method: DecisionMethod = DecisionMethod.SingleObjective
-    quantity: confloat(ge=0) = 1.0
+    quantity: PositiveFloat = 1.0
     maturity_threshold: float = -1.0
 
 
