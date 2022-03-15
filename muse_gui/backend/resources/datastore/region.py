@@ -13,8 +13,7 @@ class RegionBackDependents(BaseBackDependents):
 
 @dataclass
 class RegionForwardDependents(BaseForwardDependents):
-    commodities: Dict[str, Commodity]
-
+    commodities: List[str]
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
     _regions: Dict[str, Region]

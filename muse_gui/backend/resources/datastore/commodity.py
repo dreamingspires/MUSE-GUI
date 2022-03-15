@@ -1,4 +1,5 @@
 from typing import Dict, List
+from muse_gui.backend.resources.datastore import available_year
 
 from muse_gui.backend.resources.datastore.region import RegionDatastore
 
@@ -10,7 +11,8 @@ from dataclasses import dataclass
 
 @dataclass
 class CommodityBackDependents(BaseBackDependents):
-    regions: Dict[str, Region]
+    regions: List[str]
+    available_years: List[str]
 
 @dataclass
 class CommodityForwardDependents(BaseForwardDependents):
@@ -25,14 +27,20 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
         self._parent = parent
 
     def back_dependents(self, model: Commodity) -> CommodityBackDependents:
-        regions: Dict[str, Region] = {}
+        regions: List[str] = []
+        available_years: List[str] = []
         for price in model.commodity_prices.prices:
             try:
                 region = self._parent.region.read(price.region_name)
             except KeyNotFound:
                 raise DependentNotFound(model, price.region_name, self._parent.region)
-            regions[region.name] = region
-        return CommodityBackDependents(regions)
+            try:
+                year = self._parent.available_year.read(price.time)
+            except KeyNotFound:
+                raise DependentNotFound(model, price.region_name, self._parent.region)
+            regions.append(region.name)
+            available_years.append(year)
+        return CommodityBackDependents(regions, available_years)
     
     def forward_dependents(self, model: Commodity) -> CommodityForwardDependents:
         raise NotImplementedError

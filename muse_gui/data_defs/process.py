@@ -9,7 +9,8 @@ from PySimpleGUI import Element
 
 Float0To100 = confloat(ge=0, le=100)
 Float0To1 = confloat(ge=0, le=1.0)
-class Technology(Data):
+
+class Process(Data):
     name: str
     region: Region
     level: Literal['fixed', 'flexible'] = 'fixed'
@@ -32,11 +33,11 @@ class Technology(Data):
     interest_rate: NonNegativeInt = 0
 
 
-class TechnologyView(View):
+class ProcessView(View):
     """
     TODO: Fill other values for view
     """
-    model: Technology
+    model: Process
 
     def item(self) -> Dict[str, Element]:
         return {

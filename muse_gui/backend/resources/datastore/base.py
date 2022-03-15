@@ -7,7 +7,6 @@ from muse_gui.data_defs.abstract import Data
 class BaseBackDependents:
     pass
 
-
 class BaseForwardDependents:
     pass
 
