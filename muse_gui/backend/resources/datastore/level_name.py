@@ -44,10 +44,26 @@ class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, Level
             return model
 
     def delete(self, key: str) -> None:
-        raise NotImplementedError
-    
+        existing = self.read(key)
+        forward_deps = self.forward_dependents(existing)
+        for timeslice_key in forward_deps.timeslice:
+            try:
+                self._parent.timeslice.delete(timeslice_key)
+            except KeyNotFound:
+                pass
+        self._level_names.pop(key)
+        return None
+
+    def list(self) -> List[str]:
+        return list(self._level_names.keys())
+
     def back_dependents(self, model: LevelName) -> LevelNameBackDependents:
         return LevelNameBackDependents()
     
     def forward_dependents(self, model: LevelName) -> LevelNameForwardDependents:
-        raise NotImplementedError
+        timeslices = []
+        for key, _ in self._parent.timeslice._timeslices.items():
+            timeslices.append(key)
+        return LevelNameForwardDependents(
+            timeslice = timeslices
+        )

@@ -43,6 +43,9 @@ class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
     def delete(self, key: str) -> None:
         raise NotImplementedError
 
+    def list(self) -> List[str]:
+        raise NotImplementedError
+
     def back_dependents(self, model: ModelType) -> BackDependents:
         raise NotImplementedError
 

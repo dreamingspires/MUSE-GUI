@@ -46,6 +46,9 @@ class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardD
         self.forward_dependents(existing)
         raise NotImplementedError
 
+    def list(self) -> List[str]:
+        return list(self._sectors.keys())
+
     def back_dependents(self, model: Sector) -> SectorBackDependents:
         return SectorBackDependents()
 

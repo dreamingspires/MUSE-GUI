@@ -66,7 +66,10 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
                 pass
         self._regions.pop(key)
         return None
-    
+
+    def list(self) -> List[str]:
+        return list(self._regions.keys())
+
     def back_dependents(self, model: Region) -> RegionBackDependents:
         return RegionBackDependents()
 

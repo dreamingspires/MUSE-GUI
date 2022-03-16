@@ -51,7 +51,10 @@ class AgentDatastore(BaseDatastore[Agent, AgentBackDependents, AgentForwardDepen
     def delete(self, key: str) -> None:
         self._agents.pop(key)
         return None
-    
+
+    def list(self) -> List[str]:
+        return list(self._agents.keys())
+
     def back_dependents(self, model: Agent) -> AgentBackDependents:
         raise NotImplementedError
     

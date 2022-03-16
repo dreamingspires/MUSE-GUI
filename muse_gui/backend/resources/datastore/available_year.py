@@ -16,10 +16,9 @@ class AvailableYearBackDependents(BaseBackDependents):
 
 class AvailableYearForwardDependents(BaseForwardDependents):
     commodity: List[str]
-    process: List[str]
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDependents, AvailableYearForwardDependents]):
-    _available_years: Dict[int, AvailableYear]
+    _available_years: Dict[str, AvailableYear]
     def __init__(self, parent: "Datastore", available_years: List[AvailableYear] = []) -> None:
         self._parent = parent
         self._available_years = {}
@@ -31,26 +30,47 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDepen
         if model.year in self._available_years:
             raise KeyAlreadyExists(str(model.year), self)
         else:
-            self._available_years[model.year] = model
+            self._available_years[str(model.year)] = model
             return model
     
-    def read(self, key: int) -> AvailableYear:
+    def read(self, key: str) -> AvailableYear:
         if str(key) not in self._available_years:
             raise KeyNotFound(str(key), self)
         else:
-            return AvailableYear(year=key)
+            return self._available_years[key]
     
-    def update(self, key: int, model: AvailableYear) -> AvailableYear:
+    def update(self, key: str, model: AvailableYear) -> AvailableYear:
         if key not in self._available_years:
             raise KeyNotFound(str(key), self)
         else:
-            self._available_years[key] = model
+            self._available_years[str(key)] = model
             return model
+
     def delete(self, key: str) -> None:
-        raise NotImplementedError
-    
+        existing = self.read(key)
+        forward_deps = self.forward_dependents(existing)
+        for commodity_key in forward_deps.commodity:
+            try:
+                self._parent.commodity.delete(commodity_key)
+            except KeyNotFound:
+                pass
+        self._available_years.pop(key)
+        return None
+
+
+    def list(self) -> List[str]:
+        return list(self._available_years.keys())
+
     def back_dependents(self, model: AvailableYear) -> AvailableYearBackDependents:
         return AvailableYearBackDependents()
     
     def forward_dependents(self, model: AvailableYear) -> AvailableYearForwardDependents:
-        raise NotImplementedError
+        commodities = []
+        for key, commodity in self._parent.commodity._commodities.items():
+            for price in commodity.commodity_prices.prices:
+                if price.time == model.year:
+                    commodities.append(key)
+        return AvailableYearForwardDependents(
+            commodity = commodities
+        )
+

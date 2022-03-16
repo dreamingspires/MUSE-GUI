@@ -29,25 +29,6 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
         self._commodities = {}
         for commodity in commodities:
             self.create(commodity)
-
-    def back_dependents(self, model: Commodity) -> CommodityBackDependents:
-        regions: List[str] = []
-        available_years: List[str] = []
-        for price in model.commodity_prices.prices:
-            try:
-                region = self._parent.region.read(price.region_name)
-            except KeyNotFound:
-                raise DependentNotFound(model, price.region_name, self._parent.region)
-            try:
-                year = self._parent.available_year.read(price.time)
-            except KeyNotFound:
-                raise DependentNotFound(model, price.region_name, self._parent.region)
-            regions.append(region.name)
-            available_years.append(str(year.year))
-        return CommodityBackDependents(region=regions, available_year=available_years)
-    
-    def forward_dependents(self, model: Commodity) -> CommodityForwardDependents:
-        raise NotImplementedError
     
     def create(self, model: Commodity) -> Commodity:
         if model.commodity in self._commodities:
@@ -70,10 +51,27 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
 
     def delete(self, key: str) -> None:
         commodity = self.read(key)
-
         self.forward_dependents(commodity)
         raise NotImplementedError
 
+    def list(self) -> List[str]:
+        return list(self._commodities.keys())
 
-
-
+    def back_dependents(self, model: Commodity) -> CommodityBackDependents:
+        regions: List[str] = []
+        available_years: List[str] = []
+        for price in model.commodity_prices.prices:
+            try:
+                region = self._parent.region.read(price.region_name)
+            except KeyNotFound:
+                raise DependentNotFound(model, price.region_name, self._parent.region)
+            try:
+                year = self._parent.available_year.read(str(price.time))
+            except KeyNotFound:
+                raise DependentNotFound(model, price.region_name, self._parent.region)
+            regions.append(region.name)
+            available_years.append(str(year.year))
+        return CommodityBackDependents(region=regions, available_year=available_years)
+    
+    def forward_dependents(self, model: Commodity) -> CommodityForwardDependents:
+        raise NotImplementedError

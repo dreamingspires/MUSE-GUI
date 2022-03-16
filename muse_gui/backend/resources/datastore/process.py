@@ -14,7 +14,6 @@ class ProcessBackDependents(BaseBackDependents):
     region: List[str]
     sector: List[str]
     commodity: List[str]
-    available_year: List[str]
 
 class ProcessForwardDependents(BaseForwardDependents):
     pass
@@ -54,7 +53,10 @@ class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForw
     def delete(self, key: str) -> None:
         self._processes.pop(key)
         return None
-    
+
+    def list(self) -> List[str]:
+        return list(self._processes.keys())
+
     def back_dependents(self, model: Process) -> ProcessBackDependents:
         raise NotImplementedError
     
