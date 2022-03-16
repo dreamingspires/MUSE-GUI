@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseBackDependents, BaseDatastore, BaseForwardDependents
+from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.agent import Agent
 
 from typing import TYPE_CHECKING
@@ -17,24 +18,39 @@ class AgentForwardDependents(BaseForwardDependents):
     pass
 
 class AgentDatastore(BaseDatastore[Agent, AgentBackDependents, AgentForwardDependents]):
-    _processes: Dict[str, Agent]
+    _agents: Dict[str, Agent]
     def __init__(self, parent: "Datastore", agents: List[Agent] = []) -> None:
-        self._commodities = {}
+        self._agents = {}
         for agent in agents:
             self.create(agent)
         self._parent = parent
 
     def create(self, model: Agent) -> Agent:
-        raise NotImplementedError
+        if model.name in self._agents:
+            raise KeyAlreadyExists(model.name, self)
+        else:
+            self.back_dependents(model.name)
+            self._agents[model.name] = model
+            return model
     
     def read(self, key: str) -> Agent:
-        raise NotImplementedError
+        if key not in self._agents:
+            raise KeyNotFound(key, self)
+        else:
+            return self._agents[key]
     
     def update(self, key: str, model: Agent) -> Agent:
-        raise NotImplementedError
+        if key not in self._agents:
+            raise KeyNotFound(key, self)
+        else:
+            self.back_dependents(key)
+            self.back_dependents(model.name)
+            self._agents[key] = model
+            return model
 
     def delete(self, key: str) -> None:
-        raise NotImplementedError
+        self._agents.pop(key)
+        return None
     
     def back_dependents(self, key: str) -> AgentBackDependents:
         raise NotImplementedError

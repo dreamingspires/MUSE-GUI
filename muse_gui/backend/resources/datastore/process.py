@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseBackDependents, BaseDatastore, BaseForwardDependents
+from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.process import Process
 
 
@@ -30,16 +31,31 @@ class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForw
 
 
     def create(self, model: Process) -> Process:
-        raise NotImplementedError
+        if model.name in self._processes:
+            raise KeyAlreadyExists(model.name, self)
+        else:
+            self.back_dependents(model.name)
+            self._processes[model.name] = model
+            return model
     
     def read(self, key: str) -> Process:
-        raise NotImplementedError
+        if key not in self._processes:
+            raise KeyNotFound(key, self)
+        else:
+            return self._processes[key]
     
     def update(self, key: str, model: Process) -> Process:
-        raise NotImplementedError
+        if key not in self._processes:
+            raise KeyNotFound(key, self)
+        else:
+            self.back_dependents(key)
+            self.back_dependents(model.name)
+            self._processes[key] = model
+            return model
 
     def delete(self, key: str) -> None:
-        raise NotImplementedError
+        self._processes.pop(key)
+        return None
     
     def back_dependents(self, key: str) -> ProcessBackDependents:
         raise NotImplementedError

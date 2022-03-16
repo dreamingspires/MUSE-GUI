@@ -6,7 +6,6 @@ class Timeslice(Data):
 
 class LevelName(Data):
     level: str
-    pass
 
 class AvailableYear(Data):
     year: int

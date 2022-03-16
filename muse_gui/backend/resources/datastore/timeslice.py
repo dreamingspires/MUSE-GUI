@@ -29,12 +29,15 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
         if model.name in self._timeslices:
             raise KeyAlreadyExists(model.name, self)
         else:
+            self.back_dependents(model.name)
             self._timeslices[model.name] = model
             return model
     def update(self, key: str, model: Timeslice) -> Timeslice:
         if key not in self._timeslices:
             raise KeyNotFound(key, self)
         else:
+            self.back_dependents(key)
+            self.back_dependents(model.name)
             self._timeslices[key] = model
             return model
     def read(self, key: str) -> Timeslice:
@@ -44,12 +47,13 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
             return self._timeslices[key]
 
     def delete(self, key: str) -> None:
-        self.forward_dependents(key)
-        raise NotImplementedError
+        self._timeslices.pop(key)
+        return None
 
     def back_dependents(self, key:str) -> TimesliceBackDependents:
         raise NotImplementedError
 
     def forward_dependents(self, key:str) -> TimesliceForwardDependents:
-        raise NotImplementedError
+        return TimesliceForwardDependents()
+
 
