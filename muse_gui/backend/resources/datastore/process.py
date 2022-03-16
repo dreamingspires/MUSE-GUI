@@ -24,17 +24,16 @@ class ProcessForwardDependents(BaseForwardDependents):
 class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForwardDependents]):
     _processes: Dict[str, Process]
     def __init__(self, parent: "Datastore", processes: List[Process] = []) -> None:
+        self._parent = parent
         self._processes = {}
         for process in processes:
             self.create(process)
-        self._parent = parent
-
 
     def create(self, model: Process) -> Process:
         if model.name in self._processes:
             raise KeyAlreadyExists(model.name, self)
         else:
-            self.back_dependents(model.name)
+            self.back_dependents(model)
             self._processes[model.name] = model
             return model
     
@@ -48,8 +47,9 @@ class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForw
         if key not in self._processes:
             raise KeyNotFound(key, self)
         else:
-            self.back_dependents(key)
-            self.back_dependents(model.name)
+            existing = self.read(key)
+            self.back_dependents(existing)
+            self.back_dependents(model)
             self._processes[key] = model
             return model
 
@@ -57,8 +57,8 @@ class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForw
         self._processes.pop(key)
         return None
     
-    def back_dependents(self, key: str) -> ProcessBackDependents:
+    def back_dependents(self, model: Process) -> ProcessBackDependents:
         raise NotImplementedError
     
-    def forward_dependents(self, key: str) -> ProcessForwardDependents:
+    def forward_dependents(self, model: Process) -> ProcessForwardDependents:
         return ProcessForwardDependents()

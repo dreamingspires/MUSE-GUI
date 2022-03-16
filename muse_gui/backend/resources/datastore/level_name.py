@@ -20,10 +20,10 @@ class LevelNameForwardDependents(BaseForwardDependents):
 class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, LevelNameForwardDependents]):
     _level_names: Dict[str, LevelName]
     def __init__(self, parent: "Datastore", level_names: List[LevelName] = []) -> None:
+        self._parent = parent
         self._level_names = {}
         for level_name in level_names:
             self.create(level_name)
-        self._parent = parent
 
     def create(self, model: LevelName) -> LevelName:
         if model.level in self._level_names:
@@ -48,8 +48,8 @@ class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, Level
     def delete(self, key: str) -> None:
         raise NotImplementedError
     
-    def back_dependents(self, key: str) -> LevelNameBackDependents:
+    def back_dependents(self, model: LevelName) -> LevelNameBackDependents:
         return LevelNameBackDependents()
     
-    def forward_dependents(self, key: str) -> LevelNameForwardDependents:
+    def forward_dependents(self, model: LevelName) -> LevelNameForwardDependents:
         raise NotImplementedError

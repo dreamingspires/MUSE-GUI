@@ -26,10 +26,10 @@ class CommodityForwardDependents(BaseForwardDependents):
 class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
     _commodities: Dict[str, Commodity]
     def __init__(self, parent: "Datastore", commodities: List[Commodity] = []) -> None:
+        self._parent = parent
         self._commodities = {}
         for commodity in commodities:
             self.create(commodity)
-        self._parent = parent
 
     def back_dependents(self, model: Commodity) -> CommodityBackDependents:
         regions: List[str] = []

@@ -20,10 +20,10 @@ class SectorForwardDependents(BaseForwardDependents):
 class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardDependents]):
     _sectors: Dict[str, Sector]
     def __init__(self, parent: "Datastore", sectors: List[Sector] = []) -> None:
+        self._parent = parent
         self._sectors = {}
         for sector in sectors:
             self.create(sector)
-        self._parent = parent
 
     def create(self, model: Sector) -> Sector:
         if model.name in self._sectors:
@@ -44,12 +44,13 @@ class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardD
             return self._sectors[key]
 
     def delete(self, key: str) -> None:
-        self.forward_dependents(key)
+        existing = self.read(key)
+        self.forward_dependents(existing)
         raise NotImplementedError
 
-    def back_dependents(self, key:str) -> SectorBackDependents:
+    def back_dependents(self, model: Sector) -> SectorBackDependents:
         return SectorBackDependents()
 
-    def forward_dependents(self, key:str) -> SectorForwardDependents:
+    def forward_dependents(self, model: Sector) -> SectorForwardDependents:
         raise NotImplementedError
 

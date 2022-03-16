@@ -1,4 +1,4 @@
-from typing import Type
+from typing import List, Type
 from .base import BaseDatastore
 
 
@@ -12,4 +12,8 @@ class KeyNotFound(ValueError):
 
 class DependentNotFound(ValueError):
     def __init__(self, parent_model, dependent_key, dependent_datastore: BaseDatastore) -> None:
-        pass
+        super().__init__()
+
+class LevelNameMismatch(ValueError):
+    def __init__(self, level_names: List[str], provided_levels:List[str]) -> None:
+        super().__init__(f"No of provided levels: {provided_levels} did not match level names {level_names}")

@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from .base import BaseBackDependents, BaseDatastore, BaseForwardDependents
 from muse_gui.data_defs.timeslice import Timeslice
-from .exceptions import KeyAlreadyExists, KeyNotFound
+from .exceptions import KeyAlreadyExists, KeyNotFound, LevelNameMismatch
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -19,25 +19,28 @@ class TimesliceForwardDependents(BaseForwardDependents):
 
 class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, TimesliceForwardDependents]):
     _timeslices: Dict[str, Timeslice]
+    _parent: "Datastore"
     def __init__(self, parent: "Datastore", timeslices: List[Timeslice] = []) -> None:
+        self._parent = parent
         self._timeslices = {}
         for timeslice in timeslices:
             self.create(timeslice)
-        self._parent = parent
 
     def create(self, model: Timeslice) -> Timeslice:
         if model.name in self._timeslices:
             raise KeyAlreadyExists(model.name, self)
         else:
-            self.back_dependents(model.name)
+
+            self.back_dependents(model)
             self._timeslices[model.name] = model
             return model
     def update(self, key: str, model: Timeslice) -> Timeslice:
         if key not in self._timeslices:
             raise KeyNotFound(key, self)
         else:
-            self.back_dependents(key)
-            self.back_dependents(model.name)
+            existing = self.read(key)
+            self.back_dependents(existing)
+            self.back_dependents(model)
             self._timeslices[key] = model
             return model
     def read(self, key: str) -> Timeslice:
@@ -50,10 +53,15 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
         self._timeslices.pop(key)
         return None
 
-    def back_dependents(self, key:str) -> TimesliceBackDependents:
-        raise NotImplementedError
+    def back_dependents(self, model: Timeslice) -> TimesliceBackDependents:
+        level_names = list(self._parent.level_name._level_names.keys())
+        provided_levels = model.name.split('.')
+        if len(level_names) != len(provided_levels):
+            raise LevelNameMismatch(level_names, provided_levels)
+        else:
+            return TimesliceBackDependents(level_names = level_names)
 
-    def forward_dependents(self, key:str) -> TimesliceForwardDependents:
+    def forward_dependents(self, model: Timeslice) -> TimesliceForwardDependents:
         return TimesliceForwardDependents()
 
 
