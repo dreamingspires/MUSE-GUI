@@ -28,21 +28,8 @@ class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForw
     def create(self, model: Process) -> Process:
         return super().create(model, model.name)
     
-    def read(self, key: str) -> Process:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            return self._data[key]
-    
     def update(self, key: str, model: Process) -> Process:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            existing = self.read(key)
-            self.back_dependents(existing)
-            self.back_dependents(model)
-            self._data[key] = model
-            return model
+        return super().update(key, model.name, model)
 
     def delete(self, key: str) -> None:
         self._data.pop(key)

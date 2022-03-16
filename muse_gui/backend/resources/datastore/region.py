@@ -31,16 +31,7 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
         return super().create(model, model.name)
 
     def update(self, key: str, model: Region) -> Region:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            self._data[key] = model
-            return model
-    def read(self, key: str) -> Region:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            return self._data[key]
+        return super().update(key, model.name, model)
 
     def delete(self, key: str) -> None:
         existing = self.read(key)

@@ -33,16 +33,7 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
         return super().create(model, model.commodity)
 
     def update(self, key: str, model: Commodity) -> Commodity:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            self._data[key] = model
-            return model
-    def read(self, key: str) -> Commodity:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            return self._data[key]
+        return super().update(key, model.commodity, model)
 
     def delete(self, key: str) -> None:
         commodity = self.read(key)

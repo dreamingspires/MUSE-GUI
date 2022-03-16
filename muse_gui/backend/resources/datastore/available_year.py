@@ -35,11 +35,7 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDepen
             return self._data[key]
     
     def update(self, key: str, model: AvailableYear) -> AvailableYear:
-        if key not in self._data:
-            raise KeyNotFound(str(key), self)
-        else:
-            self._data[str(key)] = model
-            return model
+        return super().update(key, str(model.year), model)
 
     def delete(self, key: str) -> None:
         existing = self.read(key)

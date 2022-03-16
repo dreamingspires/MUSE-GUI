@@ -1,7 +1,7 @@
 from typing import Dict, Generic, List, TypeVar
 
 from pydantic.main import BaseModel
-from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
+from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
 
 from muse_gui.data_defs.abstract import Data
 from typing import TYPE_CHECKING
@@ -26,7 +26,6 @@ def combine_dicts(model_store: List[Dict[str,List[str]]]) -> Dict[str,List[str]]
                 new_dict[attr_name] = values
     return new_dict
 
-
 ModelType = TypeVar("ModelType", bound =Data)
 BackDependents = TypeVar("BackDependents", bound = BaseBackDependents)
 ForwardDependents = TypeVar("ForwardDependents", bound = BaseForwardDependents)
@@ -41,11 +40,25 @@ class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
             self._data[key] = model
             return model
 
-    def update(self, key: str, model: ModelType) -> ModelType:
-        raise NotImplementedError
-
     def read(self, key: str) -> ModelType:
-        raise NotImplementedError
+        if key not in self._data:
+            raise KeyNotFound(key, self)
+        else:
+            return self._data[key]
+
+    def update(self, existing_key: str, new_key: str, model: ModelType) -> ModelType:
+        if existing_key not in self._data:
+            raise KeyNotFound(existing_key, self)
+        else:
+            existing = self.read(existing_key)
+            self.back_dependents(existing)
+            self.back_dependents(model)
+            if existing_key == new_key:
+                self._data[existing_key] = model
+            else:
+                self.create(model) #type:ignore TODO: Fix: inherited classes have different structure
+                self.delete(existing_key)
+            return model
 
     def delete(self, key: str) -> None:
         raise NotImplementedError

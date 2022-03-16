@@ -25,18 +25,8 @@ class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, Level
     def create(self, model: LevelName) -> LevelName:
         return super().create(model, model.level)
     
-    def read(self, key: str) -> LevelName:
-        if key not in self._data:
-            raise KeyNotFound(str(key), self)
-        else:
-            return LevelName(level=key)
-    
     def update(self, key: str, model: LevelName) -> LevelName:
-        if key not in self._data:
-            raise KeyNotFound(str(key), self)
-        else:
-            self._data[key] = model
-            return model
+        return super().update(key, model.level, model)
 
     def delete(self, key: str) -> None:
         existing = self.read(key)

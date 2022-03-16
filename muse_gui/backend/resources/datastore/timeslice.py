@@ -26,19 +26,7 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
         return super().create(model, model.name)
 
     def update(self, key: str, model: Timeslice) -> Timeslice:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            existing = self.read(key)
-            self.back_dependents(existing)
-            self.back_dependents(model)
-            self._data[key] = model
-            return model
-    def read(self, key: str) -> Timeslice:
-        if key not in self._data:
-            raise KeyNotFound(key, self)
-        else:
-            return self._data[key]
+        return super().update(key, model.name, model)
 
     def delete(self, key: str) -> None:
         self._data.pop(key)
