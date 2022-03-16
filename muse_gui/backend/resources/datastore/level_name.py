@@ -27,5 +27,5 @@ class LevelNameDatastore(BaseDatastore[LevelName]):
         for key, _ in self._parent.timeslice._data.items():
             timeslices.append(key)
         return {
-            'timeslice': timeslices
+            'timeslice': list(set(timeslices))
         }

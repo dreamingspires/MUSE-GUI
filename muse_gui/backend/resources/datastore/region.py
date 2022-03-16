@@ -32,14 +32,15 @@ class RegionDatastore(BaseDatastore[Region]):
                     commodities.append(key)
         processes = []
         for key, process in self._parent.process._data.items():
-            if process.region == model.name:
-                processes.append(key)
+            for technodata in process.technodatas:
+                if technodata.region == model.name:
+                    processes.append(key)
         agents = []
         for key, agent in self._parent.agent._data.items():
             if agent.region == model.name:
                 agents.append(key)
         return {
-            'commodity': commodities,
-            'process': processes,
-            'agent': agents
+            'commodity': list(set(commodities)),
+            'process': list(set(processes)),
+            'agent': list(set(agents))
         }

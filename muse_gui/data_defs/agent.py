@@ -45,7 +45,7 @@ class DecisionMethod(str, Enum):
 class Agent(Data):
     name: str
     type: Literal['New', 'Retrofit']
-    region: Region
+    region: str
     objective_1: AgentObjective = AgentObjective.LCOE
     budget: float = math.inf
     share: str = ''
@@ -56,7 +56,7 @@ class Agent(Data):
     quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
 
-
+"""
 class AgentView(View):
     model: Agent
 
@@ -84,3 +84,4 @@ class AgentView(View):
                 'budget'
             ]
         }
+"""

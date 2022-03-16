@@ -28,4 +28,4 @@ class TimesliceDatastore(BaseDatastore[Timeslice]):
         if len(level_names) != len(provided_levels):
             raise LevelNameMismatch(level_names, provided_levels)
         else:
-            return {'level_name': level_names}
+            return {'level_name': list(set(level_names))}

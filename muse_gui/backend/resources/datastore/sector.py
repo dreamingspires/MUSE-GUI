@@ -23,6 +23,10 @@ class SectorDatastore(BaseDatastore[Sector]):
         return super().update(key, model.name, model)
 
     def forward_dependents(self, model: Sector) -> Dict[str,List[str]]:
-        #process
-        raise NotImplementedError
-
+        processes = []
+        for key, process in self._parent.process._data.items():
+            if process.sector == model.name:
+                processes.append(key)
+        return {
+            'process': list(set(processes))
+        }

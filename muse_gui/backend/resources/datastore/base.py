@@ -93,7 +93,7 @@ class BaseDatastore(Generic[ModelType]):
 
     def forward_dependents_recursive(self, model: ModelType) -> Dict[str,List[str]]:
         model_store = []
-        def get_model_back_deps(rel_object, item) -> None:
+        def get_model_forward_deps(rel_object, item) -> None:
             backs_dict = rel_object.forward_dependents(item)
             if len(backs_dict) == 0:
                 return None
@@ -103,8 +103,8 @@ class BaseDatastore(Generic[ModelType]):
                     rel_method = getattr(self._parent, k)
                     for i in v:
                         rel_item = rel_method.read(i)
-                        get_model_back_deps(rel_method, rel_item)
+                        get_model_forward_deps(rel_method, rel_item)
                 return None
-        get_model_back_deps(self, model)
+        get_model_forward_deps(self, model)
         combined = combine_dicts(model_store)
         return combined

@@ -39,6 +39,6 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear]):
                 if price.time == model.year:
                     commodities.append(key)
         return {
-            'commodity': commodities
+            'commodity': list(set(commodities))
         }
 

@@ -42,10 +42,19 @@ class CommodityDatastore(BaseDatastore[Commodity]):
             regions.append(region.name)
             available_years.append(str(year.year))
         return {
-            'region': regions,
-            'available_year': available_years
+            'region': list(set(regions)),
+            'available_year': list(set(available_years))
         }
     
     def forward_dependents(self, model: Commodity) -> Dict[str,List[str]]:
-        #process: List[str]
-        raise NotImplementedError
+        processes = []
+        for key, process in self._parent.process._data.items():
+            for comm_in in process.comm_in:
+                if comm_in.commodity == model.commodity:
+                    processes.append(key)
+            for comm_out in process.comm_in:
+                if comm_out.commodity == model.commodity:
+                    processes.append(key)
+        return {
+            'process': list(set(processes))
+        }

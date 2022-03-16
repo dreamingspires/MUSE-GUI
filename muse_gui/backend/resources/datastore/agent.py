@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseDatastore
-from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
+from muse_gui.backend.resources.datastore.exceptions import DependentNotFound, KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.agent import Agent
 
 from typing import TYPE_CHECKING
@@ -28,5 +28,12 @@ class AgentDatastore(BaseDatastore[Agent]):
         return None
 
     def back_dependents(self, model: Agent) -> Dict[str,List[str]]:
-        #region
-        raise NotImplementedError
+        try:
+            region = self._parent.region.read(model.region)
+        except KeyNotFound:
+            raise DependentNotFound(model, model.region, self._parent.region)
+        regions = [region.name]
+        return {
+            'region': regions
+        }
+
