@@ -8,12 +8,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-class BaseBackDependents(BaseModel):
-    pass
-
-class BaseForwardDependents(BaseModel):
-    pass
-
 def combine_dicts(model_store: List[Dict[str,List[str]]]) -> Dict[str,List[str]]:
     new_dict = {}
     for item in model_store:
@@ -27,9 +21,7 @@ def combine_dicts(model_store: List[Dict[str,List[str]]]) -> Dict[str,List[str]]
     return new_dict
 
 ModelType = TypeVar("ModelType", bound =Data)
-BackDependents = TypeVar("BackDependents", bound = BaseBackDependents)
-ForwardDependents = TypeVar("ForwardDependents", bound = BaseForwardDependents)
-class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
+class BaseDatastore(Generic[ModelType]):
     _parent: "Datastore"
     _data: Dict[str, ModelType]
     def create(self, model: ModelType, key: str) -> ModelType:
@@ -61,23 +53,31 @@ class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
             return model
 
     def delete(self, key: str) -> None:
-        raise NotImplementedError
+        existing = self.read(key)
+        forward_deps = self.forward_dependents(existing)
+        for attribute, keys in forward_deps.items():
+            for key in keys:
+                try:
+                    relevant_method = getattr(self._parent, attribute)
+                    relevant_method.delete(key)
+                except KeyNotFound:
+                    pass
+        self._data.pop(key)
+        return None
 
     def list(self) -> List[str]:
         return list(self._data.keys())
 
-    def back_dependents(self, model: ModelType) -> BackDependents:
+    def back_dependents(self, model: ModelType) -> Dict[str,List[str]]:
         raise NotImplementedError
 
-    def forward_dependents(self, model: ModelType) -> ForwardDependents:
+    def forward_dependents(self, model: ModelType) -> Dict[str,List[str]]:
         raise NotImplementedError
     
     def back_dependents_recursive(self, model: ModelType) -> Dict[str,List[str]]:
         model_store = []
         def get_model_back_deps(rel_object, item) -> None:
-            backs = rel_object.back_dependents(item)
-            backs_dict = backs.dict()
-
+            backs_dict = rel_object.back_dependents(item)
             if len(backs_dict) == 0:
                 return None
             else:
