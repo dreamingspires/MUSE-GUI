@@ -18,7 +18,6 @@ class AvailableYearForwardDependents(BaseForwardDependents):
     commodity: List[str]
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDependents, AvailableYearForwardDependents]):
-    _data: Dict[str, AvailableYear]
     def __init__(self, parent: "Datastore", available_years: List[AvailableYear] = []) -> None:
         self._parent = parent
         self._data = {}
@@ -27,11 +26,7 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDepen
 
 
     def create(self, model: AvailableYear) -> AvailableYear:
-        if model.year in self._data:
-            raise KeyAlreadyExists(str(model.year), self)
-        else:
-            self._data[str(model.year)] = model
-            return model
+        return super().create(model, str(model.year))
     
     def read(self, key: str) -> AvailableYear:
         if str(key) not in self._data:
@@ -56,10 +51,6 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDepen
                 pass
         self._data.pop(key)
         return None
-
-
-    def list(self) -> List[str]:
-        return list(self._data.keys())
 
     def back_dependents(self, model: AvailableYear) -> AvailableYearBackDependents:
         return AvailableYearBackDependents()

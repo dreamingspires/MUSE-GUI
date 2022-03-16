@@ -16,7 +16,6 @@ class LevelNameForwardDependents(BaseForwardDependents):
     timeslice: List[str]
 
 class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, LevelNameForwardDependents]):
-    _data: Dict[str, LevelName]
     def __init__(self, parent: "Datastore", level_names: List[LevelName] = []) -> None:
         self._parent = parent
         self._data = {}
@@ -24,11 +23,7 @@ class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, Level
             self.create(level_name)
 
     def create(self, model: LevelName) -> LevelName:
-        if model.level in self._data:
-            raise KeyAlreadyExists(model.level, self)
-        else:
-            self._data[model.level] = model
-            return model
+        return super().create(model, model.level)
     
     def read(self, key: str) -> LevelName:
         if key not in self._data:
@@ -53,9 +48,6 @@ class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, Level
                 pass
         self._data.pop(key)
         return None
-
-    def list(self) -> List[str]:
-        return list(self._data.keys())
 
     def back_dependents(self, model: LevelName) -> LevelNameBackDependents:
         return LevelNameBackDependents()

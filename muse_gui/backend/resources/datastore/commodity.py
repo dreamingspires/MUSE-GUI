@@ -23,7 +23,6 @@ class CommodityForwardDependents(BaseForwardDependents):
     process: List[str]
 
 class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
-    _data: Dict[str, Commodity]
     def __init__(self, parent: "Datastore", commodities: List[Commodity] = []) -> None:
         self._parent = parent
         self._data = {}
@@ -31,12 +30,8 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
             self.create(commodity)
     
     def create(self, model: Commodity) -> Commodity:
-        if model.commodity in self._data:
-            raise KeyAlreadyExists(model.commodity, self)
-        else:
-            self.back_dependents(model)
-            self._data[model.commodity] = model
-            return model
+        return super().create(model, model.commodity)
+
     def update(self, key: str, model: Commodity) -> Commodity:
         if key not in self._data:
             raise KeyNotFound(key, self)
@@ -53,9 +48,6 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
         commodity = self.read(key)
         self.forward_dependents(commodity)
         raise NotImplementedError
-
-    def list(self) -> List[str]:
-        return list(self._data.keys())
 
     def back_dependents(self, model: Commodity) -> CommodityBackDependents:
         regions: List[str] = []

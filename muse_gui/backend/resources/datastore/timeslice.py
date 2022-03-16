@@ -16,8 +16,6 @@ class TimesliceForwardDependents(BaseForwardDependents):
     pass
 
 class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, TimesliceForwardDependents]):
-    _data: Dict[str, Timeslice]
-    _parent: "Datastore"
     def __init__(self, parent: "Datastore", timeslices: List[Timeslice] = []) -> None:
         self._parent = parent
         self._data = {}
@@ -25,13 +23,8 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
             self.create(timeslice)
 
     def create(self, model: Timeslice) -> Timeslice:
-        if model.name in self._data:
-            raise KeyAlreadyExists(model.name, self)
-        else:
+        return super().create(model, model.name)
 
-            self.back_dependents(model)
-            self._data[model.name] = model
-            return model
     def update(self, key: str, model: Timeslice) -> Timeslice:
         if key not in self._data:
             raise KeyNotFound(key, self)
@@ -50,9 +43,6 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
     def delete(self, key: str) -> None:
         self._data.pop(key)
         return None
-    
-    def list(self) -> List[str]:
-        return list(self._data.keys())
     
     def back_dependents(self, model: Timeslice) -> TimesliceBackDependents:
         level_names = self._parent.level_name.list()

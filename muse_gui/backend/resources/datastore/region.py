@@ -20,7 +20,6 @@ class RegionForwardDependents(BaseForwardDependents):
     agent: List[str]
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
-    _data: Dict[str, Region]
     def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
         self._parent = parent
         self._data = {}
@@ -29,11 +28,8 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
 
 
     def create(self, model: Region) -> Region:
-        if model.name in self._data:
-            raise KeyAlreadyExists(model.name, self)
-        else:
-            self._data[model.name] = model
-            return model
+        return super().create(model, model.name)
+
     def update(self, key: str, model: Region) -> Region:
         if key not in self._data:
             raise KeyNotFound(key, self)
@@ -66,9 +62,6 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
                 pass
         self._data.pop(key)
         return None
-
-    def list(self) -> List[str]:
-        return list(self._data.keys())
 
     def back_dependents(self, model: Region) -> RegionBackDependents:
         return RegionBackDependents()

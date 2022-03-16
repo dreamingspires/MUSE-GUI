@@ -1,6 +1,7 @@
 from typing import Dict, Generic, List, TypeVar
 
 from pydantic.main import BaseModel
+from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
 
 from muse_gui.data_defs.abstract import Data
 from typing import TYPE_CHECKING
@@ -31,8 +32,14 @@ BackDependents = TypeVar("BackDependents", bound = BaseBackDependents)
 ForwardDependents = TypeVar("ForwardDependents", bound = BaseForwardDependents)
 class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
     _parent: "Datastore"
-    def create(self, model: ModelType) -> ModelType:
-        raise NotImplementedError
+    _data: Dict[str, ModelType]
+    def create(self, model: ModelType, key: str) -> ModelType:
+        if key in self._data:
+            raise KeyAlreadyExists(key, self)
+        else:
+            self.back_dependents(model)
+            self._data[key] = model
+            return model
 
     def update(self, key: str, model: ModelType) -> ModelType:
         raise NotImplementedError
@@ -44,7 +51,7 @@ class BaseDatastore(Generic[ModelType, BackDependents, ForwardDependents]):
         raise NotImplementedError
 
     def list(self) -> List[str]:
-        raise NotImplementedError
+        return list(self._data.keys())
 
     def back_dependents(self, model: ModelType) -> BackDependents:
         raise NotImplementedError
