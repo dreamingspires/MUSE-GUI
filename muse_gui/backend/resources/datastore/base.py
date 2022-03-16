@@ -69,15 +69,32 @@ class BaseDatastore(Generic[ModelType]):
         return list(self._data.keys())
 
     def back_dependents(self, model: ModelType) -> Dict[str,List[str]]:
-        raise NotImplementedError
-
+        return {}
     def forward_dependents(self, model: ModelType) -> Dict[str,List[str]]:
-        raise NotImplementedError
+        return {}
     
     def back_dependents_recursive(self, model: ModelType) -> Dict[str,List[str]]:
         model_store = []
         def get_model_back_deps(rel_object, item) -> None:
             backs_dict = rel_object.back_dependents(item)
+            if len(backs_dict) == 0:
+                return None
+            else:
+                model_store.append(backs_dict)
+                for k, v in backs_dict.items():
+                    rel_method = getattr(self._parent, k)
+                    for i in v:
+                        rel_item = rel_method.read(i)
+                        get_model_back_deps(rel_method, rel_item)
+                return None
+        get_model_back_deps(self, model)
+        combined = combine_dicts(model_store)
+        return combined
+
+    def forward_dependents_recursive(self, model: ModelType) -> Dict[str,List[str]]:
+        model_store = []
+        def get_model_back_deps(rel_object, item) -> None:
+            backs_dict = rel_object.forward_dependents(item)
             if len(backs_dict) == 0:
                 return None
             else:

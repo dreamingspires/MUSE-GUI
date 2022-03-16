@@ -5,7 +5,6 @@ from muse_gui.backend.resources.datastore.base import BaseDatastore
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
 from muse_gui.data_defs.process import Process
 
-
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
@@ -28,6 +27,4 @@ class ProcessDatastore(BaseDatastore[Process]):
         # sector: List[str]
         # commodity: List[str]
         raise NotImplementedError
-    
-    def forward_dependents(self, model: Process) -> Dict[str,List[str]]:
-        return {}
+

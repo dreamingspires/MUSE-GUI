@@ -17,7 +17,6 @@ class AgentDatastore(BaseDatastore[Agent]):
         for agent in agents:
             self.create(agent)
 
-
     def create(self, model: Agent) -> Agent:
         return super().create(model, model.name)
     
@@ -31,6 +30,3 @@ class AgentDatastore(BaseDatastore[Agent]):
     def back_dependents(self, model: Agent) -> Dict[str,List[str]]:
         #region
         raise NotImplementedError
-    
-    def forward_dependents(self, model: Agent) -> Dict[str,List[str]]:
-        return {}

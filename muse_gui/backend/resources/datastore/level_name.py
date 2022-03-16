@@ -21,9 +21,6 @@ class LevelNameDatastore(BaseDatastore[LevelName]):
     
     def update(self, key: str, model: LevelName) -> LevelName:
         return super().update(key, model.level, model)
-
-    def back_dependents(self, model: LevelName) -> Dict[str,List[str]]:
-        return {}
     
     def forward_dependents(self, model: LevelName) -> Dict[str,List[str]]:
         timeslices = []

@@ -18,15 +18,11 @@ class RegionDatastore(BaseDatastore[Region]):
         for region in regions:
             self.create(region)
 
-
     def create(self, model: Region) -> Region:
         return super().create(model, model.name)
 
     def update(self, key: str, model: Region) -> Region:
         return super().update(key, model.name, model)
-
-    def back_dependents(self, model: Region) -> Dict[str,List[str]]:
-        return {}
 
     def forward_dependents(self, model: Region) -> Dict[str,List[str]]:
         commodities = []

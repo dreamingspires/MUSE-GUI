@@ -22,9 +22,6 @@ class SectorDatastore(BaseDatastore[Sector]):
     def update(self, key: str, model: Sector) -> Sector:
         return super().update(key, model.name, model)
 
-    def back_dependents(self, model: Sector) -> Dict[str,List[str]]:
-        return {}
-
     def forward_dependents(self, model: Sector) -> Dict[str,List[str]]:
         #process
         raise NotImplementedError

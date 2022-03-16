@@ -31,9 +31,6 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear]):
     
     def update(self, key: str, model: AvailableYear) -> AvailableYear:
         return super().update(key, str(model.year), model)
-
-    def back_dependents(self, model: AvailableYear) -> Dict[str,List[str]]:
-        return {}
     
     def forward_dependents(self, model: AvailableYear) -> Dict[str,List[str]]:
         commodities = []

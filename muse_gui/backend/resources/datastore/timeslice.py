@@ -29,6 +29,3 @@ class TimesliceDatastore(BaseDatastore[Timeslice]):
             raise LevelNameMismatch(level_names, provided_levels)
         else:
             return {'level_name': level_names}
-
-    def forward_dependents(self, model: Timeslice) -> Dict[str,List[str]]:
-        return {}
