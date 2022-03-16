@@ -11,15 +11,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class RegionBackDependents(BaseBackDependents):
     pass
 
-@dataclass
 class RegionForwardDependents(BaseForwardDependents):
-    commodities: List[str]
-    processes: List[str]
-    agents: List[str]
+    commodity: List[str]
+    process: List[str]
+    agent: List[str]
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
     _regions: Dict[str, Region]
@@ -51,17 +49,17 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
     def delete(self, key: str) -> None:
         existing = self.read(key)
         forward_deps = self.forward_dependents(existing)
-        for commodity_key in forward_deps.commodities:
+        for commodity_key in forward_deps.commodity:
             try:
                 self._parent.commodity.delete(commodity_key)
             except KeyNotFound:
                 pass
-        for process_key in forward_deps.processes:
+        for process_key in forward_deps.process:
             try:
                 self._parent.process.delete(process_key)
             except KeyNotFound:
                 pass
-        for agent_key in forward_deps.agents:
+        for agent_key in forward_deps.agent:
             try:
                 self._parent.agent.delete(agent_key)
             except KeyNotFound:
@@ -87,7 +85,7 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
             if agent.region == model.name:
                 agents.append(key)
         return RegionForwardDependents(
-            commodities = commodities, 
-            processes= processes,
-            agents = agents
+            commodity = commodities, 
+            process= processes,
+            agent = agents
         )

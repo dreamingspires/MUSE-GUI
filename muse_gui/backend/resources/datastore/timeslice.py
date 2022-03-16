@@ -9,11 +9,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class TimesliceBackDependents(BaseBackDependents):
-    level_names: List[str]
+    level_name: List[str]
 
-@dataclass
 class TimesliceForwardDependents(BaseForwardDependents):
     pass
 
@@ -59,7 +57,7 @@ class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, Times
         if len(level_names) != len(provided_levels):
             raise LevelNameMismatch(level_names, provided_levels)
         else:
-            return TimesliceBackDependents(level_names = level_names)
+            return TimesliceBackDependents(level_name = level_names)
 
     def forward_dependents(self, model: Timeslice) -> TimesliceForwardDependents:
         return TimesliceForwardDependents()

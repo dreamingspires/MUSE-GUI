@@ -14,14 +14,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
-class CommodityBackDependents(BaseBackDependents):
-    regions: List[str]
-    available_years: List[AvailableYear]
 
-@dataclass
+class CommodityBackDependents(BaseBackDependents):
+    region: List[str]
+    available_year: List[str]
+
 class CommodityForwardDependents(BaseForwardDependents):
-    processes: List[str]
+    process: List[str]
 
 class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, CommodityForwardDependents]):
     _commodities: Dict[str, Commodity]
@@ -33,7 +32,7 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
 
     def back_dependents(self, model: Commodity) -> CommodityBackDependents:
         regions: List[str] = []
-        available_years: List[AvailableYear] = []
+        available_years: List[str] = []
         for price in model.commodity_prices.prices:
             try:
                 region = self._parent.region.read(price.region_name)
@@ -44,8 +43,8 @@ class CommodityDatastore(BaseDatastore[Commodity, CommodityBackDependents, Commo
             except KeyNotFound:
                 raise DependentNotFound(model, price.region_name, self._parent.region)
             regions.append(region.name)
-            available_years.append(year)
-        return CommodityBackDependents(regions, available_years)
+            available_years.append(str(year.year))
+        return CommodityBackDependents(region=regions, available_year=available_years)
     
     def forward_dependents(self, model: Commodity) -> CommodityForwardDependents:
         raise NotImplementedError

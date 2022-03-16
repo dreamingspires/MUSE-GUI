@@ -10,14 +10,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class ProcessBackDependents(BaseBackDependents):
-    regions: List[str]
-    sectors: List[str]
-    commodities: List[str]
-    available_years: List[str]
+    region: List[str]
+    sector: List[str]
+    commodity: List[str]
+    available_year: List[str]
 
-@dataclass
 class ProcessForwardDependents(BaseForwardDependents):
     pass
 

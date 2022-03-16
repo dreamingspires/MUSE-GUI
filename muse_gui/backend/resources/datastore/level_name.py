@@ -9,13 +9,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class LevelNameBackDependents(BaseBackDependents):
     pass
 
-@dataclass
 class LevelNameForwardDependents(BaseForwardDependents):
-    timeslices: List[str]
+    timeslice: List[str]
 
 class LevelNameDatastore(BaseDatastore[LevelName, LevelNameBackDependents, LevelNameForwardDependents]):
     _level_names: Dict[str, LevelName]

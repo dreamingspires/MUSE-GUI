@@ -11,14 +11,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class AvailableYearBackDependents(BaseBackDependents):
     pass
 
-@dataclass
 class AvailableYearForwardDependents(BaseForwardDependents):
-    commodities: List[str]
-    processes: List[str]
+    commodity: List[str]
+    process: List[str]
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear, AvailableYearBackDependents, AvailableYearForwardDependents]):
     _available_years: Dict[int, AvailableYear]

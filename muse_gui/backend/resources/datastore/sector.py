@@ -9,13 +9,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class SectorBackDependents(BaseBackDependents):
     pass
 
-@dataclass
 class SectorForwardDependents(BaseForwardDependents):
-    processes: List[str]
+    process: List[str]
 
 class SectorDatastore(BaseDatastore[Sector, SectorBackDependents, SectorForwardDependents]):
     _sectors: Dict[str, Sector]

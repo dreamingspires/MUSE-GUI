@@ -9,11 +9,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-@dataclass
 class AgentBackDependents(BaseBackDependents):
-    regions: List[str]
+    region: List[str]
 
-@dataclass
 class AgentForwardDependents(BaseForwardDependents):
     pass
 
