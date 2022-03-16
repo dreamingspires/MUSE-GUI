@@ -20,17 +20,17 @@ class Equilibirum_variable(str, Enum):
     prices = 'prices'
 
 class MainSettings(BaseModel):
-    time_framework: List[int] = None
-    regions: List[str] = None
-    interest_rate: float = None
+    time_framework: Optional[List[int]] = None
+    regions: Optional[List[str]] = None
+    interest_rate: Optional[float] = None
     interpolation_mode: Interpolation_mode = Interpolation_mode.linear
     log_level: str = 'info'
-    outputs: List[Output] = None
+    outputs: Optional[List[Output]] = None
     equilibirum_variable: Equilibirum_variable = Equilibirum_variable.demand
     maximum_iterations: PositiveInt = 3
     tolerance: float = 0.1
     tolerance_unmet_demand: float = -0.1
     excluded_commodities: List[str] = [
         'CO2f', 'CO2r', 'CO2c', 'CO2s', 'CH4', 'N2O', 'f-gases']
-    plugins: List[str] = None
+    plugins: Optional[List[str]] = None
     foresight: int = 0

@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator, PositiveInt
 from typing import List, Optional
 from enum import Enum
 
-class Method_options(str, Enum):
+class MethodOptions(str, Enum):
     linear = 'linear'
     exponential = 'exponential'
 
@@ -10,7 +10,7 @@ class Method_options(str, Enum):
 class CarbonMarket(BaseModel):
     budget: List[str] = []
     method: str = 'fitting'  # the one present method so far
-    commodities: List[str] = None
+    commodities: Optional[List[str]] = None
     control_undershoot: bool = True
     control_overshoot: bool = True
-    method_options: Method_options = None
+    method_options: Optional[MethodOptions] = None

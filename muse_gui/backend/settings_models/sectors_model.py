@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator
 from typing import Any, Dict, List, Optional, Union, Literal
 from enum import Enum
 
-class Investment_production(str, Enum):
+class InvestmentProduction(str, Enum):
     share = 'share'
     match = 'match'
 
@@ -46,9 +46,9 @@ def validate_priority(cls, value):
 
 
 class Output(BaseModel):
-    quantity: Union[Quantity,Dict[str,Any]] = 'capacity'
+    quantity: Union[Quantity,Dict[str,Any]] = Quantity.capacity
     sink: Sink = Sink.csv
-    filename: str = None
+    filename: Optional[str] = None
     overwrite: bool = False
     keep_columns: Optional[List[str]] = None
     index: Optional[bool] = False
@@ -61,19 +61,19 @@ class Output(BaseModel):
             return value
 
 class Subsector(BaseModel):
-    agents: str = None
-    constraints: List[str] = None
-    demand_share: str = None
-    existing_capacity: str = None
-    forecast: int = None
-    lpsolver: str = None
+    agents: Optional[str] = None
+    constraints: Optional[List[str]] = None
+    demand_share: Optional[str] = None
+    existing_capacity: Optional[str] = None
+    forecast: Optional[int] = None
+    lpsolver: Optional[str] = None
 
 class Net(str, Enum):
-    net = 'new_to_retro'
+    new_to_retro = 'new_to_retro'
 
 class Interactions(BaseModel):
-    interaction: Interaction = 'default'
-    net: Net = 'new_to_retro'
+    interaction: Interaction = Interaction.default
+    net: Net = Net.new_to_retro
 
 class StandardSector(BaseModel):
     type: Literal['default'] = "default"
@@ -81,37 +81,37 @@ class StandardSector(BaseModel):
     check_standard_prio = validator(
         'priority', pre=True, allow_reuse=True)(validate_priority)
     interpolation: Optional[str] = None
-    investment_production: Investment_production = Investment_production.share
+    investment_production: InvestmentProduction = InvestmentProduction.share
     # not really defined so I can't create enum type
     dispatch_production: Optional[str] = None
     demand_share: Demand_share = Demand_share.new_and_retro
-    interactions:List[Interactions] = None 
-    timeslices: Dict[str, Any] = None
+    interactions: Optional[List[Interactions]] = None 
+    timeslices: Optional[Dict[str, Any]] = None
     outputs: Optional[List[Output]] = None
     # should be path to csv file
-    technodata: str = None
+    technodata: Optional[str] = None
     timeslice_levels: List[str] = ["month", "day", "hour"]
     # should be path to csv file
-    commodities_in: str = None
-    commodities_out: str = None
-    existing_capacity: str = None
-    agents: str = None
-    subsectors:Dict[str,Subsector] = None        
+    commodities_in: Optional[str] = None
+    commodities_out: Optional[str] = None
+    existing_capacity: Optional[str] = None
+    agents: Optional[str] = None
+    subsectors: Optional[Dict[str,Subsector]] = None        
 
 
 
 
 class StandardSectorExample(BaseModel):
-    commodities_in: str = None
-    commodities_out: str = None
-    dispatch_production: Investment_production = 'share'
-    interactions:List[Interactions] = None 
+    commodities_in: Optional[str] = None
+    commodities_out: Optional[str] = None
+    dispatch_production: InvestmentProduction = InvestmentProduction.share
+    interactions: Optional[List[Interactions]] = None 
     outputs: List[Output]
     priority: int = 100
     check_standard_example_prio = validator(
         'priority', pre=True, allow_reuse=True)(validate_priority)          
-    subsectors:Dict[str,Subsector] = None        
-    technodata: str = None
+    subsectors: Optional[Dict[str,Subsector]] = None        
+    technodata: Optional[str] = None
     type: Literal['default'] = "default"
 
 
@@ -121,12 +121,12 @@ class PresetSector(BaseModel):
     check_preset_prio = validator(
         'priority', pre=True, allow_reuse=True)(validate_priority)
     timeslices_levels: List[str] = ["month", "day", "hour"]
-    consumption_path: str = None
-    supply_path: str = None
-    prices_path: str = None
-    demand_path: str = None
-    macrodrivers_path: str = None
-    regression_path: str = None
+    consumption_path: Optional[str] = None
+    supply_path: Optional[str] = None
+    prices_path: Optional[str] = None
+    demand_path: Optional[str] = None
+    macrodrivers_path: Optional[str] = None
+    regression_path: Optional[str] = None
     timeslice_shares_path: Optional[str] = None
     filters: Optional[Dict[str, Any]]
 
@@ -136,9 +136,9 @@ class LegacySector(BaseModel):
     priority: int = 100
     check_legacy_prio = validator(
         'priority', pre=True, allow_reuse=True)(validate_priority)
-    agregation_level: str = None
+    agregation_level: Optional[str] = None
     excess: int = 0
-    timeslices_path: str = None
-    userdata_path: str = None
-    technodata_path: str = None
-    output_path: str = None
+    timeslices_path: Optional[str] = None
+    userdata_path: Optional[str] = None
+    technodata_path: Optional[str] = None
+    output_path: Optional[str] = None
