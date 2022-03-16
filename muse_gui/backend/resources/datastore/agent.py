@@ -16,44 +16,44 @@ class AgentForwardDependents(BaseForwardDependents):
     pass
 
 class AgentDatastore(BaseDatastore[Agent, AgentBackDependents, AgentForwardDependents]):
-    _agents: Dict[str, Agent]
+    _data: Dict[str, Agent]
     def __init__(self, parent: "Datastore", agents: List[Agent] = []) -> None:
         self._parent = parent
-        self._agents = {}
+        self._data = {}
         for agent in agents:
             self.create(agent)
 
 
     def create(self, model: Agent) -> Agent:
-        if model.name in self._agents:
+        if model.name in self._data:
             raise KeyAlreadyExists(model.name, self)
         else:
             self.back_dependents(model)
-            self._agents[model.name] = model
+            self._data[model.name] = model
             return model
     
     def read(self, key: str) -> Agent:
-        if key not in self._agents:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
-            return self._agents[key]
+            return self._data[key]
     
     def update(self, key: str, model: Agent) -> Agent:
-        if key not in self._agents:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
             existing = self.read(key)
             self.back_dependents(existing)
             self.back_dependents(model)
-            self._agents[key] = model
+            self._data[key] = model
             return model
 
     def delete(self, key: str) -> None:
-        self._agents.pop(key)
+        self._data.pop(key)
         return None
 
     def list(self) -> List[str]:
-        return list(self._agents.keys())
+        return list(self._data.keys())
 
     def back_dependents(self, model: Agent) -> AgentBackDependents:
         raise NotImplementedError

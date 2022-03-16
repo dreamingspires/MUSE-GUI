@@ -16,43 +16,43 @@ class TimesliceForwardDependents(BaseForwardDependents):
     pass
 
 class TimesliceDatastore(BaseDatastore[Timeslice, TimesliceBackDependents, TimesliceForwardDependents]):
-    _timeslices: Dict[str, Timeslice]
+    _data: Dict[str, Timeslice]
     _parent: "Datastore"
     def __init__(self, parent: "Datastore", timeslices: List[Timeslice] = []) -> None:
         self._parent = parent
-        self._timeslices = {}
+        self._data = {}
         for timeslice in timeslices:
             self.create(timeslice)
 
     def create(self, model: Timeslice) -> Timeslice:
-        if model.name in self._timeslices:
+        if model.name in self._data:
             raise KeyAlreadyExists(model.name, self)
         else:
 
             self.back_dependents(model)
-            self._timeslices[model.name] = model
+            self._data[model.name] = model
             return model
     def update(self, key: str, model: Timeslice) -> Timeslice:
-        if key not in self._timeslices:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
             existing = self.read(key)
             self.back_dependents(existing)
             self.back_dependents(model)
-            self._timeslices[key] = model
+            self._data[key] = model
             return model
     def read(self, key: str) -> Timeslice:
-        if key not in self._timeslices:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
-            return self._timeslices[key]
+            return self._data[key]
 
     def delete(self, key: str) -> None:
-        self._timeslices.pop(key)
+        self._data.pop(key)
         return None
     
     def list(self) -> List[str]:
-        return list(self._timeslices.keys())
+        return list(self._data.keys())
     
     def back_dependents(self, model: Timeslice) -> TimesliceBackDependents:
         level_names = self._parent.level_name.list()

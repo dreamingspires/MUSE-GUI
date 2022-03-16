@@ -20,31 +20,31 @@ class RegionForwardDependents(BaseForwardDependents):
     agent: List[str]
 
 class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardDependents]):
-    _regions: Dict[str, Region]
+    _data: Dict[str, Region]
     def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
         self._parent = parent
-        self._regions = {}
+        self._data = {}
         for region in regions:
             self.create(region)
 
 
     def create(self, model: Region) -> Region:
-        if model.name in self._regions:
+        if model.name in self._data:
             raise KeyAlreadyExists(model.name, self)
         else:
-            self._regions[model.name] = model
+            self._data[model.name] = model
             return model
     def update(self, key: str, model: Region) -> Region:
-        if key not in self._regions:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
-            self._regions[key] = model
+            self._data[key] = model
             return model
     def read(self, key: str) -> Region:
-        if key not in self._regions:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
-            return self._regions[key]
+            return self._data[key]
 
     def delete(self, key: str) -> None:
         existing = self.read(key)
@@ -64,27 +64,27 @@ class RegionDatastore(BaseDatastore[Region, RegionBackDependents, RegionForwardD
                 self._parent.agent.delete(agent_key)
             except KeyNotFound:
                 pass
-        self._regions.pop(key)
+        self._data.pop(key)
         return None
 
     def list(self) -> List[str]:
-        return list(self._regions.keys())
+        return list(self._data.keys())
 
     def back_dependents(self, model: Region) -> RegionBackDependents:
         return RegionBackDependents()
 
     def forward_dependents(self, model: Region) -> RegionForwardDependents:
         commodities = []
-        for key, commodity in self._parent.commodity._commodities.items():
+        for key, commodity in self._parent.commodity._data.items():
             for price in commodity.commodity_prices.prices:
                 if price.region_name == model.name:
                     commodities.append(key)
         processes = []
-        for key, process in self._parent.process._processes.items():
+        for key, process in self._parent.process._data.items():
             if process.region == model.name:
                 processes.append(key)
         agents = []
-        for key, agent in self._parent.agent._agents.items():
+        for key, agent in self._parent.agent._data.items():
             if agent.region == model.name:
                 agents.append(key)
         return RegionForwardDependents(

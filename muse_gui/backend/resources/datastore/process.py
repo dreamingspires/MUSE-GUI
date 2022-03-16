@@ -19,43 +19,43 @@ class ProcessForwardDependents(BaseForwardDependents):
     pass
 
 class ProcessDatastore(BaseDatastore[Process, ProcessBackDependents, ProcessForwardDependents]):
-    _processes: Dict[str, Process]
+    _data: Dict[str, Process]
     def __init__(self, parent: "Datastore", processes: List[Process] = []) -> None:
         self._parent = parent
-        self._processes = {}
+        self._data = {}
         for process in processes:
             self.create(process)
 
     def create(self, model: Process) -> Process:
-        if model.name in self._processes:
+        if model.name in self._data:
             raise KeyAlreadyExists(model.name, self)
         else:
             self.back_dependents(model)
-            self._processes[model.name] = model
+            self._data[model.name] = model
             return model
     
     def read(self, key: str) -> Process:
-        if key not in self._processes:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
-            return self._processes[key]
+            return self._data[key]
     
     def update(self, key: str, model: Process) -> Process:
-        if key not in self._processes:
+        if key not in self._data:
             raise KeyNotFound(key, self)
         else:
             existing = self.read(key)
             self.back_dependents(existing)
             self.back_dependents(model)
-            self._processes[key] = model
+            self._data[key] = model
             return model
 
     def delete(self, key: str) -> None:
-        self._processes.pop(key)
+        self._data.pop(key)
         return None
 
     def list(self) -> List[str]:
-        return list(self._processes.keys())
+        return list(self._data.keys())
 
     def back_dependents(self, model: Process) -> ProcessBackDependents:
         raise NotImplementedError
