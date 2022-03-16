@@ -15,7 +15,7 @@ class KeyNotFound(ValueError):
 
 class DependentNotFound(ValueError):
     def __init__(self, parent_model, dependent_key, dependent_datastore: "BaseDatastore") -> None:
-        super().__init__()
+        super().__init__(f"{dependent_key} specified in {parent_model.__class__.__name__} not found in {dependent_datastore.__class__.__name__}")
 
 class LevelNameMismatch(ValueError):
     def __init__(self, level_names: List[str], provided_levels:List[str]) -> None:

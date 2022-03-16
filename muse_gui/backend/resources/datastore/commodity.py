@@ -38,7 +38,7 @@ class CommodityDatastore(BaseDatastore[Commodity]):
             try:
                 year = self._parent.available_year.read(str(price.time))
             except KeyNotFound:
-                raise DependentNotFound(model, price.region_name, self._parent.region)
+                raise DependentNotFound(model, price.time, self._parent.available_year)
             regions.append(region.name)
             available_years.append(str(year.year))
         return {
