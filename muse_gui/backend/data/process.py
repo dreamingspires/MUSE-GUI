@@ -2,7 +2,7 @@ from typing import List, Literal
 
 from pydantic import BaseModel, confloat
 from pydantic.class_validators import validator
-from pydantic.types import NonNegativeInt
+from pydantic.types import NonNegativeFloat, NonNegativeInt
 
 from .abstract import Data
 
@@ -24,7 +24,7 @@ class Cost(BaseModel):
     fix_exp: float = 1.0
     var_par: float = 0
     var_exp: float = 1.0
-    interest_rate: NonNegativeInt = 0
+    interest_rate: NonNegativeFloat = 0
 
 class Utilisation(BaseModel):
     utilization_factor: Float0To1 = 0
@@ -33,9 +33,9 @@ class Utilisation(BaseModel):
 class Capacity(BaseModel):
     max_capacity_addition: NonNegativeInt = 0
     max_capacity_growth: Float0To100 = 0
-    total_capacity_addition: NonNegativeInt = 0
+    total_capacity_limit: NonNegativeInt = 0
     technical_life: NonNegativeInt = 0
-    scaling_size: NonNegativeInt = 0
+    scaling_size: NonNegativeFloat = 0
 
 ZeroToOne = confloat(gt=0.0, le=1.0)
 

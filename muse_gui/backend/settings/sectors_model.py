@@ -48,10 +48,10 @@ class Output(BaseSettings):
             return value
 
 class Subsector(BaseSettings):
-    agents: Optional[str] = None
+    agents: str
+    existing_capacity: str
     constraints: Optional[List[str]] = None
     demand_share: Optional[str] = None
-    existing_capacity: Optional[str] = None
     forecast: Optional[int] = None
     lpsolver: Optional[str] = None
 
@@ -90,6 +90,10 @@ class InterpolationType(str, Enum):
 
 class StandardSector(BaseSector):
     type: Literal['default'] = "default"
+    technodata: str
+    commodities_in: str
+    commodities_out: str
+    subsectors: Dict[str,Subsector]
     interpolation: InterpolationType = InterpolationType.LINEAR
     investment_production: InvestmentProduction = InvestmentProduction.share
     # not really defined so I can't create enum type
@@ -98,15 +102,11 @@ class StandardSector(BaseSector):
     interactions: Optional[List[Interactions]] = None 
     timeslices: Optional[Dict[str, Any]] = None
     outputs: Optional[List[Output]] = None
-    # should be path to csv file
-    technodata: Optional[str] = None
     timeslice_levels: List[str] = ["month", "day", "hour"]
-    # should be path to csv file
-    commodities_in: Optional[str] = None
-    commodities_out: Optional[str] = None
     existing_capacity: Optional[str] = None
+    # should be path to csv file
     agents: Optional[str] = None
-    subsectors: Optional[Dict[str,Subsector]] = None        
+
 
 
 class PresetSector(BaseSector):
