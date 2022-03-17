@@ -27,7 +27,7 @@ class RegionDatastore(BaseDatastore[Region]):
     def forward_dependents(self, model: Region) -> Dict[str,List[str]]:
         commodities = []
         for key, commodity in self._parent.commodity._data.items():
-            for price in commodity.commodity_prices.prices:
+            for price in commodity.commodity_prices:
                 if price.region_name == model.name:
                     commodities.append(key)
         processes = []

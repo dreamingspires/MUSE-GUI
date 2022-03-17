@@ -30,7 +30,7 @@ class CommodityDatastore(BaseDatastore[Commodity]):
     def back_dependents(self, model: Commodity) -> Dict[str,List[str]]:
         regions: List[str] = []
         available_years: List[str] = []
-        for price in model.commodity_prices.prices:
+        for price in model.commodity_prices:
             try:
                 region = self._parent.region.read(price.region_name)
             except KeyNotFound:

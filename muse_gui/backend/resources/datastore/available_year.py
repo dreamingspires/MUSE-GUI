@@ -35,7 +35,7 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear]):
     def forward_dependents(self, model: AvailableYear) -> Dict[str,List[str]]:
         commodities = []
         for key, commodity in self._parent.commodity._data.items():
-            for price in commodity.commodity_prices.prices:
+            for price in commodity.commodity_prices:
                 if price.time == model.year:
                     commodities.append(key)
         return {

@@ -16,7 +16,7 @@ from .region import RegionDatastore
 from .agent import AgentDatastore
 
 from muse_gui.data_defs.region import Region
-from muse_gui.data_defs.commodity import Commodity, CommodityPrice, CommodityPrices
+from muse_gui.data_defs.commodity import Commodity, CommodityPrice
 import toml
 from pathlib import Path
 import json
@@ -124,7 +124,8 @@ class Datastore:
                 c_emission_factor_co2 = commodity['CommodityEmissionFactor_CO2'],
                 heat_rate = commodity['HeatRate'],
                 unit = commodity['Unit'],
-                commodity_prices= CommodityPrices(unit = unit, prices=commodity_prices)
+                commodity_prices= commodity_prices,
+                price_unit=unit
             )
             commodity_models.append(com)
         return cls(regions = region_models, commodities=commodity_models)

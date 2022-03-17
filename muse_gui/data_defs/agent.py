@@ -1,12 +1,8 @@
 import math
-from typing import Dict, Literal, Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, confloat
-from pydantic.types import NonNegativeFloat, PositiveFloat
-from .abstract import Data, View
-from .region import Region
-import PySimpleGUI as sg
-from PySimpleGUI import Element
+from pydantic.types import NonNegativeFloat
+from .abstract import Data
 from enum import Enum
 
 
@@ -55,33 +51,3 @@ class Agent(Data):
     decision_method: DecisionMethod = DecisionMethod.SingleObjective
     quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
-
-"""
-class AgentView(View):
-    model: Agent
-
-    def item(self):
-        return {
-            'name': sg.Input(self.model.name),
-            'type': sg.DropDown([
-                'New', 'Retrofit'
-            ], default_value=self.model.type),
-            'region': sg.Input(self.model.region.name),
-            'objective': sg.DropDown([
-                x.name for x in AgentObjective
-            ], default_value=self.model.objective_1.name),
-            'budget': sg.Input(self.model.budget),
-        }
-
-    @classmethod
-    def heading(cls) -> Dict[str, Element]:
-        return {
-            k: sg.Text(k.title()) for k in [
-                'name',
-                'type',
-                'region',
-                'objective',
-                'budget'
-            ]
-        }
-"""

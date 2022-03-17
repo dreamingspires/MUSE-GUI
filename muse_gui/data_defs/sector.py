@@ -40,30 +40,3 @@ class Sector(Data):
     dispatch_production = 'share'
     investment_production = 'share'
     demand_share = 'new_and_retro'
-
-
-class SectorView(View):
-    model: Sector
-
-    def item(self) -> Dict[str, Element]:
-        return {
-            'name': sg.Input(self.model.name),
-            'type': sg.DropDown([
-                x.name for x in SectorType
-            ], default_value=self.model.type.name),
-            'priority': sg.Input(self.model.priority),
-            'interpolation': sg.DropDown([
-                x.name for x in InterpolationType
-            ], default_value=self.model.interpolation.name),
-        }
-
-    @classmethod
-    def heading(cls) -> Dict[str, Element]:
-        return {
-            k: sg.Text(k.title()) for k in [
-                'name',
-                'type',
-                'priority',
-                'interpolation',
-            ]
-        }
