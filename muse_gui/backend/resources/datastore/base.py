@@ -1,9 +1,7 @@
 from typing import Dict, Generic, List, TypeVar
-
-from pydantic.main import BaseModel
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
 
-from muse_gui.data_defs.abstract import Data
+from muse_gui.backend.data.abstract import Data
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore

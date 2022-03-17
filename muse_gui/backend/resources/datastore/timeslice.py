@@ -1,9 +1,8 @@
-from dataclasses import dataclass
 from typing import Dict, List
 
 from .base import BaseDatastore
-from muse_gui.data_defs.timeslice import Timeslice
-from .exceptions import KeyAlreadyExists, KeyNotFound, LevelNameMismatch
+from muse_gui.backend.data.timeslice import Timeslice
+from .exceptions import  LevelNameMismatch
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

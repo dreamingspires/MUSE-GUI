@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseDatastore
-from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
-from muse_gui.data_defs.timeslice import AvailableYear
+from muse_gui.backend.resources.datastore.exceptions import KeyNotFound
+from muse_gui.backend.data.timeslice import AvailableYear
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -22,12 +22,6 @@ class AvailableYearDatastore(BaseDatastore[AvailableYear]):
 
     def create(self, model: AvailableYear) -> AvailableYear:
         return super().create(model, str(model.year))
-    
-    def read(self, key: str) -> AvailableYear:
-        if str(key) not in self._data:
-            raise KeyNotFound(str(key), self)
-        else:
-            return self._data[key]
     
     def update(self, key: str, model: AvailableYear) -> AvailableYear:
         return super().update(key, str(model.year), model)

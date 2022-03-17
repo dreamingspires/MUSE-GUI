@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 from typing import Dict, List
 
 from muse_gui.backend.resources.datastore.base import BaseDatastore
-from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists, KeyNotFound
-from muse_gui.data_defs.timeslice import LevelName
+from muse_gui.backend.data.timeslice import LevelName
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

@@ -1,4 +1,4 @@
-from muse_gui.data_defs.abstract import Data
+from.abstract import Data
 
 class Timeslice(Data):
     name: str

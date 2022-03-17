@@ -2,7 +2,7 @@ from typing import List
 from enum import Enum
 
 from pydantic import BaseModel
-from muse_gui.data_defs.abstract import Data
+from .abstract import Data
 
 
 class CommodityType(str, Enum):

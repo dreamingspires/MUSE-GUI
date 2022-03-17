@@ -1,9 +1,4 @@
-from typing import Dict
-
-from pydantic import BaseModel
-from .abstract import Data, View
-import PySimpleGUI as sg
-from PySimpleGUI import Element
+from .abstract import Data
 from enum import Enum
 
 

@@ -4,7 +4,7 @@ from typing import Callable, Dict, Generic, Iterable, Iterator, Type, TypeVar
 import PySimpleGUI as sg
 from PySimpleGUI.PySimpleGUI import Element
 
-from muse_gui.data_defs.abstract import Data
+from muse_gui.backend.data.abstract import Data
 
 DataType = TypeVar('DataType', bound = Data)
 class BaseDataView(Generic[DataType]):

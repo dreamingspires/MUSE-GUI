@@ -3,7 +3,7 @@ import PySimpleGUI as sg
 from typing import Type, Callable
 from enum import Enum
 from .data_view_generator import DataViewGenerator
-from muse_gui.data_defs.commodity import Commodity, CommodityType
+from muse_gui.backend.data.commodity import Commodity, CommodityType
 
 def construct_data_to_dropdown(enum: Type[Enum]) -> Callable[[str], sg.DropDown]:
     def data_to_dropdown(data: str) -> sg.DropDown:

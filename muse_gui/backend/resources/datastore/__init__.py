@@ -1,11 +1,11 @@
 from typing import List
 
 from pydantic.main import BaseModel
-from muse_gui.data_defs.agent import Agent
-from muse_gui.data_defs.process import Process
+from muse_gui.backend.data.agent import Agent
+from muse_gui.backend.data.process import Process
 
-from muse_gui.data_defs.sector import Sector
-from muse_gui.data_defs.timeslice import AvailableYear, LevelName, Timeslice
+from muse_gui.backend.data.sector import Sector
+from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
 from .process import ProcessDatastore
 from .timeslice import TimesliceDatastore
 from .commodity import CommodityDatastore
@@ -15,8 +15,8 @@ from .sector import SectorDatastore
 from .region import RegionDatastore
 from .agent import AgentDatastore
 
-from muse_gui.data_defs.region import Region
-from muse_gui.data_defs.commodity import Commodity, CommodityPrice
+from muse_gui.backend.data.region import Region
+from muse_gui.backend.data.commodity import Commodity, CommodityPrice
 import toml
 from pathlib import Path
 import json

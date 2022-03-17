@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 from typing import Dict, List
 
 from .base import BaseDatastore
-from muse_gui.data_defs.sector import Sector
-from .exceptions import KeyAlreadyExists, KeyNotFound
+from muse_gui.backend.data.sector import Sector
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
