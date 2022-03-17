@@ -1,13 +1,9 @@
 from typing import Dict, List
 import PySimpleGUI as sg
 from muse_gui.backend.plots import capacity_data_frame_to_plots, price_data_frame_to_plots
-from muse_gui.data_defs.commodity import Commodity, CommodityType
-from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
-
 from PySimpleGUI.PySimpleGUI import Element
-from muse_gui.frontend.widget_funcs.generics import define_tab_group, make_table_layout
+from muse_gui.frontend.widget_funcs.generics import define_tab_group
 from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_capacity_plot_to_figure, generate_plot,  generate_plot_layout, attach_price_plot_to_figure
-from matplotlib.figure import Figure
 import pandas as pd
 
 def layout_cycle(layouts: List[List[List[Element]]], prefix = None, visible_column: int = 0) -> List[List[Element]]:

@@ -7,7 +7,7 @@ class InvestmentProduction(str, Enum):
     match = 'match'
 
 
-class Demand_share(str, Enum):
+class DemandShare(str, Enum):
     new_and_retro = 'new_and_retro'
 
 
@@ -29,20 +29,7 @@ class Sink(str, Enum):
     aggregate = 'aggregate'
 
 
-def validate_priority(cls, value):
-    if value == 'preset':
-        return 0
-    elif value == 'demand':
-        return 10
-    elif value == 'conversion':
-        return 20
-    elif value == 'supply':
-        return 30
-    elif value == 'last':
-        return 100
-    else:
-        assert isinstance(value, int)
-        return value
+
 
 
 class Output(BaseSettings):
@@ -75,16 +62,39 @@ class Interactions(BaseSettings):
     interaction: Interaction = Interaction.default
     net: Net = Net.new_to_retro
 
-class StandardSector(BaseSettings):
-    type: Literal['default'] = "default"
+class BaseSector(BaseSettings):
     priority: int = 100
-    check_standard_prio = validator(
-        'priority', pre=True, allow_reuse=True)(validate_priority)
-    interpolation: Optional[str] = None
+    @validator('priority', pre=True, allow_reuse=True)
+    def validate_priority(cls, value):
+        if value == 'preset':
+            return 0
+        elif value == 'demand':
+            return 10
+        elif value == 'conversion':
+            return 20
+        elif value == 'supply':
+            return 30
+        elif value == 'last':
+            return 100
+        else:
+            assert isinstance(value, int)
+            return value
+
+class InterpolationType(str, Enum):
+    """
+    See check_interpolation_mode in [toml.py](https://github.com/SGIModel/MUSE_ICL/blob/856bec4652c50e16413a353b98280024b2e9ddc4/src/muse/readers/toml.py#L688)
+    """
+    NEAREST = 'nearest'
+    LINEAR = 'linear'
+    CUBIC = 'cubic'
+
+class StandardSector(BaseSector):
+    type: Literal['default'] = "default"
+    interpolation: InterpolationType = InterpolationType.LINEAR
     investment_production: InvestmentProduction = InvestmentProduction.share
     # not really defined so I can't create enum type
     dispatch_production: Optional[str] = None
-    demand_share: Demand_share = Demand_share.new_and_retro
+    demand_share: DemandShare = DemandShare.new_and_retro
     interactions: Optional[List[Interactions]] = None 
     timeslices: Optional[Dict[str, Any]] = None
     outputs: Optional[List[Output]] = None
@@ -99,27 +109,8 @@ class StandardSector(BaseSettings):
     subsectors: Optional[Dict[str,Subsector]] = None        
 
 
-
-
-class StandardSectorExample(BaseSettings):
-    commodities_in: Optional[str] = None
-    commodities_out: Optional[str] = None
-    dispatch_production: InvestmentProduction = InvestmentProduction.share
-    interactions: Optional[List[Interactions]] = None 
-    outputs: List[Output]
-    priority: int = 100
-    check_standard_example_prio = validator(
-        'priority', pre=True, allow_reuse=True)(validate_priority)          
-    subsectors: Optional[Dict[str,Subsector]] = None        
-    technodata: Optional[str] = None
-    type: Literal['default'] = "default"
-
-
-class PresetSector(BaseSettings):
+class PresetSector(BaseSector):
     type: Literal['presets'] = 'presets'
-    priority: int = 100
-    check_preset_prio = validator(
-        'priority', pre=True, allow_reuse=True)(validate_priority)
     timeslices_levels: List[str] = ["month", "day", "hour"]
     consumption_path: Optional[str] = None
     supply_path: Optional[str] = None
@@ -131,11 +122,8 @@ class PresetSector(BaseSettings):
     filters: Optional[Dict[str, Any]]
 
 
-class LegacySector(BaseSettings):
+class LegacySector(BaseSector):
     type: Literal['legacy'] = 'legacy'
-    priority: int = 100
-    check_legacy_prio = validator(
-        'priority', pre=True, allow_reuse=True)(validate_priority)
     agregation_level: Optional[str] = None
     excess: int = 0
     timeslices_path: Optional[str] = None

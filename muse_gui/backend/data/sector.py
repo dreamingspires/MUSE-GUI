@@ -1,19 +1,7 @@
+from typing import Annotated, Any, Dict, Literal, Optional, Union
 from .abstract import Data
 from enum import Enum
-
-
-class SectorType(str, Enum):
-    '''
-    Sector Type
-    TODO:
-    We are only supporting these.
-    If someone extends muse and adds
-    sector types, we don't detect those
-    See: https://museenergydocs.readthedocs.io/en/latest/inputs/toml.html#standard-sectors
-    '''
-    DEFAULT = 'default'
-    PRESETS = 'presets'
-
+from pydantic import Field
 
 class InterpolationType(str, Enum):
     """
@@ -23,15 +11,29 @@ class InterpolationType(str, Enum):
     LINEAR = 'linear'
     CUBIC = 'cubic'
 
+class Production(str, Enum):
+    SHARE = 'share'
+    COSTED = 'costed'
 
-class Sector(Data):
+class BaseSector(Data):
+    name: str
+    priority: int = 100
+
+class StandardSector(BaseSector):
     """
     TODO: Advanced Mode
     """
-    name: str
-    type: SectorType = SectorType.DEFAULT
-    priority: int = 100
+    type: Literal['standard'] = 'standard'
     interpolation: InterpolationType = InterpolationType.LINEAR
-    dispatch_production = 'share'
-    investment_production = 'share'
-    demand_share = 'new_and_retro'
+    dispatch_production: Production = Production.SHARE
+    investment_production: Production = Production.SHARE
+    demand_share: Literal['new_and_retro'] = 'new_and_retro'
+
+class PresetSector(BaseSector):
+    """
+    TODO: Advanced Mode
+    """
+    type: Literal['preset'] = 'preset'
+
+
+Sector = Union[StandardSector, PresetSector]

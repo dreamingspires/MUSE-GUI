@@ -1,11 +1,13 @@
-from typing import List
+from typing import List, Union
 
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent
 from muse_gui.backend.data.process import Process
 
-from muse_gui.backend.data.sector import Sector
+from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
+from muse_gui.backend.settings.sectors_model import StandardSector as StandardSectorSettings
+from muse_gui.backend.utils import unpack_timeslice
 from .process import ProcessDatastore
 from .timeslice import TimesliceDatastore
 from .commodity import CommodityDatastore
@@ -44,7 +46,7 @@ class Datastore:
     def __init__(
         self, 
         regions: List[Region] = [],
-        sectors: List[Sector] = [],
+        sectors: Union[List[StandardSector], List[PresetSector], List[Sector]] = [],
         level_names: List[LevelName] = [],
         available_years: List[AvailableYear] = [],
         timeslices: List[Timeslice] = [],
@@ -102,20 +104,21 @@ class Datastore:
         toml_out = toml.load(settings_path)
         path = Path(settings_path)
         folder = path.parents[0].absolute()
-        output_model =  SettingsModel.parse_obj(toml_out)
+        settings_model =  SettingsModel.parse_obj(toml_out)
 
-        global_commodities_path = replace_path(str(folder), output_model.global_input_files.global_commodities)
+        global_commodities_path = replace_path(str(folder), settings_model.global_input_files.global_commodities)
         global_commodities_data = pd.read_csv(global_commodities_path)
-        projections_path = replace_path(str(folder), output_model.global_input_files.projections)
+        projections_path = replace_path(str(folder), settings_model.global_input_files.projections)
         projections_data = pd.read_csv(projections_path)
-        regions = projections_data.drop(0)['RegionName'].unique()
+        projections_data_without_unit = projections_data.drop(0)
+        regions = projections_data_without_unit['RegionName'].unique()
 
         region_models = [Region(name=name) for name in regions]
         commodity_models = []
         for i, name in enumerate(global_commodities_data["Commodity"]):
             commodity = global_commodities_data.iloc[i]
             unit = projections_data[commodity['CommodityName']].iloc[0]
-            rel_price_data = pd.DataFrame(projections_data.drop(0), columns=[commodity['CommodityName'], 'RegionName', 'Time'])
+            rel_price_data = pd.DataFrame(projections_data_without_unit, columns=[commodity['CommodityName'], 'RegionName', 'Time'])
             commodity_prices = []
             for j, row in rel_price_data.iterrows():
                 commodity_prices.append(CommodityPrice(region_name = row['RegionName'], time = row['Time'], value = row[commodity['CommodityName']]))
@@ -131,11 +134,40 @@ class Datastore:
             )
             commodity_models.append(com)
         
-        year_models = [AvailableYear(year=i) for i in projections_data.drop(0)['Time']]
+        
+        year_models = [AvailableYear(year=i) for i in projections_data_without_unit['Time']]
+
+        sectors = settings_model.sectors
+        assert sectors is not None
+        
+        sector_models = []
+        for sector_name, sector  in sectors.items():
+            if sector.type == 'default':
+                new_sector = StandardSector(
+                    name = sector_name,
+                    priority= sector.priority,
+                    interpolation= InterpolationType(sector.interpolation),
+                    dispatch_production = Production(sector.dispatch_production),
+                    investment_production = Production(sector.investment_production)
+                )
+            else:
+                new_sector = PresetSector(
+                    name = sector_name,
+                    priority = sector.priority
+                )
+            sector_models.append(new_sector)
+        timeslice_info = unpack_timeslice(settings_model.timeslices)
+        level_name_models = [LevelName(level=i) for i in timeslice_info.level_names]
+        timeslice_models = [Timeslice(name = k, value = v) for k, v in timeslice_info.timeslices.items()]
         return cls(
             regions = region_models, 
             available_years=year_models, 
-            commodities=commodity_models
+            commodities=commodity_models,
+            sectors = sector_models,
+            level_names=level_name_models,
+            timeslices = timeslice_models,
+            agents = [],
+            processes = []
         )
     
     def export_to_folder(self, folder_path: str):

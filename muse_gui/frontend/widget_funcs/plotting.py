@@ -15,7 +15,7 @@ def _initialise_figure(canvas, figure):
 
 
 def _figure_to_canvas(fig: Figure, key: str = 'canvas') -> sg.Canvas:
-    return sg.Canvas(key=key, expand_x=True,expand_y=True)
+    return sg.Canvas(key=key, size=(500,700), expand_x=True,expand_y=True)
 
 def _get_figure_size(fig: Figure) -> Tuple[float,float]:
     figure_x, figure_y, figure_w, figure_h = fig.bbox.bounds

@@ -1,14 +1,14 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from .base import BaseDatastore
-from muse_gui.backend.data.sector import Sector
+from muse_gui.backend.data.sector import StandardSector, PresetSector, Sector
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
 class SectorDatastore(BaseDatastore[Sector]):
-    def __init__(self, parent: "Datastore", sectors: List[Sector] = []) -> None:
+    def __init__(self, parent: "Datastore", sectors: Union[List[StandardSector], List[PresetSector], List[Sector]] = []) -> None:
         self._parent = parent
         self._data = {}
         for sector in sectors:
@@ -28,3 +28,6 @@ class SectorDatastore(BaseDatastore[Sector]):
         return {
             'process': list(set(processes))
         }
+
+
+

@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Annotated, Any, Dict, List, Optional, Union
+
+from muse_gui.backend.resources.datastore.exceptions import LevelNameMismatch
 
 from .base import BaseSettings
 from .carbon_market_model import CarbonMarket
@@ -8,7 +10,7 @@ from .sectors_model import PresetSector, LegacySector, StandardSector, Output
 from pydantic import BaseModel, PositiveInt
 from typing import List, Optional
 from enum import Enum
-
+from muse_gui.backend.utils import unpack_timeslice
 class Interpolation_mode(str, Enum):
     linear = 'linear'
     nearest = 'nearest'
@@ -33,6 +35,9 @@ class SettingsModel(BaseSettings):
     regions: List[str]
     interest_rate: Optional[float] = None
     interpolation_mode: Interpolation_mode = Interpolation_mode.linear
+    @validator('interpolation_mode', pre=True)
+    def validate_case_insensitive(cls,v):
+        return v.lower()
     log_level: str = 'info'
     outputs: Optional[List[Output]] = None
     equilibirum_variable: Equilibirum_variable = Equilibirum_variable.demand
@@ -46,3 +51,14 @@ class SettingsModel(BaseSettings):
     carbon_budget_control: Optional[CarbonMarket] = None
     sectors: Optional[Dict[str, Annotated[Union[StandardSector, PresetSector, LegacySector], Field(discriminator='type')]]] = None
     timeslices: Dict[str, Any]
+    @validator('timeslices')
+    def validate_timeslice(cls, v):
+        time_slice_info = unpack_timeslice(v)
+        time_slice_names = list(time_slice_info.timeslices.keys())
+        break_down_names = [i.split('.') for i in time_slice_names]
+        for break_down_name in break_down_names:
+            if len(break_down_name) != len(time_slice_info.level_names):
+                raise LevelNameMismatch(time_slice_info.level_names, break_down_name)
+        return v
+
+
