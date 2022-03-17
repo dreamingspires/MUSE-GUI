@@ -1,7 +1,7 @@
 from pydantic import BaseModel, validator
 from typing import Any, Dict, List, Optional, Union, Literal
 from enum import Enum
-
+from .base import BaseSettings
 class InvestmentProduction(str, Enum):
     share = 'share'
     match = 'match'
@@ -45,7 +45,7 @@ def validate_priority(cls, value):
         return value
 
 
-class Output(BaseModel):
+class Output(BaseSettings):
     quantity: Union[Quantity,Dict[str,Any]] = Quantity.capacity
     sink: Sink = Sink.csv
     filename: Optional[str] = None
@@ -60,7 +60,7 @@ class Output(BaseModel):
         else:
             return value
 
-class Subsector(BaseModel):
+class Subsector(BaseSettings):
     agents: Optional[str] = None
     constraints: Optional[List[str]] = None
     demand_share: Optional[str] = None
@@ -71,11 +71,11 @@ class Subsector(BaseModel):
 class Net(str, Enum):
     new_to_retro = 'new_to_retro'
 
-class Interactions(BaseModel):
+class Interactions(BaseSettings):
     interaction: Interaction = Interaction.default
     net: Net = Net.new_to_retro
 
-class StandardSector(BaseModel):
+class StandardSector(BaseSettings):
     type: Literal['default'] = "default"
     priority: int = 100
     check_standard_prio = validator(
@@ -101,7 +101,7 @@ class StandardSector(BaseModel):
 
 
 
-class StandardSectorExample(BaseModel):
+class StandardSectorExample(BaseSettings):
     commodities_in: Optional[str] = None
     commodities_out: Optional[str] = None
     dispatch_production: InvestmentProduction = InvestmentProduction.share
@@ -115,7 +115,7 @@ class StandardSectorExample(BaseModel):
     type: Literal['default'] = "default"
 
 
-class PresetSector(BaseModel):
+class PresetSector(BaseSettings):
     type: Literal['presets'] = 'presets'
     priority: int = 100
     check_preset_prio = validator(
@@ -131,7 +131,7 @@ class PresetSector(BaseModel):
     filters: Optional[Dict[str, Any]]
 
 
-class LegacySector(BaseModel):
+class LegacySector(BaseSettings):
     type: Literal['legacy'] = 'legacy'
     priority: int = 100
     check_legacy_prio = validator(

@@ -1,8 +1,7 @@
 from typing import Optional
-from pydantic import BaseModel
+from .base import BaseSettings
 
-class GlobalInputFiles(BaseModel):
-    # all should be paths to csv files
-    projections: Optional[str] = None
+class GlobalInputFiles(BaseSettings):
+    projections: str
+    global_commodities: str
     regions: Optional[str] = None
-    global_commodities: Optional[str] = None

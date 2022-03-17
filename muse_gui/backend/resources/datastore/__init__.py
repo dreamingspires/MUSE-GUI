@@ -23,12 +23,14 @@ import json
 import re
 import csv
 import pandas as pd
+from muse_gui.backend.settings import SettingsModel
+"""
 class SettingsModel(BaseModel):
     class Inputs(BaseModel):
         projections: str
         global_commodities: str
     global_input_files: Inputs
-
+"""
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -128,7 +130,13 @@ class Datastore:
                 price_unit=unit
             )
             commodity_models.append(com)
-        return cls(regions = region_models, commodities=commodity_models)
+        
+        year_models = [AvailableYear(year=i) for i in projections_data.drop(0)['Time']]
+        return cls(
+            regions = region_models, 
+            available_years=year_models, 
+            commodities=commodity_models
+        )
     
     def export_to_folder(self, folder_path: str):
         raise NotImplementedError
