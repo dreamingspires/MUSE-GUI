@@ -1,4 +1,6 @@
 from pydantic import BaseModel
 
 class Data(BaseModel):
-    pass
+    class Config:
+        use_enum_values = True
+

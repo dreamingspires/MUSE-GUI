@@ -35,4 +35,24 @@ def unpack_timeslice(timeslices: OriginalTimeslice) -> TimesliceInfo:
     return TimesliceInfo(new_timeslices, level_names)
 
 def pack_timeslice(timeslices: TimesliceInfo) -> Timeslice:
-    raise NotImplementedError
+    def pack_timeslice_inner(existing_dict: Timeslice, address: List[str], value: Union[int, float]) -> Timeslice:
+        current_point = address[0]
+        if current_point in existing_dict:
+            assert len(address) != 1
+            current_value = existing_dict[current_point]
+            assert isinstance(current_value, dict)
+            existing_dict[current_point] = pack_timeslice_inner(current_value, address[1:], value)
+        else:
+            if len(address) ==1:
+                existing_dict[current_point] = value
+            else:
+                existing_dict[current_point] = pack_timeslice_inner({}, address[1:], value)
+        return existing_dict
+    
+    final_dict = {}
+    for k, v in timeslices.timeslices.items():
+        split_name = k.split('.')
+        pack_timeslice_inner(final_dict, split_name, v)
+
+    final_dict['level_names'] = timeslices.level_names
+    return final_dict

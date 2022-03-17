@@ -6,8 +6,8 @@ from .abstract import Data
 
 
 class CommodityType(str, Enum):
-    energy = 'energy'
-    environmental = 'environmental'
+    energy = 'Energy'
+    environmental = 'Environmental'
 
 
 class CommodityPrice(BaseModel):

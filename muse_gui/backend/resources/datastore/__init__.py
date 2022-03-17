@@ -6,7 +6,6 @@ from muse_gui.backend.data.process import Process
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
-from muse_gui.backend.settings.sectors_model import StandardSector as StandardSectorSettings
 from muse_gui.backend.utils import unpack_timeslice
 from .process import ProcessDatastore
 from .timeslice import TimesliceDatastore
@@ -26,13 +25,8 @@ import re
 import csv
 import pandas as pd
 from muse_gui.backend.settings import SettingsModel
-"""
-class SettingsModel(BaseModel):
-    class Inputs(BaseModel):
-        projections: str
-        global_commodities: str
-    global_input_files: Inputs
-"""
+import os
+
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -124,7 +118,7 @@ class Datastore:
                 commodity_prices.append(CommodityPrice(region_name = row['RegionName'], time = row['Time'], value = row[commodity['CommodityName']]))
             com = Commodity(
                 commodity=commodity['Commodity'],
-                commodity_type = commodity['CommodityType'].lower(),
+                commodity_type = commodity['CommodityType'].title(),
                 commodity_name = commodity['CommodityName'],
                 c_emission_factor_co2 = commodity['CommodityEmissionFactor_CO2'],
                 heat_rate = commodity['HeatRate'],
@@ -159,6 +153,10 @@ class Datastore:
         timeslice_info = unpack_timeslice(settings_model.timeslices)
         level_name_models = [LevelName(level=i) for i in timeslice_info.level_names]
         timeslice_models = [Timeslice(name = k, value = v) for k, v in timeslice_info.timeslices.items()]
+        #agent_models = Agent()
+
+
+
         return cls(
             regions = region_models, 
             available_years=year_models, 
@@ -171,4 +169,45 @@ class Datastore:
         )
     
     def export_to_folder(self, folder_path: str):
+        folder_path_obj = Path(folder_path)
+        if not folder_path_obj.exists():
+            folder_path_obj.mkdir(parents=True)
+        input_folder = Path(f'{folder_path}{os.sep}input')
+        if not input_folder.exists():
+            input_folder.mkdir(parents=True)
+        technodata_folder = Path(f'{folder_path}{os.sep}technodata')
+        if not technodata_folder.exists():
+            technodata_folder.mkdir(parents=True)
+        commodities_path = f'{str(input_folder)}{os.sep}GlobalCommodities.csv'
+        projections_path = f'{str(input_folder)}{os.sep}Projections.csv'
+
+        #print(self._commodity_datastore._data)
+        commodities = [commodity.dict() for _, commodity in self._commodity_datastore._data.items()]
+        # Export GlobalCommodities
+        df = pd.DataFrame.from_records(
+            data=commodities, 
+            columns=[
+                'commodity', 
+                'commodity_type', 
+                'commodity_name',
+                'c_emission_factor_co2',
+                'heat_rate',
+                'unit'
+            ]
+        )
+        new_df = df.rename(
+            columns={
+                'commodity': 'Commodity', 
+                'commodity_type': 'CommodityType', 
+                'commodity_name': 'CommodityName',
+                'c_emission_factor_co2': 'CommodityEmissionFactor_CO2',
+                'heat_rate': 'HeatRate',
+                'unit': 'Unit'
+            }
+        )
+        new_df.to_csv(commodities_path, index=False)
+
+        #for commodity in 
+        #print(new_df)
+
         raise NotImplementedError
