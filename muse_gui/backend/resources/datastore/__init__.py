@@ -182,9 +182,10 @@ class Datastore:
         projections_path = f'{str(input_folder)}{os.sep}Projections.csv'
 
         #print(self._commodity_datastore._data)
-        commodities = [commodity.dict() for _, commodity in self._commodity_datastore._data.items()]
+        commodity_data = self._commodity_datastore._data
+        commodities = [commodity.dict() for _, commodity in commodity_data.items()]
         # Export GlobalCommodities
-        df = pd.DataFrame.from_records(
+        commodity_dataframe = pd.DataFrame.from_records(
             data=commodities, 
             columns=[
                 'commodity', 
@@ -195,7 +196,7 @@ class Datastore:
                 'unit'
             ]
         )
-        new_df = df.rename(
+        new_commodity_dataframe = commodity_dataframe.rename(
             columns={
                 'commodity': 'Commodity', 
                 'commodity_type': 'CommodityType', 
@@ -205,9 +206,37 @@ class Datastore:
                 'unit': 'Unit'
             }
         )
-        new_df.to_csv(commodities_path, index=False)
+        new_commodity_dataframe.to_csv(commodities_path, index=False)
+        
 
-        #for commodity in 
-        #print(new_df)
+        #Export Projections
+        
+        # Make initial dataframe excluding commodity data
 
-        raise NotImplementedError
+        if len(self._commodity_datastore._data) ==0:
+            raise NotImplementedError
+        else:
+            _, first_element = next(iter(commodity_data.items()))
+        prices = [price.dict() for price in first_element.commodity_prices]
+        projections_df = pd.DataFrame.from_records(data = prices, columns = ['region_name', 'time'])
+        projections_df['Attribute'] = ['CommodityPrice']*len(projections_df)
+        projections_df = projections_df[['region_name', 'Attribute', 'time']]
+
+        for _, commodity in self._commodity_datastore._data.items():
+            projections_df[commodity.commodity_name] = [price.value for price in commodity.commodity_prices]
+
+        # Construct first row
+        first_row = ['Unit', '-',' Year'] + [commodity.price_unit for _, commodity in commodity_data.items()]
+        headers = list(projections_df)
+        new_dict = {header: [first_row[i]] for i, header in enumerate(headers)}
+        first_df = pd.DataFrame(new_dict)
+
+        projections_df = pd.concat([first_df, projections_df])
+        projections_df = projections_df.rename(
+            columns = {
+                'region_name': 'RegionName',
+                'time': 'Time'
+            }
+        )
+        projections_df.to_csv(projections_path, index=False)
+
