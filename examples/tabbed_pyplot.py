@@ -3,10 +3,7 @@ import PySimpleGUI as sg
 from muse_gui.backend.plots import capacity_data_frame_to_plots, price_data_frame_to_plots
 from muse_gui.data_defs.commodity import Commodity, CommodityType
 from muse_gui.frontend.widget_funcs.data_funcs import CommodityView
-from muse_gui.data_defs.sector import Sector, SectorView
-from muse_gui.data_defs.technology import Technology, TechnologyView
-from muse_gui.data_defs.region import Region, RegionView
-from muse_gui.data_defs.agent import Agent, AgentView
+
 from PySimpleGUI.PySimpleGUI import Element
 from muse_gui.frontend.widget_funcs.generics import define_tab_group, make_table_layout
 from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_capacity_plot_to_figure, generate_plot,  generate_plot_layout, attach_price_plot_to_figure
@@ -50,64 +47,6 @@ sg.theme_add_new('CustomTheme', custom_theme)
 sg.theme('CustomTheme')
 font = ('Arial', 14)
 
-
-list_of_com = [Commodity(
-    commodity='gas',
-    commodity_type=CommodityType.energy,
-    commodity_name='gas',
-    c_emission_factor_co2=0.61,
-    heat_rate=1.0,
-    unit='Pj')]
-
-list_of_sectors = [
-    Sector(
-        name='gas',
-        priority=1,
-    )
-]
-region = Region(
-    name='R1'
-)
-list_of_regions = [
-    region
-]
-list_of_agents = [
-    Agent(
-        name='A1',
-        type='New',
-        region=region,
-        share='Agent1'
-    ),
-    Agent(
-        name='A1',
-        type='Retrofit',
-        region=region,
-        share='Agent2'
-    )
-]
-list_of_tech = [
-    Technology(
-        name='gassupply',
-        region=region,
-        type='energy',
-        fuel='',
-        end_use='gas',
-    )
-]
-commodity_views = [CommodityView(x) for x in list_of_com]
-region_views = [RegionView(model=x) for x in list_of_regions]
-sector_views = [SectorView(model=x) for x in list_of_sectors]
-agent_views = [AgentView(model=x) for x in list_of_agents]
-tech_views = [TechnologyView(model=x) for x in list_of_tech]
-
-def format_headings(headers: List[str]) -> List[Element]:
-    return [sg.Text(header.title().replace('_', ''), expand_x = True) for header in headers]
-
-layout_com = make_table_layout(
-    [format_headings(['commodity','commodity_type'])]+
-    [[i for i in commodity_view] for commodity_view in commodity_views],
-)
-
 out_cap = pd.read_csv('MCACapacity.csv')
 out_price = pd.read_csv('MCAPrices.csv')
 fig = generate_plot()
@@ -125,7 +64,6 @@ plot_layout = generate_plot_layout(figure_elems, 'figure1', [f'capacity_plot_{c.
 
 layout = [[define_tab_group({
     "Timeslices": [[sg.Text('Hey')]],
-    "Commodities": layout_com,
     "Plot": plot_layout
 })]]
 
@@ -133,7 +71,7 @@ window = sg.Window(
     'Window Title', 
     layout, 
     resizable = True,
-    size=(1000, 800), 
+    #size=(1000, 800), 
     font = font, 
     auto_size_text=True,
     finalize=True,
@@ -144,6 +82,10 @@ window = sg.Window(
 figure_elems.initialise_in_window(window)
 figure_elems.draw_figures()
 
+figure_elems.draw_figures()
+
+figure_elems.draw_figures()
+window['figure1'].set_size((1000,2000))
 toggle =False
 while True:
     event, values = window.read()
@@ -168,8 +110,6 @@ while True:
             toggle = True
             attach_capacity_plot_to_figure(fig ,capacity_plots[1])
             figure_elems.draw_figures()
-
-
     print('You entered ', values[0])
 
 window.close()
