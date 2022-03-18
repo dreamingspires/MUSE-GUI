@@ -6,18 +6,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import Datastore
 
-class RegionDatastore(BaseDatastore[Region]):
+class RegionDatastore(BaseDatastore[Region]):    
     def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
-        self._parent = parent
-        self._data = {}
-        for region in regions:
-            self.create(region)
-
-    def create(self, model: Region) -> Region:
-        return super().create(model, model.name)
-
-    def update(self, key: str, model: Region) -> Region:
-        return super().update(key, model.name, model)
+        super().__init__(parent, 'name', data = regions)
 
     def forward_dependents(self, model: Region) -> Dict[str,List[str]]:
         commodities = []

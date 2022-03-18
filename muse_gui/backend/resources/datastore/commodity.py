@@ -9,16 +9,7 @@ if TYPE_CHECKING:
 
 class CommodityDatastore(BaseDatastore[Commodity]):
     def __init__(self, parent: "Datastore", commodities: List[Commodity] = []) -> None:
-        self._parent = parent
-        self._data = {}
-        for commodity in commodities:
-            self.create(commodity)
-    
-    def create(self, model: Commodity) -> Commodity:
-        return super().create(model, model.commodity)
-
-    def update(self, key: str, model: Commodity) -> Commodity:
-        return super().update(key, model.commodity, model)
+        super().__init__(parent, 'commodity', data = commodities)
 
     def back_dependents(self, model: Commodity) -> Dict[str,List[str]]:
         regions: List[str] = []

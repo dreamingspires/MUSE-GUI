@@ -40,7 +40,7 @@ class Datastore:
     def __init__(
         self, 
         regions: List[Region] = [],
-        sectors: Union[List[StandardSector], List[PresetSector], List[Sector]] = [],
+        sectors: List[Sector] = [],
         level_names: List[LevelName] = [],
         available_years: List[AvailableYear] = [],
         timeslices: List[Timeslice] = [],

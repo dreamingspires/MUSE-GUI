@@ -22,7 +22,16 @@ ModelType = TypeVar("ModelType", bound =Data)
 class BaseDatastore(Generic[ModelType]):
     _parent: "Datastore"
     _data: Dict[str, ModelType]
-    def create(self, model: ModelType, key: str) -> ModelType:
+    _key_attr_name: str
+    def __init__(self, parent: "Datastore", key_attr_name: str, data: List[ModelType] = []) -> None:
+        self._parent = parent
+        self._key_attr_name =key_attr_name
+        self._data = {}
+        for item in data:
+            self.create(item)
+    
+    def create(self, model: ModelType) -> ModelType:
+        key = str(getattr(model, self._key_attr_name))
         if key in self._data:
             raise KeyAlreadyExists(key, self)
         else:
@@ -36,7 +45,8 @@ class BaseDatastore(Generic[ModelType]):
         else:
             return self._data[key]
 
-    def update(self, existing_key: str, new_key: str, model: ModelType) -> ModelType:
+    def update(self, existing_key: str, model: ModelType) -> ModelType:
+        new_key = str(getattr(model, self._key_attr_name))
         if existing_key not in self._data:
             raise KeyNotFound(existing_key, self)
         else:
@@ -46,7 +56,7 @@ class BaseDatastore(Generic[ModelType]):
             if existing_key == new_key:
                 self._data[existing_key] = model
             else:
-                self.create(model) #type:ignore TODO: Fix: inherited classes have different structure
+                self.create(model)
                 self.delete(existing_key)
             return model
 

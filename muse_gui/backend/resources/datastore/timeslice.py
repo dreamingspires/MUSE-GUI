@@ -10,16 +10,7 @@ if TYPE_CHECKING:
 
 class TimesliceDatastore(BaseDatastore[Timeslice]):
     def __init__(self, parent: "Datastore", timeslices: List[Timeslice] = []) -> None:
-        self._parent = parent
-        self._data = {}
-        for timeslice in timeslices:
-            self.create(timeslice)
-
-    def create(self, model: Timeslice) -> Timeslice:
-        return super().create(model, model.name)
-
-    def update(self, key: str, model: Timeslice) -> Timeslice:
-        return super().update(key, model.name, model)
+        super().__init__(parent, 'name', data = timeslices)
     
     def back_dependents(self, model: Timeslice) -> Dict[str,List[str]]:
         level_names = self._parent.level_name.list()

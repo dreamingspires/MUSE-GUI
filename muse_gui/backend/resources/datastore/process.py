@@ -9,17 +9,8 @@ if TYPE_CHECKING:
     from . import Datastore
 
 class ProcessDatastore(BaseDatastore[Process]):
-    def __init__(self, parent: "Datastore", processes: List[Process] = []) -> None:
-        self._parent = parent
-        self._data = {}
-        for process in processes:
-            self.create(process)
-
-    def create(self, model: Process) -> Process:
-        return super().create(model, model.name)
-    
-    def update(self, key: str, model: Process) -> Process:
-        return super().update(key, model.name, model)
+    def __init__(self, parent: "Datastore", level_names: List[Process] = []) -> None:
+        super().__init__(parent, 'name', data = level_names)
 
     def back_dependents(self, model: Process) -> Dict[str,List[str]]:
         commodities: List[str] = []

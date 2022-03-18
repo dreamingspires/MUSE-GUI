@@ -14,18 +14,8 @@ if TYPE_CHECKING:
 
 class AvailableYearDatastore(BaseDatastore[AvailableYear]):
     def __init__(self, parent: "Datastore", available_years: List[AvailableYear] = []) -> None:
-        self._parent = parent
-        self._data = {}
-        for available_year in available_years:
-            self.create(available_year)
+        super().__init__(parent, 'year', data = available_years)
 
-
-    def create(self, model: AvailableYear) -> AvailableYear:
-        return super().create(model, str(model.year))
-    
-    def update(self, key: str, model: AvailableYear) -> AvailableYear:
-        return super().update(key, str(model.year), model)
-    
     def forward_dependents(self, model: AvailableYear) -> Dict[str,List[str]]:
         commodities = []
         for key, commodity in self._parent.commodity._data.items():
