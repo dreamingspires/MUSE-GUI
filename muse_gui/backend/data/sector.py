@@ -1,7 +1,6 @@
-from typing import Annotated, Any, Dict, Literal, Optional, Union
+from typing import Union, Literal
 from .abstract import Data
 from enum import Enum
-from pydantic import Field
 
 class InterpolationType(str, Enum):
     """
@@ -22,7 +21,7 @@ class SectorType(str, Enum):
 class BaseSector(Data):
     name: str
     priority: int = 100
-
+    type: SectorType
 
 class StandardSector(BaseSector):
     """

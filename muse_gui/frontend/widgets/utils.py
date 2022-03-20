@@ -1,7 +1,8 @@
 from enum import Enum
 import PySimpleGUI as sg
+from PySimpleGUI import Element
 from functools import partial
-from typing import Dict, Callable, Union
+from typing import Dict, Callable, Union, List
 
 from .base import BaseWidget
 
@@ -50,7 +51,7 @@ def get_creator_and_updater_for_type(_type):
 def render(
         field_creator: Dict[str, Union[Callable, BaseWidget]],
         _layout=None,
-        _prefix=None):
+        _prefix=None) -> List[List[Element]]:
 
     prefix = _prefix or tuple()
 
@@ -59,7 +60,7 @@ def render(
 
     if not _layout:
         default_layout = [[k] for k in field_creator]
-        return render(field_creator, default_layout)
+        return render(field_creator, default_layout, prefix)
 
     final_layout = []
 
@@ -70,7 +71,7 @@ def render(
 
     all_keys = [c[0] for r in layout if r for c in r]
     max_length = max([len(x) for x in all_keys])
-    char_length = max_length if max_length < 10 else round(
+    char_length = max(max_length, 7) if max_length < 12 else round(
         0.9*max_length)  # Magic!
 
     for r in layout:
@@ -115,7 +116,7 @@ def render(
             ] +
                 field_creator[key].layout(prefix=_key, layout=cl) +
                 [[sg.Text('')]]
-            ), expand_x=True)
+            ))
             _row.append(inner_layout)
         final_layout.append(_row)
     return final_layout

@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Optional, Dict, List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
@@ -32,14 +33,14 @@ class TabGroup(BaseWidget):
             _tab.bind_handlers()
 
     def __call__(self, window, event, values):
+        print('Tab group received - ', event)
         if event == self._prefixf():
             # Tab switch event
             current_tab = self._tabs[self._tg.get().lower()]
             current_tab.update(window)
-
-        print('Tab group handling - ', event)
-        for _tab in self._tabs.values():
-            if _tab.should_handle_event(event):
-                return _tab(window, event, values)
+        else:
+            for _tab in self._tabs.values():
+                if _tab.should_handle_event(event):
+                    return _tab(window, event, values)
 
 
