@@ -112,7 +112,7 @@ class StandardSector(BaseSector):
 class PresetSector(BaseSector):
     type: Literal['presets'] = 'presets'
     timeslices_levels: List[str] = ["month", "day", "hour"]
-    consumption_path: Optional[str] = None
+    consumption_path: str
     supply_path: Optional[str] = None
     prices_path: Optional[str] = None
     demand_path: Optional[str] = None

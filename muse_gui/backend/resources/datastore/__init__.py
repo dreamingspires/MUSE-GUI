@@ -26,7 +26,7 @@ import csv
 import pandas as pd
 from muse_gui.backend.settings import SettingsModel
 import os
-
+import glob
 def get_commodities_data(global_commodities_data, projections_data, unit_row) -> List[Commodity]:
     commodity_models = []
     for i, name in enumerate(global_commodities_data["Commodity"]):
@@ -284,7 +284,30 @@ class Datastore:
                     process_models.append(process_model)
 
             elif sector.type == 'presets':
-                print('here')
+                def construct_path_set(consumption_path: str, folder: Path) -> List[Path]:
+                    split_path = consumption_path.split(os.sep)
+                    preset_path = os.sep.join(split_path[:-1])
+                    regex = split_path[-1]
+                    replaced_p = replace_path(folder, preset_path)
+                    path_set = [Path(p) for p in glob.glob(os.path.join(replaced_p, regex))]
+                    return path_set
+                
+                path_set = construct_path_set(sector.consumption_path, folder)
+
+                years = []
+                for path in path_set:
+                    reyear = re.match(r"\S*.(\d{4})\S*\.csv", path.name)
+                    if reyear is None:
+                        raise IOError(f"Unexpected filename {path.name}")
+                    year = int(reyear.group(1))
+                    years.append(year)
+
+                consumption_dataframes = {years[i]: pd.read_csv(consumption_p) for i, consumption_p in enumerate(path_set)}
+
+                for year, consumption_df in consumption_dataframes.items():
+                    print(year)
+                    print(consumption_df)
+
             else:
                 raise TypeError(f"Sector type {sector.type} not supported")
 
