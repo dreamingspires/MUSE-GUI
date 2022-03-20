@@ -2,7 +2,7 @@ from typing import List, Union
 
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent
-from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
@@ -198,6 +198,10 @@ class Datastore:
                     process_comm_out = comm_out_data_without_unit.query(f'ProcessName == "{process_name}"')
                     assert len(process_comm_out) == 1
                     process_comm_out = process_comm_out.iloc[0]
+
+                    process_cap_data = existing_cap_data.query(f'ProcessName == "{process_name}"')
+
+
                     technodatas = []
                     for i, technodata in process_technodata.iterrows():
                         agent_data = {
@@ -232,13 +236,31 @@ class Datastore:
                                 agents = [CapacityShare(agent_name=k, share= v) for k, v in agent_data.items() if float(v) > 0]
                             )
                         )
-                    rel_process_technodata = process_technodata.iloc[0]
+                    example_process_technodata = process_technodata.iloc[0]
+
+                    cap_datas = []
+                    units = []
+                    for i, region_cap_data in process_cap_data.iterrows():
+                        region_name = region_cap_data['RegionName']
+                        unit = region_cap_data['Unit']
+                        units.append(unit)
+                        years = list(region_cap_data.keys()[3:])
+                        for year in years:
+                            cap_data = ExistingCapacity(
+                                region=region_name,
+                                year = year,
+                                value = region_cap_data[str(year)]
+                            )
+                            cap_datas.append(cap_data)
+                    cap_units = list(set(units))
+                    assert len(cap_units) ==1
+                    cap_unit = cap_units[0]
                     process_model = Process(
-                        name = rel_process_technodata['ProcessName'],
+                        name = example_process_technodata['ProcessName'],
                         sector = sector_name,
-                        fuel = rel_process_technodata['Fuel'],
-                        end_use = rel_process_technodata['EndUse'],
-                        type = rel_process_technodata['Type'],
+                        fuel = example_process_technodata['Fuel'],
+                        end_use = example_process_technodata['EndUse'],
+                        type = example_process_technodata['Type'],
                         technodatas = technodatas,
                         comm_in=[
                             CommodityFlow(
@@ -256,8 +278,8 @@ class Datastore:
                                 level = process_comm_out['Level'],
                                 value = process_comm_out[commodity.commodity_name]
                             ) for commodity in commodity_models if float(process_comm_out[commodity.commodity_name]) !=0],
-                        existing_capacities=[],
-                        capacity_unit=''
+                        existing_capacities=cap_datas,
+                        capacity_unit=cap_unit
                     )
                     process_models.append(process_model)
 
