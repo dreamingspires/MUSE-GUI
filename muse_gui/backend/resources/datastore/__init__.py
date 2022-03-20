@@ -27,6 +27,48 @@ import pandas as pd
 from muse_gui.backend.settings import SettingsModel
 import os
 
+def get_commodities_data(global_commodities_data, projections_data, unit_row) -> List[Commodity]:
+    commodity_models = []
+    for i, name in enumerate(global_commodities_data["Commodity"]):
+        commodity = global_commodities_data.iloc[i]
+        unit = unit_row[commodity['CommodityName']]
+        rel_price_data = pd.DataFrame(projections_data, columns=[commodity['CommodityName'], 'RegionName', 'Time'])
+        commodity_prices = []
+        for j, row in rel_price_data.iterrows():
+            commodity_prices.append(CommodityPrice(region_name = row['RegionName'], time = row['Time'], value = row[commodity['CommodityName']]))
+        com = Commodity(
+            commodity=commodity['Commodity'],
+            commodity_type = commodity['CommodityType'].title(),
+            commodity_name = commodity['CommodityName'],
+            c_emission_factor_co2 = commodity['CommodityEmissionFactor_CO2'],
+            heat_rate = commodity['HeatRate'],
+            unit = commodity['Unit'],
+            commodity_prices= commodity_prices,
+            price_unit=unit
+        )
+        commodity_models.append(com)
+    return commodity_models
+
+def get_sectors(settings_model: SettingsModel) -> List[Sector]:
+    sectors = settings_model.sectors    
+    sector_models = []
+    for sector_name, sector in sectors.items():
+        if sector.type == 'default':
+            new_sector = StandardSector(
+                name = sector_name,
+                priority= sector.priority,
+                interpolation= InterpolationType(sector.interpolation),
+                dispatch_production = Production(sector.dispatch_production),
+                investment_production = Production(sector.investment_production)
+            )
+        else:
+            new_sector = PresetSector(
+                name = sector_name,
+                priority = sector.priority
+            )
+        sector_models.append(new_sector)
+    return sector_models
+
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -96,6 +138,8 @@ class Datastore:
             return re.sub(r"{path}", str(folder_path), current_path_string)
         def path_string_to_dataframe(folder_path:Path, current_path_string: str) -> pd.DataFrame:
             return pd.read_csv(replace_path(folder_path, current_path_string))
+        
+
         toml_out = toml.load(settings_path)
         path = Path(settings_path)
         folder = path.parents[0].absolute()
@@ -104,51 +148,18 @@ class Datastore:
         global_commodities_data = path_string_to_dataframe(folder, settings_model.global_input_files.global_commodities)
         projections_data = path_string_to_dataframe(folder, settings_model.global_input_files.projections)
         projections_data_without_unit = projections_data.drop(0)
+        unit_row = projections_data.iloc[0]
+
         regions = projections_data_without_unit['RegionName'].unique()
 
         region_models = [Region(name=name) for name in regions]
-        commodity_models = []
-        for i, name in enumerate(global_commodities_data["Commodity"]):
-            commodity = global_commodities_data.iloc[i]
-            unit = projections_data[commodity['CommodityName']].iloc[0]
-            rel_price_data = pd.DataFrame(projections_data_without_unit, columns=[commodity['CommodityName'], 'RegionName', 'Time'])
-            commodity_prices = []
-            for j, row in rel_price_data.iterrows():
-                commodity_prices.append(CommodityPrice(region_name = row['RegionName'], time = row['Time'], value = row[commodity['CommodityName']]))
-            com = Commodity(
-                commodity=commodity['Commodity'],
-                commodity_type = commodity['CommodityType'].title(),
-                commodity_name = commodity['CommodityName'],
-                c_emission_factor_co2 = commodity['CommodityEmissionFactor_CO2'],
-                heat_rate = commodity['HeatRate'],
-                unit = commodity['Unit'],
-                commodity_prices= commodity_prices,
-                price_unit=unit
-            )
-            commodity_models.append(com)
-        
+
+        commodity_models = get_commodities_data(global_commodities_data, projections_data_without_unit, unit_row)
         
         year_models = [AvailableYear(year=i) for i in projections_data_without_unit['Time']]
 
-        sectors = settings_model.sectors
-        assert sectors is not None
+        sector_models = get_sectors(settings_model)
         
-        sector_models = []
-        for sector_name, sector in sectors.items():
-            if sector.type == 'default':
-                new_sector = StandardSector(
-                    name = sector_name,
-                    priority= sector.priority,
-                    interpolation= InterpolationType(sector.interpolation),
-                    dispatch_production = Production(sector.dispatch_production),
-                    investment_production = Production(sector.investment_production)
-                )
-            else:
-                new_sector = PresetSector(
-                    name = sector_name,
-                    priority = sector.priority
-                )
-            sector_models.append(new_sector)
         timeslice_info = unpack_timeslice(settings_model.timeslices)
         level_name_models = [LevelName(level=i) for i in timeslice_info.level_names]
         timeslice_models = [Timeslice(name = k, value = v) for k, v in timeslice_info.timeslices.items()]
@@ -156,7 +167,7 @@ class Datastore:
 
         # Get process data from sectors
         process_models = []
-        for sector_name, sector in sectors.items():
+        for sector_name, sector in settings_model.sectors.items():
             if sector.type == 'default':
                 technodata_data = path_string_to_dataframe(folder, sector.technodata)
                 technodata_data_without_unit = technodata_data.drop(0)

@@ -33,6 +33,7 @@ class SettingsModel(BaseSettings):
     global_input_files: GlobalInputFiles
     time_framework: List[int]
     regions: List[str]
+    sectors: Dict[str, Annotated[Union[StandardSector, PresetSector, LegacySector], Field(discriminator='type')]]
     interest_rate: Optional[float] = None
     interpolation_mode: Interpolation_mode = Interpolation_mode.linear
     @validator('interpolation_mode', pre=True)
@@ -49,7 +50,7 @@ class SettingsModel(BaseSettings):
     plugins: Optional[List[str]] = None
     foresight: int = 0
     carbon_budget_control: Optional[CarbonMarket] = None
-    sectors: Optional[Dict[str, Annotated[Union[StandardSector, PresetSector, LegacySector], Field(discriminator='type')]]] = None
+
     timeslices: Dict[str, Any]
     @validator('timeslices')
     def validate_timeslice(cls, v):
