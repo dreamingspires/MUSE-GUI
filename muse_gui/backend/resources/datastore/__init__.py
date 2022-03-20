@@ -155,7 +155,7 @@ class Datastore:
         #agent_models = Agent()
 
         # Get process data from sectors
-        processes = []
+        process_models = []
         for sector_name, sector in sectors.items():
             if sector.type == 'default':
                 technodata_data = path_string_to_dataframe(folder, sector.technodata)
@@ -169,6 +169,7 @@ class Datastore:
                 comm_out_data = path_string_to_dataframe(folder, sector.commodities_out)
                 comm_out_data_without_unit = comm_out_data.drop(0)
                 comm_out_data_unit = comm_out_data.loc[0]
+
                 if len(sector.subsectors) != 1:
                     raise ValueError('Only single subsector case supported')
                 else:
@@ -188,7 +189,10 @@ class Datastore:
                     process_comm_out = process_comm_out.iloc[0]
                     technodatas = []
                     for i, technodata in process_technodata.iterrows():
-                        print("techno", technodata)
+                        agent_data = {
+                            'Agent1': technodata['Agent1'],
+                            'Agent2': technodata['Agent2']
+                        }
                         technodatas.append(
                             Technodata(
                                 region = technodata['RegionName'],
@@ -214,46 +218,43 @@ class Datastore:
                                     technical_life = technodata['TechnicalLife'],
                                     scaling_size= technodata['ScalingSize']
                                 ),
-                                agents = [
-                                    CapacityShare(agent_name='Agent1', share = technodata['Agent1']),
-                                    CapacityShare(agent_name='Agent2', share = technodata['Agent2']),
-                                ]
-
+                                agents = [CapacityShare(agent_name=k, share= v) for k, v in agent_data.items() if float(v) > 0]
                             )
                         )
-                    print(process_comm_in)
-                    print(process_comm_out)
-                    """
-                    Process(
-                        name = process_technodata['ProcessName'],
+                    rel_process_technodata = process_technodata.iloc[0]
+                    process_model = Process(
+                        name = rel_process_technodata['ProcessName'],
                         sector = sector_name,
-                        fuel = technodata_data['Fuel'],
-                        end_use = technodata_data['EndUse'],
-                        type = technodata_data['Type'],
+                        fuel = rel_process_technodata['Fuel'],
+                        end_use = rel_process_technodata['EndUse'],
+                        type = rel_process_technodata['Type'],
                         technodatas = technodatas,
-                        comm_in=[CommodityFlow(
-                            commodity=process_comm_in['Commodity'],
-                            region = process_comm_in['Region'],
-                            timeslice = process_comm_in
-                        )],
-                        comm_out = [],
+                        comm_in=[
+                            CommodityFlow(
+                                commodity=commodity.commodity,
+                                region = process_comm_in['RegionName'],
+                                timeslice = process_comm_in['Time'],
+                                level = process_comm_in['Level'],
+                                value = process_comm_in[commodity.commodity_name]
+                            ) for commodity in commodity_models if float(process_comm_in[commodity.commodity_name]) !=0],
+                        comm_out=[
+                            CommodityFlow(
+                                commodity=commodity.commodity,
+                                region = process_comm_out['RegionName'],
+                                timeslice = process_comm_out['Time'],
+                                level = process_comm_out['Level'],
+                                value = process_comm_out[commodity.commodity_name]
+                            ) for commodity in commodity_models if float(process_comm_out[commodity.commodity_name]) !=0],
                         existing_capacities=[],
                         capacity_unit=''
                     )
-                    """
-                    raise NotImplementedError
-                print(process_names)
-                print("commin", comm_in_data)
-                print(comm_out_data)
-                print(existing_cap_data)
-                
-                #print(technodata_data)
-                #Process
+                    process_models.append(process_model)
+
             elif sector.type == 'presets':
                 print('here')
             else:
                 raise TypeError(f"Sector type {sector.type} not supported")
-        #Process()
+
 
         return cls(
             regions = region_models, 
@@ -263,7 +264,7 @@ class Datastore:
             level_names=level_name_models,
             timeslices = timeslice_models,
             agents = [],
-            processes = []
+            processes = process_models
         )
     
     def export_to_folder(self, folder_path: str):

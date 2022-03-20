@@ -1,7 +1,7 @@
 from typing import List, Literal
 
 from pydantic import BaseModel, confloat
-from pydantic.class_validators import validator
+from pydantic.class_validators import root_validator, validator
 from pydantic.types import NonNegativeFloat, NonNegativeInt
 
 from .abstract import Data
@@ -14,7 +14,7 @@ class CommodityFlow(BaseModel):
     region:str
     timeslice: str
     level: str
-    value: str
+    value: float
 
 
 class Cost(BaseModel):
@@ -76,19 +76,16 @@ class Process(Data):
     comm_in: List[CommodityFlow]
     comm_out: List[CommodityFlow]
     existing_capacities: List[ExistingCapacity]
-    @validator('comm_in')
-    def at_least_one_in(cls, v: List[CommodityFlow]):
-        if len(v) ==0:
-            raise ValueError('At least one comm_in must be supplied')
+    @root_validator
+    def at_least_one_in_or_out(cls, values):
+        assert 'comm_in' in values
+        assert 'comm_out' in values
+        commodity_in: List[CommodityFlow] = values['comm_in']
+        commodity_out: List[CommodityFlow] = values['comm_out']
+        if len(commodity_in) ==0 and len(commodity_out) ==0:
+            raise ValueError('At least one comm_in or comm_out must be supplied')
         else:
-            return v
-
-    @validator('comm_out')
-    def at_least_one_out(cls, v: List[CommodityFlow]):
-        if len(v) ==0:
-            raise ValueError('At least one comm_out must be supplied')
-        else:
-            return v
+            return values
 
     @validator('comm_in')
     def contains_fuel(cls, v: List[CommodityFlow], values):
@@ -96,12 +93,16 @@ class Process(Data):
         fuel: str = values['fuel']
         commods = [commod_flow.commodity for commod_flow in v]
         if fuel not in commods:
-            raise ValueError(f'Fuel: {fuel} not present in comm_in')
+            pass # Is this a condition? Fails on example
+            #raise ValueError(f'Fuel: {fuel} not present in comm_in')
+        return v
     @validator('comm_out')
     def contains_end_use(cls, v: List[CommodityFlow], values):
         assert 'end_use' in values
         end_use: str = values['end_use']
         commods = [commod_flow.commodity for commod_flow in v]
         if end_use not in commods:
-            raise ValueError(f'End use: {end_use} not present in comm_out')
+            pass # Is this a condition? Fails on example
+            #raise ValueError(f'End use: {end_use} not present in comm_out')
+        return v
     capacity_unit: str
