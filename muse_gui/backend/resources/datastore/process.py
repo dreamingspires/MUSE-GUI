@@ -16,13 +16,19 @@ class ProcessDatastore(BaseDatastore[Process]):
         commodities: List[str] = []
         regions: List[str] = []
         sectors: List[str] = []       
-
+        agents: List[str] = []
         for technodata in model.technodatas:
             try:
                 region = self._parent.region.read(technodata.region)
             except KeyNotFound:
                 raise DependentNotFound(model, technodata.region, self._parent.region)
             regions.append(region.name)
+            for agent in technodata.agents:
+                try:
+                    agent_model = self._parent.agent.read(agent.agent_name)
+                except KeyNotFound:
+                    raise DependentNotFound(model, agent.agent_name, self._parent.agent)
+                agents.append(agent.agent_name)
         for comm_in in model.comm_in:
             try:
                 commodity = self._parent.commodity.read(comm_in.commodity)
@@ -50,8 +56,10 @@ class ProcessDatastore(BaseDatastore[Process]):
         except KeyNotFound:
             raise DependentNotFound(model, model.sector, self._parent.sector)
         sectors.append(sector.name)
+
         return {
             'commodity': list(set(commodities)),
             'region': list(set(regions)),
-            'sector': list(set(sectors))
+            'sector': list(set(sectors)),
+            'agent': list(set(agents))
         }

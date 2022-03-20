@@ -23,3 +23,13 @@ class AgentDatastore(BaseDatastore[Agent]):
             'region': regions
         }
 
+    def forward_dependents(self, model: Agent) -> Dict[str, List[str]]:
+        processes = []
+        for key, process in self._parent.process._data.items():
+            for technodata in process.technodatas:
+                for agent in technodata.agents:
+                    if agent.agent_name == model.name:
+                        processes.append(key)
+        return {
+            'process': processes
+        }

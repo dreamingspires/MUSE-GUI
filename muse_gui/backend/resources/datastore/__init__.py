@@ -96,8 +96,9 @@ class Datastore:
         self._available_years_datastore = AvailableYearDatastore(self, available_years)
         self._timeslice_datastore = TimesliceDatastore(self, timeslices)
         self._commodity_datastore = CommodityDatastore(self, commodities)
-        self._process_datastore = ProcessDatastore(self, processes)
         self._agent_datastore = AgentDatastore(self, agents)
+        self._process_datastore = ProcessDatastore(self, processes)
+
 
 
     @property
@@ -320,7 +321,7 @@ class Datastore:
             level_names=level_name_models,
             timeslices = timeslice_models,
             agents = [],
-            processes = process_models
+            #processes = process_models
         )
     
     def export_to_folder(self, folder_path: str):
