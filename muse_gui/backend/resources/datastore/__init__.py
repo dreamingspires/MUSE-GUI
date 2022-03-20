@@ -1,7 +1,7 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 from pydantic.main import BaseModel
-from muse_gui.backend.data.agent import Agent
+from muse_gui.backend.data.agent import Agent, AgentObjective
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
@@ -27,6 +27,8 @@ import pandas as pd
 from muse_gui.backend.settings import SettingsModel
 import os
 import glob
+import math
+
 def get_commodities_data(global_commodities_data, projections_data, unit_row) -> List[Commodity]:
     commodity_models = []
     for i, name in enumerate(global_commodities_data["Commodity"]):
@@ -140,7 +142,6 @@ class Datastore:
         def path_string_to_dataframe(folder_path:Path, current_path_string: str) -> pd.DataFrame:
             return pd.read_csv(replace_path(folder_path, current_path_string))
         
-
         toml_out = toml.load(settings_path)
         path = Path(settings_path)
         folder = path.parents[0].absolute()
@@ -168,6 +169,7 @@ class Datastore:
 
         # Get process data from sectors
         process_models = []
+        agent_models = []
         for sector_name, sector in settings_model.sectors.items():
             if sector.type == 'default':
                 technodata_data = path_string_to_dataframe(folder, sector.technodata)
@@ -186,7 +188,71 @@ class Datastore:
                     raise ValueError('Only single subsector case supported')
                 else:
                     subsector_name, subsector = next(iter(sector.subsectors.items()))
-                agent_data = path_string_to_dataframe(folder, subsector.agents)
+                agent_raw_data = path_string_to_dataframe(folder, subsector.agents)
+
+                for i, agent in agent_raw_data.iterrows():
+
+                    def is_nan_new(value) -> bool:
+                        try:
+                            return math.isnan(float(value))
+                        except ValueError:
+                            return False
+                    def get_objective(
+                        objective_type,
+                        objective_data, 
+                        objective_sort
+                    ) -> Optional[AgentObjective]:
+                        if is_nan_new(objective_type):
+                            return None
+                        else:
+                            new_type = objective_type
+                        if is_nan_new(objective_data):
+                            return None
+                        else:
+                            new_data = objective_data
+                        if is_nan_new(objective_sort):
+                            return None
+                        else:
+                            new_sort = objective_sort
+                        return AgentObjective(
+                            objective_type = new_type,
+                            objective_data = new_data,
+                            objective_sort = new_sort
+                        )
+
+
+                    objective_1 = get_objective(
+                        objective_type = agent['Objective1'],
+                        objective_data = agent['ObjData1'],
+                        objective_sort= agent['Objsort1']
+                    )
+                    assert objective_1 is not None
+                    objective_2 = get_objective(
+                        objective_type = agent['Objective2'],
+                        objective_data = agent['ObjData2'],
+                        objective_sort= agent['Objsort2']
+                    )
+                    objective_3 = get_objective(
+                        objective_type = agent['Objective3'],
+                        objective_data = agent['ObjData3'],
+                        objective_sort= agent['Objsort3']
+                    )
+                    agent_model = Agent(
+                        name = agent['Name'],
+                        type = agent['Type'],
+                        region = agent['RegionName'],
+                        objective_1 = objective_1,
+                        objective_2 = objective_2,
+                        objective_3 = objective_3,
+                        budget = agent['Budget'],
+                        share = agent['AgentShare'],
+                        search_rule= agent['SearchRule'],
+                        decision_method=agent['DecisionMethod'],
+                        quantity = agent['Quantity'],
+                        maturity_threshold = agent['MaturityThreshold']
+                    )
+                    if agent_model not in agent_models:
+                        agent_models.append(agent_model)
                 existing_cap_data = path_string_to_dataframe(folder, subsector.existing_capacity)
                 process_names = technodata_data_without_unit['ProcessName'].unique()
                 for process_name in process_names:
@@ -312,7 +378,6 @@ class Datastore:
             else:
                 raise TypeError(f"Sector type {sector.type} not supported")
 
-
         return cls(
             regions = region_models, 
             available_years=year_models, 
@@ -320,8 +385,8 @@ class Datastore:
             sectors = sector_models,
             level_names=level_name_models,
             timeslices = timeslice_models,
-            agents = [],
-            #processes = process_models
+            agents = agent_models,
+            processes = process_models
         )
     
     def export_to_folder(self, folder_path: str):

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class AgentDatastore(BaseDatastore[Agent]):
     def __init__(self, parent: "Datastore", agents: List[Agent] = []) -> None:
-        super().__init__(parent, 'name', data = agents)
+        super().__init__(parent, 'share', data = agents)
 
     def back_dependents(self, model: Agent) -> Dict[str,List[str]]:
         try:
