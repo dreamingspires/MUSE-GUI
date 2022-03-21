@@ -367,10 +367,19 @@ class Datastore:
                     cap_units = list(set(units))
                     assert len(cap_units) ==1
                     cap_unit = cap_units[0]
+                    if process_name in demand_mapper:
+                        sector_dict = demand_mapper[process_name]
+                        assert len(sector_dict) == 1
+                        demand_mapper_list = [(preset_sector_name,demand) for preset_sector_name, demand in sector_dict.items()]
+                        preset_sector_name, demand = demand_mapper_list[0]
+                    else:
+                        preset_sector_name = None
+                        demand = []
+
                     process_model = Process(
                         name = example_process_technodata['ProcessName'],
                         sector = sector_name,
-                        preset_sector = 'blah',
+                        preset_sector = preset_sector_name,
                         fuel = example_process_technodata['Fuel'],
                         end_use = example_process_technodata['EndUse'],
                         type = example_process_technodata['Type'],
@@ -391,7 +400,7 @@ class Datastore:
                                 level = process_comm_out['Level'],
                                 value = process_comm_out[commodity.commodity_name]
                             ) for commodity in commodity_models if float(process_comm_out[commodity.commodity_name]) !=0],
-                        demand=[],
+                        demand=demand,
                         existing_capacities=cap_datas,
                         capacity_unit=cap_unit
                     )
@@ -401,7 +410,6 @@ class Datastore:
                 pass
             else:
                 raise TypeError(f"Sector type {sector.type} not supported")
-
         return cls(
             regions = region_models, 
             available_years=year_models, 
