@@ -64,10 +64,10 @@ class BaseDatastore(Generic[ModelType]):
         existing = self.read(key)
         forward_deps = self.forward_dependents(existing)
         for attribute, keys in forward_deps.items():
-            for key in keys:
+            for k in keys:
                 try:
                     relevant_method = getattr(self._parent, attribute)
-                    relevant_method.delete(key)
+                    relevant_method.delete(k)
                 except KeyNotFound:
                     pass
         self._data.pop(key)
