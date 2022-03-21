@@ -113,6 +113,7 @@ def data_and_location(
     commod_model = datastore.commodity.read(commodity_flow.commodity)
     col_index = len(comm_initial_headings)+ all_commodity_names.index(commod_model.commodity_name)
     return commodity_flow.value, row_index, col_index
+
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -313,6 +314,7 @@ class Datastore:
                 comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
                 comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
                 technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
+                existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
 
                 # For each sector get forward deps on processes
                 rel_process_names = self.sector.forward_dependents(sector)['process']
@@ -426,3 +428,25 @@ class Datastore:
                     
                 df = pd.DataFrame(data, columns = technodata_headers)
                 df.to_csv(technodata_path, index= False)
+                
+                data =[]
+                years = self.available_year.list()
+                headers = [
+                    'ProcessName',
+                    'RegionName',
+                    'Unit',
+                ] + years
+                years_int = [int(i) for i in years]
+                region_process_combos = list(product(rel_regions, rel_processes))
+                for region_name, process in region_process_combos:
+                    row = [0.0]*len(years)
+                    final_row = []
+                    for existing_capacity in process.existing_capacities:
+                        if region_name == existing_capacity.region:
+                            assert self.run_settings is not None
+                            year_index = years_int.index(existing_capacity.year)
+                            row[year_index] = existing_capacity.value
+                            final_row: List[Union[str, float]] = [process.name,existing_capacity.region,process.capacity_unit] + row # type:ignore
+                    data.append(final_row)
+                df = pd.DataFrame(data, columns = headers)
+                df.to_csv(existing_capacity_path, index = False)
