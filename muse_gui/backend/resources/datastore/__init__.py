@@ -80,6 +80,41 @@ def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
     agent_df = pd.DataFrame(agents_list, columns=headers)
     return agent_df
 
+def generate_empty_data_and_index(
+    processes: List[Process], 
+    region_names: List[str], 
+    timeslice_names: List[str], 
+    levels: List[str],
+    all_commodity_names: List[str]
+) -> Tuple[List[List[Union[str,float]]], List[List[str]]]:
+    region_time_level_combos = list(product(region_names, timeslice_names, levels))
+    empty_data = []
+    empty_data_index = []
+    for process in processes:
+        for region, time, level in region_time_level_combos:
+            initial_data: List[Union[str,float]] = [
+                process.name,
+                region,
+                time,
+                level
+            ]
+            commod_data: List[Union[str,float]] = [0.0]*len(all_commodity_names)
+            empty_data.append(initial_data+ commod_data)
+            empty_data_index.append(initial_data)
+    return empty_data, empty_data_index
+
+comm_initial_headings = ['ProcessName','RegionName','Time','Level']
+def data_and_location(
+    datastore, 
+    index, 
+    process: Process, 
+    commodity_flow: CommodityFlow,
+    all_commodity_names
+) -> Tuple[float, int, int]:
+    row_index = index.index([process.name, commodity_flow.region, commodity_flow.timeslice, commodity_flow.level])
+    commod_model = datastore.commodity.read(commodity_flow.commodity)
+    col_index = len(comm_initial_headings)+ all_commodity_names.index(commod_model.commodity_name)
+    return commodity_flow.value, row_index, col_index
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -265,8 +300,8 @@ class Datastore:
         agents_path = f"{technodata_folder}{os.sep}Agents.csv"
         agents_df.to_csv(agents_path, index=False)
         
-        comm_initial_headings = ['ProcessName','RegionName','Time','Level']
         comm_names = [commodity.commodity_name for commodity in self.commodity._data.values()]
+        comm_units = [commodity.unit+'/PJ' for commodity in self.commodity._data.values()]
         comm_new_headers = comm_initial_headings + comm_names
 
         # Create sector folders:
@@ -277,6 +312,8 @@ class Datastore:
             if not sector_path.exists():
                 sector_path.mkdir(parents=True)
             if sector.type == 'standard':
+                comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
+                comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
                 # For each sector get forward deps on processes
                 rel_process_names = self.sector.forward_dependents(sector)['process']
                 rel_processes = [self.process.read(p) for p in rel_process_names]
@@ -299,35 +336,21 @@ class Datastore:
                         if comm.level not in rel_levels:
                             rel_levels.append(comm.level)
 
-                region_time_level_combos = list(product(rel_regions, rel_times, rel_levels))
-
-                empty_data = []
-                empty_data_index = []
-
-                for process in rel_processes:
-                    for region, time, level in region_time_level_combos:
-                        initial_data = [
-                            process.name,
-                            region,
-                            time,
-                            level
-                        ]
-                        
-                        commod_data = [0.0]*len(comm_names)
-                        empty_data.append(initial_data+ commod_data)
-                        empty_data_index.append(initial_data)
+                comm_in_data,comm_in_data_index = generate_empty_data_and_index(rel_processes, rel_regions, rel_times, rel_levels, comm_names)
+                comm_out_data,comm_out_data_index = generate_empty_data_and_index(rel_processes, rel_regions, rel_times, rel_levels, comm_names)
                 
                 # Populate empty data
                 for process in rel_processes:
                     for comm in process.comm_in:
-                        row_index = empty_data_index.index([process.name, comm.region, comm.timeslice, comm.level])
-
-                        commod_model = self.commodity.read(comm.commodity)
-                        rel_name = commod_model.commodity_name
-                        col_index = len(comm_initial_headings)+ comm_names.index(rel_name)
-
-                        empty_data[row_index][col_index] = comm.value
-
-                print(pd.DataFrame(empty_data, columns = comm_new_headers))
-
-                    
+                        v, i, j = data_and_location(self, comm_in_data_index, process, comm, comm_names)
+                        comm_in_data[i][j] = v
+                    for comm in process.comm_out:
+                        v, i, j = data_and_location(self, comm_out_data_index, process, comm, comm_names)
+                        comm_out_data[i][j] = v
+                units = ['Unit',None,'Year', None]+ comm_units
+                comm_in_data.insert(0, units)
+                comm_in_df = pd.DataFrame(comm_in_data, columns = comm_new_headers)
+                comm_out_data.insert(0, units)
+                comm_out_df = pd.DataFrame(comm_out_data, columns = comm_new_headers)
+                comm_in_df.to_csv(comm_in_path, index=False)
+                comm_out_df.to_csv(comm_out_path, index=False)
