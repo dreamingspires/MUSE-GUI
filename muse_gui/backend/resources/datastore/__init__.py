@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent, AgentObjective
@@ -30,7 +30,7 @@ import os
 import glob
 import math
 from .importers import path_string_to_dataframe, get_commodities_data, get_sectors, get_agents, get_processes
-
+from itertools import product
 def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
     if len(agents) ==0:
         raise ValueError('Agents not defined')
@@ -258,6 +258,17 @@ class Datastore:
         )
         projections_df.to_csv(projections_path, index=False)
 
+
+        
+        # generate agents file
+        agents_df = agents_to_dataframe(list(self._agent_datastore._data.values()))
+        agents_path = f"{technodata_folder}{os.sep}Agents.csv"
+        agents_df.to_csv(agents_path, index=False)
+        
+        comm_initial_headings = ['ProcessName','RegionName','Time','Level']
+        comm_names = [commodity.commodity_name for commodity in self.commodity._data.values()]
+        comm_new_headers = comm_initial_headings + comm_names
+
         # Create sector folders:
         sector_paths = {}
         for sector_name, sector in self.sector._data.items():
@@ -265,9 +276,58 @@ class Datastore:
             sector_paths[sector_name] = sector_path
             if not sector_path.exists():
                 sector_path.mkdir(parents=True)
-        
-        # generate agents file
-        agents_df = agents_to_dataframe(list(self._agent_datastore._data.values()))
-        agents_path = f"{technodata_folder}{os.sep}Agents.csv"
-        agents_df.to_csv(agents_path, index=False)
-    
+            if sector.type == 'standard':
+                # For each sector get forward deps on processes
+                rel_process_names = self.sector.forward_dependents(sector)['process']
+                rel_processes = [self.process.read(p) for p in rel_process_names]
+                rel_regions = []
+                rel_times = []
+                rel_levels = []
+                for process in rel_processes:
+                    for comm in process.comm_in:
+                        if comm.region not in rel_regions:
+                            rel_regions.append(comm.region)
+                        if comm.timeslice not in rel_times:
+                            rel_times.append(comm.timeslice)
+                        if comm.level not in rel_levels:
+                            rel_levels.append(comm.level)
+                    for comm in process.comm_out:
+                        if comm.region not in rel_regions:
+                            rel_regions.append(comm.region)
+                        if comm.timeslice not in rel_times:
+                            rel_times.append(comm.timeslice)
+                        if comm.level not in rel_levels:
+                            rel_levels.append(comm.level)
+
+                region_time_level_combos = list(product(rel_regions, rel_times, rel_levels))
+
+                empty_data = []
+                empty_data_index = []
+
+                for process in rel_processes:
+                    for region, time, level in region_time_level_combos:
+                        initial_data = [
+                            process.name,
+                            region,
+                            time,
+                            level
+                        ]
+                        
+                        commod_data = [0.0]*len(comm_names)
+                        empty_data.append(initial_data+ commod_data)
+                        empty_data_index.append(initial_data)
+                
+                # Populate empty data
+                for process in rel_processes:
+                    for comm in process.comm_in:
+                        row_index = empty_data_index.index([process.name, comm.region, comm.timeslice, comm.level])
+
+                        commod_model = self.commodity.read(comm.commodity)
+                        rel_name = commod_model.commodity_name
+                        col_index = len(comm_initial_headings)+ comm_names.index(rel_name)
+
+                        empty_data[row_index][col_index] = comm.value
+
+                print(pd.DataFrame(empty_data, columns = comm_new_headers))
+
+                    
