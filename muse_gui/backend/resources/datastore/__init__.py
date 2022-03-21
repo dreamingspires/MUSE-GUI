@@ -82,12 +82,10 @@ def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
 
 def generate_empty_data_and_index(
     processes: List[Process], 
-    region_names: List[str], 
-    timeslice_names: List[str], 
-    levels: List[str],
+    region_time_level_combos: List[Tuple[str, int, str]], 
     all_commodity_names: List[str]
 ) -> Tuple[List[List[Union[str,float]]], List[List[str]]]:
-    region_time_level_combos = list(product(region_names, timeslice_names, levels))
+
     empty_data = []
     empty_data_index = []
     for process in processes:
@@ -314,6 +312,8 @@ class Datastore:
             if sector.type == 'standard':
                 comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
                 comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
+                technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
+
                 # For each sector get forward deps on processes
                 rel_process_names = self.sector.forward_dependents(sector)['process']
                 rel_processes = [self.process.read(p) for p in rel_process_names]
@@ -335,9 +335,16 @@ class Datastore:
                             rel_times.append(comm.timeslice)
                         if comm.level not in rel_levels:
                             rel_levels.append(comm.level)
-
-                comm_in_data,comm_in_data_index = generate_empty_data_and_index(rel_processes, rel_regions, rel_times, rel_levels, comm_names)
-                comm_out_data,comm_out_data_index = generate_empty_data_and_index(rel_processes, rel_regions, rel_times, rel_levels, comm_names)
+                    for tech in process.technodatas:
+                        if tech.region not in rel_regions:
+                            rel_regions.append(tech.region)
+                        if tech.time not in rel_times:
+                            rel_times.append(tech.time)
+                        if tech.level not in rel_levels:
+                            rel_levels.append(tech.level)
+                region_time_level_combos = list(product(rel_regions, rel_times, rel_levels))
+                comm_in_data,comm_in_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
+                comm_out_data,comm_out_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
                 
                 # Populate empty data
                 for process in rel_processes:
@@ -347,10 +354,75 @@ class Datastore:
                     for comm in process.comm_out:
                         v, i, j = data_and_location(self, comm_out_data_index, process, comm, comm_names)
                         comm_out_data[i][j] = v
-                units = ['Unit',None,'Year', None]+ comm_units
+                units: List[Union[str,float]] = ['Unit','-','Year', '-']+ comm_units #type:ignore
                 comm_in_data.insert(0, units)
                 comm_in_df = pd.DataFrame(comm_in_data, columns = comm_new_headers)
                 comm_out_data.insert(0, units)
                 comm_out_df = pd.DataFrame(comm_out_data, columns = comm_new_headers)
                 comm_in_df.to_csv(comm_in_path, index=False)
                 comm_out_df.to_csv(comm_out_path, index=False)
+
+
+                agent_index = [agent for agent in self.agent._data.values()]
+                agent_shares = [agent.share for agent in agent_index]
+                technodata_headers = [
+                    'ProcessName',
+                    'RegionName',
+                    'Time',
+                    'Level',
+                    'cap_par',
+                    'cap_exp',
+                    'fix_par',
+                    'fix_exp',
+                    'var_par',
+                    'var_exp',
+                    'MaxCapacityAddition',
+                    'MaxCapacityGrowth',
+                    'TotalCapacityLimit',
+                    'TechnicalLife',
+                    'UtilizationFactor',
+                    'ScalingSize',
+                    'efficiency',
+                    'InterestRate',
+                    'Type',
+                    'Fuel',
+                    'EndUse'
+                ] + agent_shares
+                data = []
+                for process in rel_processes:
+                    technodatas = process.technodatas
+                    for technodata in technodatas:
+                        initial_row = [
+                            process.name,
+                            technodata.region,
+                            technodata.time,
+                            technodata.level,
+                            technodata.cost.cap_par,
+                            technodata.cost.cap_exp,
+                            technodata.cost.fix_par,
+                            technodata.cost.fix_exp,
+                            technodata.cost.var_par,
+                            technodata.cost.var_exp,
+                            technodata.capacity.max_capacity_addition,
+                            technodata.capacity.max_capacity_growth,
+                            technodata.capacity.total_capacity_limit,
+                            technodata.capacity.technical_life,
+                            technodata.utilisation.utilization_factor,
+                            technodata.capacity.scaling_size,
+                            technodata.utilisation.efficiency,
+                            technodata.cost.interest_rate,
+                            process.type,
+                            process.fuel,
+                            process.end_use
+                        ]
+                        zeros = [0.0]*len(self.agent._data)
+
+                        for agent in technodata.agents:
+                            agent_model = self.agent.read(agent.agent_name)
+                            current_agent_index = agent_index.index(agent_model)
+                            zeros[current_agent_index] = agent.share
+                        row = initial_row + zeros
+                        data.append(row)
+                    
+                df = pd.DataFrame(data, columns = technodata_headers)
+                df.to_csv(technodata_path, index= False)
