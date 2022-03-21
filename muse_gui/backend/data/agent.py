@@ -1,5 +1,5 @@
 import math
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 from pydantic import validator
 from pydantic import BaseModel
 
@@ -62,6 +62,7 @@ class Agent(Data):
     type: AgentType
     region: str
     num: int
+    sectors: List[str] = []
     objective_1: AgentObjective
     budget: float = math.inf
     share: str = ''

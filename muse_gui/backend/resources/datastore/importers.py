@@ -172,6 +172,7 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
 
 def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
     agent_models: List[Agent] = []
+    shares_seen: List[str] = []
     for sector_name, sector in settings_model.sectors.items():
         if sector.type == 'default':
             if len(sector.subsectors) != 1:
@@ -202,6 +203,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                     type = agent['Type'],
                     region = agent['RegionName'],
                     num = agent['AgentNumber'],
+                    sectors = [sector_name], # TODO: Make this all sectors relavent
                     objective_1 = objective_1,
                     objective_2 = objective_2,
                     objective_3 = objective_3,
@@ -212,8 +214,10 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                     quantity = agent['Quantity'],
                     maturity_threshold = agent['MaturityThreshold']
                 )
-                if agent_model not in agent_models:
+                if agent_model.share not in shares_seen:
                     agent_models.append(agent_model)
+                    shares_seen.append(agent['AgentShare'])
+    
     return agent_models
 
 def get_processes(settings_model: SettingsModel, folder: Path, commodity_models: List[Commodity], agent_models: List[Agent]) -> List[Process]:

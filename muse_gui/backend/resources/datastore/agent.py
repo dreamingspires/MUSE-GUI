@@ -19,8 +19,16 @@ class AgentDatastore(BaseDatastore[Agent]):
         except KeyNotFound:
             raise DependentNotFound(model, model.region, self._parent.region)
         regions = [region.name]
+        sectors = []
+        for sector in model.sectors:
+            try:
+                sector = self._parent.sector.read(sector)
+            except KeyNotFound:
+                raise DependentNotFound(model, sector, self._parent.sector)
+            sectors.append(sector)
         return {
-            'region': regions
+            'region': regions,
+            'sector': sectors
         }
 
     def forward_dependents(self, model: Agent) -> Dict[str, List[str]]:
@@ -28,7 +36,7 @@ class AgentDatastore(BaseDatastore[Agent]):
         for key, process in self._parent.process._data.items():
             for technodata in process.technodatas:
                 for agent in technodata.agents:
-                    if agent.agent_name == model.name:
+                    if agent.agent_name == model.share:
                         processes.append(key)
         return {
             'process': processes
