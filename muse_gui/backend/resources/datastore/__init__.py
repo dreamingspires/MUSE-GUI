@@ -31,6 +31,55 @@ import glob
 import math
 from .importers import path_string_to_dataframe, get_commodities_data, get_sectors, get_agents, get_processes
 
+def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
+    if len(agents) ==0:
+        raise ValueError('Agents not defined')
+    headers = ['AgentShare','Name','AgentNumber','RegionName','Objective1','Objective2','Objective3','ObjData1','ObjData2','ObjData3','Objsort1','Objsort2','Objsort3','SearchRule','DecisionMethod','Quantity','MaturityThreshold','Budget','Type']
+
+    agents_list =[]
+    for agent in agents:
+        if agent.objective_2 is None:
+            objective_2_objective_type = None
+            objective_2_objective_data = None
+            objective_2_objective_sort = None
+        else:
+            objective_2_objective_type = agent.objective_2.objective_type
+            objective_2_objective_data = agent.objective_2.objective_data
+            objective_2_objective_sort = agent.objective_2.objective_sort
+        if agent.objective_3 is None:
+            objective_3_objective_type = None
+            objective_3_objective_data = None
+            objective_3_objective_sort = None
+        else:
+            objective_3_objective_type = agent.objective_3.objective_type
+            objective_3_objective_data = agent.objective_3.objective_data
+            objective_3_objective_sort = agent.objective_3.objective_sort
+        agents_list.append(
+            {
+                'AgentShare': agent.share,
+                'Name': agent.name,
+                'AgentNumber': agent.num,
+                'RegionName': agent.region,
+                'Objective1': agent.objective_1.objective_type,
+                'Objective2': objective_2_objective_type,
+                'Objective3': objective_3_objective_type,
+                'ObjData1': agent.objective_1.objective_data,
+                'ObjData2': objective_2_objective_data,
+                'ObjData3': objective_3_objective_data,
+                'Objsort1': agent.objective_1.objective_sort,
+                'Objsort2': objective_2_objective_sort,
+                'Objsort3': objective_3_objective_sort,
+                'SearchRule': agent.search_rule,
+                'DecisionMethod': agent.decision_method,
+                'Quantity': agent.quantity,
+                'MaturityThreshold': agent.maturity_threshold,
+                'Budget': agent.budget,
+                'Type': agent.type
+            }
+        )
+    agent_df = pd.DataFrame(agents_list, columns=headers)
+    return agent_df
+
 class Datastore:
     _region_datastore: RegionDatastore
     _sector_datastore: SectorDatastore
@@ -124,7 +173,7 @@ class Datastore:
 
         agent_models = get_agents(settings_model, folder)
         process_models = get_processes(settings_model, folder, commodity_models, agent_models)
-        
+
         return cls(
             regions = region_models, 
             available_years=year_models, 
@@ -216,4 +265,9 @@ class Datastore:
             sector_paths[sector_name] = sector_path
             if not sector_path.exists():
                 sector_path.mkdir(parents=True)
-            
+        
+        # generate agents file
+        agents_df = agents_to_dataframe(list(self._agent_datastore._data.values()))
+        agents_path = f"{technodata_folder}{os.sep}Agents.csv"
+        agents_df.to_csv(agents_path, index=False)
+    

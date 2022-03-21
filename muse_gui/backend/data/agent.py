@@ -59,6 +59,7 @@ class Agent(Data):
     name: str
     type: Literal['New', 'Retrofit']
     region: str
+    num: int
     objective_1: AgentObjective
     budget: float = math.inf
     share: str = ''

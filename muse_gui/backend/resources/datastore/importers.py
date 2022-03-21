@@ -201,6 +201,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                     name = agent['Name'],
                     type = agent['Type'],
                     region = agent['RegionName'],
+                    num = agent['AgentNumber'],
                     objective_1 = objective_1,
                     objective_2 = objective_2,
                     objective_3 = objective_3,
