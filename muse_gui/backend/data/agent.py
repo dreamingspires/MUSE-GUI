@@ -9,14 +9,12 @@ from enum import Enum
 import numpy as np
 
 def validate_nan_to_none(cls, v):
-    print()
-    print('here', v)
     if v == np.NaN:
          return None
     else:
         return v
 
-class AgentType(str, Enum):
+class ObjectiveType(str, Enum):
     Comfort = 'comfort'
     Efficiency = 'efficiency'
     FixedCosts = 'fixed_costs'
@@ -28,7 +26,7 @@ class AgentType(str, Enum):
     EAC = 'EAC'
 
 class AgentObjective(BaseModel):
-    objective_type: AgentType = AgentType.LCOE
+    objective_type: ObjectiveType = ObjectiveType.LCOE
     objective_data: float
     objective_sort: Optional[bool] = None
     validator('objective_sort', pre=True, always = True, allow_reuse=True)(validate_nan_to_none)
@@ -55,9 +53,13 @@ class DecisionMethod(str, Enum):
     SingleObjective = 'singleObj'
 
 
+class AgentType(str, Enum):
+    New = 'New'
+    Retrofit = 'Retrofit'
+
 class Agent(Data):
     name: str
-    type: Literal['New', 'Retrofit']
+    type: AgentType
     region: str
     num: int
     objective_1: AgentObjective
