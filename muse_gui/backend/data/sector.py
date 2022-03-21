@@ -15,15 +15,20 @@ class Production(str, Enum):
     SHARE = 'share'
     COSTED = 'costed'
 
+class SectorType(str, Enum):
+    STANDARD = 'standard'
+    PRESET = 'preset'
+
 class BaseSector(Data):
     name: str
     priority: int = 100
+
 
 class StandardSector(BaseSector):
     """
     TODO: Advanced Mode
     """
-    type: Literal['standard'] = 'standard'
+    type: Literal[SectorType.STANDARD] = SectorType.STANDARD
     interpolation: InterpolationType = InterpolationType.LINEAR
     dispatch_production: Production = Production.SHARE
     investment_production: Production = Production.SHARE
@@ -33,7 +38,7 @@ class PresetSector(BaseSector):
     """
     TODO: Advanced Mode
     """
-    type: Literal['preset'] = 'preset'
+    type: Literal[SectorType.PRESET] = SectorType.PRESET
 
 
 Sector = Union[StandardSector, PresetSector]

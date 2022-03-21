@@ -16,7 +16,6 @@ from muse_gui.backend.utils import unpack_timeslice
 
 class SettingsModel(RunModel):
     global_input_files: GlobalInputFiles
-    regions: List[str]
     sectors: Dict[str, Annotated[Union[StandardSector, PresetSector, LegacySector], Field(discriminator='type')]]
     timeslices: Dict[str, Any]
     @validator('timeslices')

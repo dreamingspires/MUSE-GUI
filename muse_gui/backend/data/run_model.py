@@ -71,6 +71,7 @@ class CarbonMarket(BaseSettings):
     method_options: Optional[MethodOptions] = None
 
 class RunModel(BaseSettings):
+    regions: List[str]
     time_framework: List[int]
     interest_rate: Optional[float] = None
     interpolation_mode: InterpolationMode = InterpolationMode.linear
