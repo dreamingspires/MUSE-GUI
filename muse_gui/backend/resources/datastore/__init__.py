@@ -1,8 +1,8 @@
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent, AgentObjective
-from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
@@ -70,6 +70,72 @@ def get_sectors(settings_model: SettingsModel) -> List[Sector]:
             )
         sector_models.append(new_sector)
     return sector_models
+
+def is_nan_new(value) -> bool:
+    try:
+        return math.isnan(float(value))
+    except ValueError:
+        return False
+def get_objective(
+    objective_type,
+    objective_data, 
+    objective_sort
+) -> Optional[AgentObjective]:
+    if is_nan_new(objective_type):
+        return None
+    else:
+        new_type = objective_type
+    if is_nan_new(objective_data):
+        return None
+    else:
+        new_data = objective_data
+    if is_nan_new(objective_sort):
+        return None
+    else:
+        new_sort = objective_sort
+    return AgentObjective(
+        objective_type = new_type,
+        objective_data = new_data,
+        objective_sort = new_sort
+    )
+
+
+def get_technodatas(process_technodata) -> List[Technodata]:
+    technodatas = []
+    for i, technodata in process_technodata.iterrows():
+        agent_data = {
+            'Agent1': technodata['Agent1'],
+            'Agent2': technodata['Agent2']
+        }
+        technodatas.append(
+            Technodata(
+                region = technodata['RegionName'],
+                time = technodata['Time'],
+                level = technodata['Level'],
+                cost = Cost(
+                    cap_par = technodata['cap_par'],
+                    cap_exp = technodata['cap_exp'],
+                    fix_par = technodata['fix_par'],
+                    fix_exp = technodata['fix_exp'],
+                    var_par = technodata['var_par'],
+                    var_exp = technodata['var_exp'],
+                    interest_rate = technodata['InterestRate']
+                ),
+                utilisation = Utilisation(
+                    utilization_factor = technodata['UtilizationFactor'],
+                    efficiency = technodata['efficiency']
+                ),
+                capacity=Capacity(
+                    max_capacity_addition=technodata['MaxCapacityAddition'],
+                    max_capacity_growth=technodata['MaxCapacityGrowth'],
+                    total_capacity_limit=technodata['TotalCapacityLimit'],
+                    technical_life = technodata['TechnicalLife'],
+                    scaling_size= technodata['ScalingSize']
+                ),
+                agents = [CapacityShare(agent_name=k, share= v) for k, v in agent_data.items() if float(v) > 0]
+            )
+        )
+    return technodatas
 
 class Datastore:
     _region_datastore: RegionDatastore
@@ -165,11 +231,54 @@ class Datastore:
         timeslice_info = unpack_timeslice(settings_model.timeslices)
         level_name_models = [LevelName(level=i) for i in timeslice_info.level_names]
         timeslice_models = [Timeslice(name = k, value = v) for k, v in timeslice_info.timeslices.items()]
-        #agent_models = Agent()
 
         # Get process data from sectors
         process_models = []
         agent_models = []
+
+
+        # Get demand mapper
+        SectorName = str
+        ProcessName = str
+
+        SectorDemands = Dict[SectorName, List[DemandFlow]]
+        demand_mapper: Dict[ProcessName, SectorDemands] = {}
+
+        for sector_name, sector in settings_model.sectors.items():
+            if sector.type == 'presets':
+                def construct_path_set(consumption_path: str, folder: Path) -> List[Path]:
+                    split_path = consumption_path.split(os.sep)
+                    preset_path = os.sep.join(split_path[:-1])
+                    regex = split_path[-1]
+                    replaced_p = replace_path(folder, preset_path)
+                    path_set = [Path(p) for p in glob.glob(os.path.join(replaced_p, regex))]
+                    return path_set
+                
+                path_set = construct_path_set(sector.consumption_path, folder)
+
+                years = []
+                for path in path_set:
+                    reyear = re.match(r"\S*.(\d{4})\S*\.csv", path.name)
+                    if reyear is None:
+                        raise IOError(f"Unexpected filename {path.name}")
+                    year = int(reyear.group(1))
+                    years.append(year)
+
+                consumption_dataframes = {years[i]: pd.read_csv(consumption_p) for i, consumption_p in enumerate(path_set)}
+
+                for year, consumption_df in consumption_dataframes.items():
+                    process_names = consumption_df['ProcessName'].unique()
+                    
+                    for process_name in process_names:
+                        rel_c_df = consumption_df.query(f'ProcessName == "{process_name}"')
+                        for i, row in rel_c_df.iterrows():
+                            commodity_models: List[Commodity]
+                            if process_name in demand_mapper:
+                                demand_mapper[process_name][sector_name]+=[DemandFlow(commodity=commodity.commodity, region=row['RegionName'], timeslice=row['Timeslice'], value=row[commodity.commodity_name]) for commodity in commodity_models]
+                            else:
+                                demand_mapper[process_name] = {sector_name: [DemandFlow(commodity=commodity.commodity, region=row['RegionName'], timeslice=row['Timeslice'], value=row[commodity.commodity_name]) for commodity in commodity_models]}
+
+
         for sector_name, sector in settings_model.sectors.items():
             if sector.type == 'default':
                 technodata_data = path_string_to_dataframe(folder, sector.technodata)
@@ -191,36 +300,6 @@ class Datastore:
                 agent_raw_data = path_string_to_dataframe(folder, subsector.agents)
 
                 for i, agent in agent_raw_data.iterrows():
-
-                    def is_nan_new(value) -> bool:
-                        try:
-                            return math.isnan(float(value))
-                        except ValueError:
-                            return False
-                    def get_objective(
-                        objective_type,
-                        objective_data, 
-                        objective_sort
-                    ) -> Optional[AgentObjective]:
-                        if is_nan_new(objective_type):
-                            return None
-                        else:
-                            new_type = objective_type
-                        if is_nan_new(objective_data):
-                            return None
-                        else:
-                            new_data = objective_data
-                        if is_nan_new(objective_sort):
-                            return None
-                        else:
-                            new_sort = objective_sort
-                        return AgentObjective(
-                            objective_type = new_type,
-                            objective_data = new_data,
-                            objective_sort = new_sort
-                        )
-
-
                     objective_1 = get_objective(
                         objective_type = agent['Objective1'],
                         objective_data = agent['ObjData1'],
@@ -268,41 +347,7 @@ class Datastore:
 
                     process_cap_data = existing_cap_data.query(f'ProcessName == "{process_name}"')
 
-
-                    technodatas = []
-                    for i, technodata in process_technodata.iterrows():
-                        agent_data = {
-                            'Agent1': technodata['Agent1'],
-                            'Agent2': technodata['Agent2']
-                        }
-                        technodatas.append(
-                            Technodata(
-                                region = technodata['RegionName'],
-                                time = technodata['Time'],
-                                level = technodata['Level'],
-                                cost = Cost(
-                                    cap_par = technodata['cap_par'],
-                                    cap_exp = technodata['cap_exp'],
-                                    fix_par = technodata['fix_par'],
-                                    fix_exp = technodata['fix_exp'],
-                                    var_par = technodata['var_par'],
-                                    var_exp = technodata['var_exp'],
-                                    interest_rate = technodata['InterestRate']
-                                ),
-                                utilisation = Utilisation(
-                                    utilization_factor = technodata['UtilizationFactor'],
-                                    efficiency = technodata['efficiency']
-                                ),
-                                capacity=Capacity(
-                                    max_capacity_addition=technodata['MaxCapacityAddition'],
-                                    max_capacity_growth=technodata['MaxCapacityGrowth'],
-                                    total_capacity_limit=technodata['TotalCapacityLimit'],
-                                    technical_life = technodata['TechnicalLife'],
-                                    scaling_size= technodata['ScalingSize']
-                                ),
-                                agents = [CapacityShare(agent_name=k, share= v) for k, v in agent_data.items() if float(v) > 0]
-                            )
-                        )
+                    technodatas = get_technodatas(process_technodata)
                     example_process_technodata = process_technodata.iloc[0]
 
                     cap_datas = []
@@ -325,6 +370,7 @@ class Datastore:
                     process_model = Process(
                         name = example_process_technodata['ProcessName'],
                         sector = sector_name,
+                        preset_sector = 'blah',
                         fuel = example_process_technodata['Fuel'],
                         end_use = example_process_technodata['EndUse'],
                         type = example_process_technodata['Type'],
@@ -345,36 +391,14 @@ class Datastore:
                                 level = process_comm_out['Level'],
                                 value = process_comm_out[commodity.commodity_name]
                             ) for commodity in commodity_models if float(process_comm_out[commodity.commodity_name]) !=0],
+                        demand=[],
                         existing_capacities=cap_datas,
                         capacity_unit=cap_unit
                     )
                     process_models.append(process_model)
 
             elif sector.type == 'presets':
-                def construct_path_set(consumption_path: str, folder: Path) -> List[Path]:
-                    split_path = consumption_path.split(os.sep)
-                    preset_path = os.sep.join(split_path[:-1])
-                    regex = split_path[-1]
-                    replaced_p = replace_path(folder, preset_path)
-                    path_set = [Path(p) for p in glob.glob(os.path.join(replaced_p, regex))]
-                    return path_set
-                
-                path_set = construct_path_set(sector.consumption_path, folder)
-
-                years = []
-                for path in path_set:
-                    reyear = re.match(r"\S*.(\d{4})\S*\.csv", path.name)
-                    if reyear is None:
-                        raise IOError(f"Unexpected filename {path.name}")
-                    year = int(reyear.group(1))
-                    years.append(year)
-
-                consumption_dataframes = {years[i]: pd.read_csv(consumption_p) for i, consumption_p in enumerate(path_set)}
-
-                for year, consumption_df in consumption_dataframes.items():
-                    print(year)
-                    print(consumption_df)
-
+                pass
             else:
                 raise TypeError(f"Sector type {sector.type} not supported")
 

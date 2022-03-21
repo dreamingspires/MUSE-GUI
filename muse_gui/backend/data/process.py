@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, confloat
 from pydantic.class_validators import root_validator, validator
@@ -16,6 +16,11 @@ class CommodityFlow(BaseModel):
     level: str
     value: float
 
+class DemandFlow(BaseModel):
+    commodity: str
+    region:str
+    timeslice: str
+    value: float
 
 class Cost(BaseModel):
     cap_par: float = 0
@@ -69,12 +74,14 @@ class ExistingCapacity(BaseModel):
 class Process(Data):
     name: str
     sector: str
+    preset_sector: Optional[str]
     fuel: str # Commodity
     end_use: str # Commodity
     type: str
     technodatas: List[Technodata]
     comm_in: List[CommodityFlow]
     comm_out: List[CommodityFlow]
+    demand: List[DemandFlow]
     existing_capacities: List[ExistingCapacity]
     @root_validator
     def at_least_one_in_or_out(cls, values):
