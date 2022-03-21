@@ -1,5 +1,5 @@
 from typing import Optional
-from .base import BaseSettings
+from muse_gui.backend.data.run_model import BaseSettings
 
 class GlobalInputFiles(BaseSettings):
     projections: str

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, validator
 from typing import Any, Dict, List, Optional, Union, Literal
 from enum import Enum
-from .base import BaseSettings
+from muse_gui.backend.data.run_model import BaseSettings, Output
 class InvestmentProduction(str, Enum):
     share = 'share'
     match = 'match'
@@ -15,37 +15,6 @@ class Interaction(str, Enum):
     default = 'default'
     transfer = 'transfer'
 
-
-class Quantity(str, Enum):
-    capacity = 'capacity'
-    prices = 'prices'
-    supply = 'supply'
-
-
-class Sink(str, Enum):
-    csv = 'csv'
-    netcfd = 'netcfd'
-    excel = 'excel'
-    aggregate = 'aggregate'
-
-
-
-
-
-class Output(BaseSettings):
-    quantity: Union[Quantity,Dict[str,Any]] = Quantity.capacity
-    sink: Sink = Sink.csv
-    filename: Optional[str] = None
-    overwrite: bool = False
-    keep_columns: Optional[List[str]] = None
-    index: Optional[bool] = False
-
-    @validator('filename', pre=True, always=True)
-    def validate_filename(cls, value, values):
-        if value is None:
-            return '{cwd}/{default_output_dir}/{Sector}/'+values.quantity+'/{year}'+values.sink
-        else:
-            return value
 
 class Subsector(BaseSettings):
     agents: str

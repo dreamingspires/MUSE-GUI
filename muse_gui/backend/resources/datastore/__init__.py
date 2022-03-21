@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Union
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent, AgentObjective
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.run_model import RunModel
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
@@ -146,7 +147,7 @@ class Datastore:
     _commodity_datastore: CommodityDatastore
     _process_datastore: ProcessDatastore
     _agent_datastore : AgentDatastore
-
+    run_settings: Optional[RunModel]
     def __init__(
         self, 
         regions: List[Region] = [],
@@ -156,7 +157,8 @@ class Datastore:
         timeslices: List[Timeslice] = [],
         commodities: List[Commodity] = [],
         processes: List[Process] = [],
-        agents: List[Agent] = []
+        agents: List[Agent] = [],
+        run_model: Optional[RunModel] = None
     ) -> None:
         self._region_datastore = RegionDatastore(self, regions)
         self._sector_datastore = SectorDatastore(self, sectors)
@@ -166,7 +168,7 @@ class Datastore:
         self._commodity_datastore = CommodityDatastore(self, commodities)
         self._agent_datastore = AgentDatastore(self, agents)
         self._process_datastore = ProcessDatastore(self, processes)
-
+        self.run_settings = run_model
 
 
     @property
@@ -418,7 +420,8 @@ class Datastore:
             level_names=level_name_models,
             timeslices = timeslice_models,
             agents = agent_models,
-            processes = process_models
+            processes = process_models,
+            run_model = RunModel.parse_obj(toml_out)
         )
     
     def export_to_folder(self, folder_path: str):
