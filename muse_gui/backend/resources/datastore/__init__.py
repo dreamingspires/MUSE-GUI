@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic.main import BaseModel
 from muse_gui.backend.data.agent import Agent, AgentObjective
-from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, Demand, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 from muse_gui.backend.data.run_model import RunModel
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
@@ -453,12 +453,40 @@ class Datastore:
                 df = pd.DataFrame(data, columns = headers)
                 df.to_csv(existing_capacity_path, index = False)
             elif sector.type == 'preset':
-                print(rel_processes)
+                Year = int
+                data_dict: Dict[Year, List[List[Any]]] = {}
+                basic_headers = ['RegionName','ProcessName','Timeslice']
+                headers = basic_headers + comm_names
+                
                 for process in rel_processes:
-                    print(process.demands)
-                    #print(process.demand_year)
-                    print(sector)
-                    #Need more than one demand year??
-                pass
+                    rel_demands = process.demands
+                    for demand in rel_demands:
+                        year = demand.year
+                        demand_flows = demand.demand_flows
+                        data: List[List[Any]] = []
+                        processes_regions_and_timeslices_seen: List[Tuple[str,str, str]] = []
+                        for demand_flow in demand_flows:
+                            row: List[Any] = [demand_flow.region, process.name, demand_flow.timeslice]
+                            if (process.name, demand_flow.region, demand_flow.timeslice) in processes_regions_and_timeslices_seen:
+                                row_index = processes_regions_and_timeslices_seen.index((process.name, demand_flow.region, demand_flow.timeslice))
+                                commodity_name = self.commodity.read(demand_flow.commodity).commodity_name
+                                comm_index = comm_names.index(commodity_name)
+                                data[row_index][comm_index + len(basic_headers)] = demand_flow.value
+                            else:
+                                data_row = [0.0]*len(comm_names)
+                                commodity_name = self.commodity.read(demand_flow.commodity).commodity_name
+                                comm_index = comm_names.index(commodity_name)
+                                data_row[comm_index] = demand_flow.value
+                                data.append(row+data_row)
+                                processes_regions_and_timeslices_seen.append((process.name, demand_flow.region, demand_flow.timeslice))
+                        if year in data_dict:
+                            data_dict[year] += data
+                        else:
+                            data_dict[year] = data
+                        
+                for year, data in data_dict.items():
+                    consumption_path = f"{str(sector_path)}{os.sep}{year}Consumption.csv"
+                    df = pd.DataFrame(data, columns = headers)
+                    df.to_csv(consumption_path)
             else:
                 assert False
