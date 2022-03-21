@@ -16,6 +16,8 @@ class SectorDatastore(BaseDatastore[Sector]):
         for key, process in self._parent.process._data.items():
             if process.sector == model.name:
                 processes.append(key)
+            elif process.preset_sector == model.name:
+                processes.append(key)
         agents = []
         for key, agent in self._parent.agent._data.items():
             if model.name in agent.sectors :

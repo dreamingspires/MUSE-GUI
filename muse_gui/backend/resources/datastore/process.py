@@ -56,6 +56,12 @@ class ProcessDatastore(BaseDatastore[Process]):
         except KeyNotFound:
             raise DependentNotFound(model, model.sector, self._parent.sector)
         sectors.append(sector.name)
+        try:
+            if model.preset_sector is not None:
+                sector = self._parent.sector.read(model.preset_sector)
+                sectors.append(sector.name)
+        except KeyNotFound:
+            raise DependentNotFound(model, model.sector, self._parent.sector)
 
         return {
             'commodity': list(set(commodities)),

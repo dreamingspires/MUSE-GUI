@@ -70,7 +70,9 @@ class ExistingCapacity(BaseModel):
     year: int
     value: float
 
-
+class Demand(BaseModel):
+    year: int
+    demand_flows: List[DemandFlow]
 class Process(Data):
     name: str
     sector: str
@@ -81,7 +83,7 @@ class Process(Data):
     technodatas: List[Technodata]
     comm_in: List[CommodityFlow]
     comm_out: List[CommodityFlow]
-    demand: List[DemandFlow]
+    demands: List[Demand]
     existing_capacities: List[ExistingCapacity]
     @root_validator
     def at_least_one_in_or_out(cls, values):

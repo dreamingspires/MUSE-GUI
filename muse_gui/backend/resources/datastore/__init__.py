@@ -310,15 +310,17 @@ class Datastore:
             sector_paths[sector_name] = sector_path
             if not sector_path.exists():
                 sector_path.mkdir(parents=True)
+            # For each sector get forward deps on processes
+            rel_process_names = self.sector.forward_dependents(sector)['process']
+
+            rel_processes = [self.process.read(p) for p in rel_process_names]
             if sector.type == 'standard':
                 comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
                 comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
                 technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
                 existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
 
-                # For each sector get forward deps on processes
-                rel_process_names = self.sector.forward_dependents(sector)['process']
-                rel_processes = [self.process.read(p) for p in rel_process_names]
+
                 rel_regions = []
                 rel_times = []
                 rel_levels = []
@@ -450,3 +452,13 @@ class Datastore:
                     data.append(final_row)
                 df = pd.DataFrame(data, columns = headers)
                 df.to_csv(existing_capacity_path, index = False)
+            elif sector.type == 'preset':
+                print(rel_processes)
+                for process in rel_processes:
+                    print(process.demands)
+                    #print(process.demand_year)
+                    print(sector)
+                    #Need more than one demand year??
+                pass
+            else:
+                assert False

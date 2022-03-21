@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
 from muse_gui.backend.data.agent import Agent, AgentObjective
-from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, Demand, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
@@ -17,6 +17,7 @@ from muse_gui.backend.settings import SettingsModel
 import os
 import glob
 import math
+from dataclasses import dataclass
 
 def replace_path(folder_path:Path, current_path_string: str) -> str:
     return re.sub(r"{path}", str(folder_path), current_path_string)
@@ -130,10 +131,9 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
 # Get demand mapper
 SectorName = str
 ProcessName = str
+Year=int
 
-SectorDemands = Dict[SectorName, List[DemandFlow]]
-
-def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_models: List[Commodity]) -> Dict[ProcessName, SectorDemands]:
+def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_models: List[Commodity]) -> Dict[ProcessName, Dict[SectorName, List[Demand]]]:
     demand_mapper  = {}
     for sector_name, sector in settings_model.sectors.items():
         if sector.type == 'presets':
@@ -164,9 +164,52 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                     rel_c_df = consumption_df.query(f'ProcessName == "{process_name}"')
                     for i, row in rel_c_df.iterrows():
                         if process_name in demand_mapper:
-                            demand_mapper[process_name][sector_name]+=[DemandFlow(commodity=commodity.commodity, region=row['RegionName'], timeslice=row['Timeslice'], value=row[commodity.commodity_name]) for commodity in commodity_models]
+                            demands = demand_mapper[process_name][sector_name]
+                            demand_years = [i.year for i in demands]
+                            if year in demand_years:
+                                demand_index = demand_years.index(year)
+                                new_demands = demand_mapper[process_name][sector_name][demand_index].demand_flows + [
+                                    DemandFlow(
+                                        commodity=commodity.commodity, 
+                                        region=row['RegionName'], 
+                                        timeslice=row['Timeslice'], 
+                                        value=row[commodity.commodity_name]
+                                    ) for commodity in commodity_models
+                                ]
+                                demand_mapper[process_name][sector_name][demand_index] = Demand(
+                                    year = year,
+                                    demand_flows = new_demands
+                                )
+                            else:
+                                demand_mapper[process_name][sector_name] +=[
+                                    Demand(
+                                        year = year,
+                                        demand_flows = [
+                                            DemandFlow(
+                                                commodity=commodity.commodity, 
+                                                region=row['RegionName'], 
+                                                timeslice=row['Timeslice'], 
+                                                value=row[commodity.commodity_name]
+                                            ) for commodity in commodity_models
+                                        ]
+                                    )
+                                ]
+                                    
                         else:
-                            demand_mapper[process_name] = {sector_name: [DemandFlow(commodity=commodity.commodity, region=row['RegionName'], timeslice=row['Timeslice'], value=row[commodity.commodity_name]) for commodity in commodity_models]}
+                            demand_mapper[process_name] = {sector_name: [
+                                Demand(
+                                    year = year,
+                                    demand_flows = [
+                                        DemandFlow(
+                                            commodity=commodity.commodity, 
+                                            region=row['RegionName'], 
+                                            timeslice=row['Timeslice'], 
+                                            value=row[commodity.commodity_name]
+                                        ) for commodity in commodity_models
+                                    ]
+                                )
+                            ]}
+                            
     return demand_mapper
 
 
@@ -303,13 +346,13 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
                 assert len(cap_units) ==1
                 cap_unit = cap_units[0]
                 if process_name in demand_mapper:
-                    sector_dict = demand_mapper[process_name]
-                    assert len(sector_dict) == 1
-                    demand_mapper_list = [(preset_sector_name,demand) for preset_sector_name, demand in sector_dict.items()]
-                    preset_sector_name, demand = demand_mapper_list[0]
+                    demand_map = demand_mapper[process_name]
+                    assert len(demand_map) == 1
+                    preset_sector_name = list(demand_map.keys())[0]
+                    demands = demand_map[preset_sector_name]
                 else:
                     preset_sector_name = None
-                    demand = []
+                    demands = []
 
                 process_model = Process(
                     name = example_process_technodata['ProcessName'],
@@ -335,7 +378,7 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
                             level = process_comm_out['Level'],
                             value = process_comm_out[commodity.commodity_name]
                         ) for commodity in commodity_models if float(process_comm_out[commodity.commodity_name]) !=0],
-                    demand=demand,
+                    demands=demands,
                     existing_capacities=cap_datas,
                     capacity_unit=cap_unit
                 )
