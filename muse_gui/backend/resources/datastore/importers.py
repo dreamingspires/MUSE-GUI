@@ -198,25 +198,49 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                     objective_data = agent['ObjData3'],
                     objective_sort= agent['Objsort3']
                 )
-                agent_model = Agent(
-                    name = agent['Name'],
-                    type = agent['Type'],
-                    region = agent['RegionName'],
-                    num = agent['AgentNumber'],
-                    sectors = [sector_name], # TODO: Make this all sectors relavent
-                    objective_1 = objective_1,
-                    objective_2 = objective_2,
-                    objective_3 = objective_3,
-                    budget = agent['Budget'],
-                    share = agent['AgentShare'],
-                    search_rule= agent['SearchRule'],
-                    decision_method=agent['DecisionMethod'],
-                    quantity = agent['Quantity'],
-                    maturity_threshold = agent['MaturityThreshold']
-                )
-                if agent_model.share not in shares_seen:
+
+                if agent['AgentShare'] not in shares_seen:
+                    agent_model = Agent(
+                        name = agent['Name'],
+                        type = agent['Type'],
+                        region = agent['RegionName'],
+                        num = agent['AgentNumber'],
+                        sectors = [sector_name],
+                        objective_1 = objective_1,
+                        objective_2 = objective_2,
+                        objective_3 = objective_3,
+                        budget = agent['Budget'],
+                        share = agent['AgentShare'],
+                        search_rule= agent['SearchRule'],
+                        decision_method=agent['DecisionMethod'],
+                        quantity = agent['Quantity'],
+                        maturity_threshold = agent['MaturityThreshold']
+                    )
                     agent_models.append(agent_model)
                     shares_seen.append(agent['AgentShare'])
+                else:
+                    # Get agent and update with associated sectors
+                    existing_agents = [i for i in agent_models if i.share == agent['AgentShare']]
+                    assert len(existing_agents) ==1
+                    existing_agent = existing_agents[0]
+                    existing_agent_index = agent_models.index(existing_agent)
+                    new_agent = Agent(
+                        name = agent['Name'],
+                        type = agent['Type'],
+                        region = agent['RegionName'],
+                        num = agent['AgentNumber'],
+                        sectors = existing_agent.sectors + [sector_name],
+                        objective_1 = objective_1,
+                        objective_2 = objective_2,
+                        objective_3 = objective_3,
+                        budget = agent['Budget'],
+                        share = agent['AgentShare'],
+                        search_rule= agent['SearchRule'],
+                        decision_method=agent['DecisionMethod'],
+                        quantity = agent['Quantity'],
+                        maturity_threshold = agent['MaturityThreshold']
+                    )
+                    agent_models[existing_agent_index] = new_agent
     
     return agent_models
 
