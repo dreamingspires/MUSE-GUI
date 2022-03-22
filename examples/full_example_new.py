@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import PySimpleGUI as sg
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
@@ -19,10 +19,10 @@ from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_ca
 import pandas as pd
 import time
 
-def boot_initial_window(font) -> Optional[bool]:
+def boot_initial_window(font) -> Tuple[Optional[bool], Optional[str]]:
     layout = [[
         sg.Col(
-            [[sg.Button('Import Toml', key=True, font=font, size= (15,4))]], pad=1
+            [[sg.FileBrowse('Import Toml', key=True, font=font, size= (15,4), enable_events=True)]], pad=1
         ), 
         sg.Col(
             [[sg.Button('Start New Project', key=False, font = font, size= (15,4))]], pad=1
@@ -36,10 +36,15 @@ def boot_initial_window(font) -> Optional[bool]:
         element_justification='c'
     )
     event, values = window.read()
+    if event is True:
+        file_path = values[True]
+    else:
+        file_path = None
+
     window.close()
     if event == sg.WIN_CLOSED:
-        return None
-    return True
+        return None, None
+    return event, file_path
 
 
 def boot_waiting_window(font):
@@ -119,9 +124,10 @@ def boot_plot_window():
 
     window.close()
 
-def boot_tabbed_window(import_bool: bool):
+def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
     if import_bool:
-        datastore = Datastore.from_settings('./example_data/settings.toml')
+        assert file_path is not None
+        datastore = Datastore.from_settings(file_path)
     else:
         datastore = Datastore()
     timeslice_view = TimesliceView(datastore)
@@ -230,6 +236,6 @@ if __name__ == '__main__':
             pass
         def update(self, v):
             pass
-    import_bool = boot_initial_window(font = font)
+    import_bool, import_file_path = boot_initial_window(font = font)
     if import_bool is not None:
-        boot_tabbed_window(import_bool)
+        boot_tabbed_window(import_bool, import_file_path)
