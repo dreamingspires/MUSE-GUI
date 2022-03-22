@@ -1,10 +1,11 @@
+from typing import Dict
 import PySimpleGUI as sg
 from muse_gui.backend.data.commodity import Commodity, CommodityPrice, CommodityType
 from muse_gui.backend.data.region import Region
 from muse_gui.backend.data.timeslice import AvailableYear
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
-from muse_gui.frontend.views.base import TwoColumnMixin
+from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
 from muse_gui.frontend.views.technology import TechnologyView
 from muse_gui.frontend.views.timeslices import TimesliceView
 from muse_gui.frontend.widgets.tabgroup import TabGroup
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     sector_view = SectorView(datastore)
     agent_view = AgentView(datastore)
     tech_view = TechnologyView(datastore)
-    tabs = {
+    tabs: Dict[str, BaseView] = {
         'timeslices': timeslice_view,
         'years': year_view,
         'regions': region_view,
