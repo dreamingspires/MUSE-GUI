@@ -1,8 +1,7 @@
+from argparse import ArgumentTypeError
 from typing import Dict
 import PySimpleGUI as sg
-from muse_gui.backend.data.commodity import Commodity, CommodityPrice, CommodityType
-from muse_gui.backend.data.region import Region
-from muse_gui.backend.data.timeslice import AvailableYear
+
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
 from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
@@ -45,7 +44,17 @@ if __name__ == '__main__':
     #         )
     #     ]
     # )
-    datastore = Datastore.from_settings('./example_data/settings.toml')
+    import argparse
+    from pathlib import Path
+    def valid_file(v):
+        if not Path(v).is_file():
+            raise ArgumentTypeError(f'"{v}" is not a valid file')
+        return v
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--settings', type=valid_file, help="Path to settings.toml to import from", default="./examples/example_data/settings.toml")
+    args = parser.parse_args()
+
+    datastore = Datastore.from_settings(args.settings)
     timeslice_view = TimesliceView(datastore)
     year_view = AvailableYearsView(datastore)
     region_view = RegionView(datastore)
