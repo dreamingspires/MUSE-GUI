@@ -2,16 +2,16 @@ from enum import Enum
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 from functools import partial
-from typing import Dict, Callable, Union, List
+from typing import Any, Dict, Callable, Tuple, Type, Union, List
 
 from .base import BaseWidget
 
 
-def get_all_keys(d: Dict):
+def get_all_keys(d: Dict) -> List:
     return list(d.keys()) + [x for v in d.values() if isinstance(v, dict) for x in get_all_keys(v)]
 
 
-def get_optionmenu_for_enum(_enum: Enum):
+def get_optionmenu_for_enum(_enum: Type[Enum]) -> Tuple[Callable[..., Element], Callable[..., Dict[str,Any]]]:
     values = [f'{x}' for x in _enum]
     default_value = values[0]
     size = 2 + max([len(x) for x in values])
@@ -25,31 +25,33 @@ def get_optionmenu_for_enum(_enum: Enum):
     ), identity
 
 
-def identity(x): return {'value': x}
+def identity(x):
+    return {'value': x}
 
+num_input_func = partial(sg.Input, '', size=(8, 1), justification='right')
+string_input_func = partial(sg.Input, '', size=(25, 1), justification='left')
 
 registry = {
-    Enum: get_optionmenu_for_enum,
-    int: lambda _: (partial(sg.Input, '', size=(8, 1), justification='right'), identity),
-    float: lambda _: (partial(sg.Input, '', size=(8, 1), justification='right'), identity),
-    str: lambda _: (partial(sg.Input, '', size=(25, 1), justification='left'), identity),
+    int: (num_input_func, identity),
+    float:(num_input_func, identity),
+    str: (string_input_func, identity),
 }
 
-# TODO Cache for type / put it in registry?
-
-
-def get_creator_and_updater_for_type(_type):
+def get_creator_and_updater_for_type(
+    _type: Any
+) -> Tuple[Callable[..., Element], Callable[..., Dict[str,Any]]]:
     # Get direct match if any
-    f = registry.get(_type, None)
-    if f == None:
-        f = next((v for x, v in registry.items() if isinstance(
-            _type, type) and issubclass(_type, x)), lambda _: (partial(sg.Text), identity))
-
-    return f(_type)
+    
+    if isinstance(_type, type) and issubclass(_type, Enum):
+        return get_optionmenu_for_enum(_type)
+    elif _type in registry:
+        return registry[_type]
+    else:
+        return partial(sg.Text), identity
 
 
 def render(
-        field_creator: Dict[str, Union[Callable, BaseWidget]],
+        field_creator: Dict[str, Union[Callable[..., Element], BaseWidget]],
         _layout=None,
         _prefix=None) -> List[List[Element]]:
 
@@ -88,19 +90,24 @@ def render(
                 continue
 
             if key not in field_creator:
-                raise KeyError()
+                raise KeyError(f"{key} not present in field_creator {field_creator}")
 
             _key = prefixf(key)
             display = key.replace('_', ' ').strip().title()
             if not isinstance(field_creator[key], BaseWidget):
                 # No submodel to be rendered
-                _row.extend([
-                    sg.Text(f'{display:<{char_length}}',
-                            size=(char_length, 1)),
-                    sg.Text(':', auto_size_text=True),
-                    field_creator[key](key=_key)
-                ])
-                continue
+                creator = field_creator[key]
+                if isinstance(creator, BaseWidget):
+                    raise NotImplementedError
+                else:
+                    assert isinstance(creator, partial)
+                    _row.extend([
+                        sg.Text(f'{display:<{char_length}}',
+                                size=(char_length, 1)),
+                        sg.Text(':', auto_size_text=True),
+                        creator(key=_key)
+                    ])
+                    continue
 
             # There is a subtree to be rendered
             if not child:

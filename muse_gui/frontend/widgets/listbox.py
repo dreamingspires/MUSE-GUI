@@ -15,7 +15,7 @@ class ListboxWithButtons(BaseWidget):
         size = kwargs.pop('size', kwargs.pop('s', (25, 10)))
         enable_events = kwargs.pop('enable_events', True)
 
-        self._listbox = partial(
+        self._listbox_maker = partial(
             sg.Listbox,
             values,
             size=size,
@@ -54,7 +54,7 @@ class ListboxWithButtons(BaseWidget):
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
             self.prefix = prefix
-            self._listbox = self._listbox(
+            self._listbox = self._listbox_maker(
                 key=self._prefixf('listbox')
             )
             self._layout = [

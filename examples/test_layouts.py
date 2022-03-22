@@ -44,7 +44,7 @@ if __name__ == '__main__':
     #         )
     #     ]
     # )
-    datastore = Datastore.from_settings('./examples/example_data/settings.toml')
+    datastore = Datastore.from_settings('./example_data/settings.toml')
     timeslice_view = TimesliceView(datastore)
     year_view = AvailableYearsView(datastore)
     region_view = RegionView(datastore)

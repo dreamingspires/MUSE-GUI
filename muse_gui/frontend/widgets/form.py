@@ -1,18 +1,22 @@
-from typing import Optional, Type
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 from pydantic import BaseModel
 
 from .base import BaseWidget
 from .utils import get_creator_and_updater_for_type, render
+from PySimpleGUI.PySimpleGUI import Element
 
+def get_creator_and_updater_for_model(model: Type[BaseModel]) -> Tuple[
+        Dict[str, Callable[...,Element]], 
+        Dict[str, Callable[...,Dict[str, Any]]], 
+    ]:
 
-def get_creator_and_updater_for_model(model):
     if not issubclass(model, BaseModel):
+        raise NotImplementedError
         return get_creator_and_updater_for_type(model)
 
     creator = {}
     updater = {}
     for k, v in model.__fields__.items():
-        _cf, _uf = None, None
         # If type is a class and is a basemodel
         if isinstance(v.type_, type) and issubclass(v.type_, BaseModel):
             _cf = Form(v.type_)
@@ -27,6 +31,7 @@ def get_creator_and_updater_for_model(model):
 
 
 class Form(BaseWidget):
+    _model: Type[BaseModel]
     def __init__(self, model: Type[BaseModel], key: Optional[str] = None):
         super().__init__(key)
         self._model = model

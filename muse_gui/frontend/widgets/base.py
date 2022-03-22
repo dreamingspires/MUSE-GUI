@@ -6,7 +6,7 @@ def is_subset(tuple_a, tuple_b):
     return all(k in tuple_b for k in tuple_a)
 
 
-class BaseWidget(object):
+class BaseWidget:
 
     def __init__(self, key: Optional[str] = None):
         self.key = key

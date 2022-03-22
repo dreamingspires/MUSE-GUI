@@ -19,11 +19,11 @@ class EditableTable(BaseWidget):
         self.nrows = rows
         self.ncols = cols
 
-        self._table = partial(
+        self._table_maker = partial(
             sg.Table,
             **kwargs
         )
-        self._input = partial(
+        self._input_maker = partial(
             sg.Input,
             '',
             justification='right',
@@ -32,7 +32,7 @@ class EditableTable(BaseWidget):
             pad=0,
             expand_x=True, expand_y=True,
         )
-        self._frame = partial(
+        self._frame_maker = partial(
             sg.Frame,
             '',
             border_width=1,
@@ -223,13 +223,13 @@ class EditableTable(BaseWidget):
     def layout(self, prefix):
         if not self._layout:
             self.prefix = prefix
-            self._table = self._table(
+            self._table = self._table_maker(
                 key=self._prefixf(),
             )
-            self._input = self._input(
+            self._input = self._input_maker(
                 key=self._prefixf('input')
             )
-            self._frame = self._frame([[self._input]])
+            self._frame = self._frame_maker([[self._input]])
             self._layout =  [[
                 sg.Col([[
                     self._table,
