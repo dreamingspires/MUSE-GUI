@@ -1,9 +1,8 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from pydantic.main import BaseModel
-from muse_gui.backend import settings
-from muse_gui.backend.data.agent import Agent, AgentObjective
-from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, Demand, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+
+from muse_gui.backend.data.agent import Agent
+from muse_gui.backend.data.process import CommodityFlow, Cost, Demand, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 from muse_gui.backend.data.run_model import RunModel
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
@@ -20,20 +19,21 @@ from .region import RegionDatastore
 from .agent import AgentDatastore
 
 from muse_gui.backend.data.region import Region
-from muse_gui.backend.data.commodity import Commodity, CommodityPrice
+from muse_gui.backend.data.commodity import Commodity
 import toml
 from pathlib import Path
-import json
-import re
-import csv
+
 import pandas as pd
 from muse_gui.backend.settings import SettingsModel
 import os
-import glob
-import math
+
 from .importers import path_string_to_dataframe, get_commodities_data, get_sectors, get_agents, get_processes
 from itertools import product
 
+from muse.mca import MCA
+from pathlib import Path
+import os
+import warnings
 def replace_path_prefix(path: Path, prefix_to_replace: Path) -> str:
     absolute_path = str(path.absolute())
     prefix = str(prefix_to_replace.absolute())
@@ -188,6 +188,18 @@ class Datastore:
     def agent(self):
         return self._agent_datastore
     
+    def run_muse(self, export_path: Optional[str] = None):
+        if export_path is None:
+            export_path = './Output'
+        export_path_obj = Path(export_path)
+        export_settings_file = self.export_to_folder(str(export_path_obj))
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            my_mca = MCA.factory(export_settings_file)
+            my_mca.run()
+        
+
     @classmethod
     def from_settings(cls, settings_path: str):        
         toml_out = toml.load(settings_path)
@@ -228,7 +240,7 @@ class Datastore:
             run_model = RunModel.parse_obj(toml_out)
         )
     
-    def export_to_folder(self, folder_path: str):
+    def export_to_folder(self, folder_path: str) -> Path:
         folder_path_obj = Path(folder_path)
         if not folder_path_obj.exists():
             folder_path_obj.mkdir(parents=True)
@@ -531,4 +543,4 @@ class Datastore:
         )
         with open(new_settings_path, 'w+' )as f:
             toml.dump(new_settings_model.dict(),f)
-        
+        return new_settings_path

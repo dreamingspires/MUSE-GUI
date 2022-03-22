@@ -2,9 +2,6 @@ from pydantic import BaseModel, validator
 from typing import Any, Dict, List, Optional, Union, Literal
 from enum import Enum
 from muse_gui.backend.data.run_model import BaseSettings, Output
-class InvestmentProduction(str, Enum):
-    share = 'share'
-    match = 'match'
 
 
 class DemandShare(str, Enum):
@@ -20,7 +17,7 @@ class Subsector(BaseSettings):
     agents: str
     existing_capacity: str
     constraints: Optional[List[str]] = None
-    demand_share: Optional[str] = None
+    demand_share: DemandShare = DemandShare.new_and_retro
     forecast: Optional[int] = None
     lpsolver: Optional[str] = None
 
@@ -57,6 +54,10 @@ class InterpolationType(str, Enum):
     LINEAR = 'linear'
     CUBIC = 'cubic'
 
+class Production(BaseModel):
+    name: Optional[str] = None
+    costing: Optional[str] = None
+
 class StandardSector(BaseSector):
     type: Literal['default'] = "default"
     technodata: str
@@ -64,14 +65,12 @@ class StandardSector(BaseSector):
     commodities_out: str
     subsectors: Dict[str,Subsector]
     interpolation: InterpolationType = InterpolationType.LINEAR
-    investment_production: InvestmentProduction = InvestmentProduction.share
+    production: Optional[Production] = None
     # not really defined so I can't create enum type
     dispatch_production: Optional[str] = None
-    demand_share: DemandShare = DemandShare.new_and_retro
     interactions: Optional[List[Interactions]] = None 
     timeslices: Optional[Dict[str, Any]] = None
     outputs: Optional[List[Output]] = None
-    timeslice_levels: List[str] = ["month", "day", "hour"]
     existing_capacity: Optional[str] = None
     # should be path to csv file
     agents: Optional[str] = None

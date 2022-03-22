@@ -29,7 +29,7 @@ class InterpolationMode(str, Enum):
     active = 'active'
 
 
-class EquilibirumVariable(str, Enum):
+class EquilibriumVariable(str, Enum):
     demand = 'demand'
     prices = 'prices'
 
@@ -80,7 +80,7 @@ class RunModel(BaseSettings):
         return v.lower()
     log_level: str = 'info'
     outputs: Optional[List[Output]] = None
-    equilibirum_variable: EquilibirumVariable = EquilibirumVariable.demand
+    equilibrium_variable: EquilibriumVariable = EquilibriumVariable.demand
     maximum_iterations: PositiveInt = 3
     tolerance: float = 0.1
     tolerance_unmet_demand: float = -0.1

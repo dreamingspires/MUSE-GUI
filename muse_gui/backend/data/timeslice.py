@@ -2,7 +2,7 @@ from.abstract import Data
 
 class Timeslice(Data):
     name: str
-    value: float
+    value: int
 
 class LevelName(Data):
     level: str

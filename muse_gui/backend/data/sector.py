@@ -14,6 +14,10 @@ class Production(str, Enum):
     SHARE = 'share'
     COSTED = 'costed'
 
+class InvProduction(Data):
+    name: Optional[str] = None
+    costing: Optional[str] = None
+
 class SectorType(str, Enum):
     STANDARD = 'standard'
     PRESET = 'preset'
@@ -30,7 +34,7 @@ class StandardSector(BaseSector):
     type: Literal[SectorType.STANDARD] = SectorType.STANDARD
     interpolation: InterpolationType = InterpolationType.LINEAR
     dispatch_production: Production = Production.SHARE
-    investment_production: Production = Production.SHARE
+    investment_production: Optional[InvProduction] = None
     forecast: Optional[int] = None
     demand_share: Literal['new_and_retro'] = 'new_and_retro'
     lpsolver: Optional[str] = None
