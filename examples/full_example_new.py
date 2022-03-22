@@ -17,7 +17,7 @@ from muse_gui.backend.plots import capacity_data_frame_to_plots, price_data_fram
 
 from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_capacity_plot_to_figure, generate_plot,  generate_plot_layout, attach_price_plot_to_figure
 import pandas as pd
-
+import time
 
 def boot_initial_window(font) -> Optional[bool]:
     layout = [[
@@ -42,6 +42,19 @@ def boot_initial_window(font) -> Optional[bool]:
     return True
 
 
+def boot_waiting_window(font):
+    window = sg.Window(
+        'Waiting', 
+        [[sg.Text('Calculating MUSE')]], 
+        resizable = True,
+        font = font, 
+        auto_size_text=True,
+        finalize=True,
+        element_justification='c'
+    )
+    time.sleep(2)
+    window.close()
+    
 
 def boot_plot_window():
     out_cap = pd.read_csv('MCACapacity.csv')
@@ -51,13 +64,13 @@ def boot_plot_window():
     capacity_plots = capacity_data_frame_to_plots(out_cap)
     price_plots = price_data_frame_to_plots(out_price)
     figure_elems = GuiFigureElements(
-        figure1 = fig
+        PlotManager = fig
     )
 
     attach_capacity_plot_to_figure(fig ,capacity_plots[0])
 
 
-    plot_layout = generate_plot_layout(figure_elems, 'figure1', [f'capacity_plot_{c.name}' for c in capacity_plots]+[f'price_plot{r.region}' for r in price_plots])
+    plot_layout = generate_plot_layout(figure_elems, 'PlotManager', [f'capacity_plot_{c.name}' for c in capacity_plots]+[f'price_plot{r.region}' for r in price_plots])
 
     layout = plot_layout
 
@@ -78,7 +91,7 @@ def boot_plot_window():
     figure_elems.draw_figures()
 
     figure_elems.draw_figures()
-    window['figure1'].set_size((1000,2000))
+    window['PlotManager'].set_size((1000,2000))
     toggle =False
     while True:
         event, values = window.read()
@@ -160,6 +173,7 @@ def boot_tabbed_window(import_bool: bool):
             pass
         elif event == ('tg', 'button'):
             window.close()
+            boot_waiting_window(font)
             boot_plot_window()
             break
         elif event and isinstance(event, tuple):
