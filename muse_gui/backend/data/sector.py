@@ -1,4 +1,4 @@
-from typing import Union, Literal
+from typing import List, Optional, Union, Literal
 from .abstract import Data
 from enum import Enum
 
@@ -31,7 +31,11 @@ class StandardSector(BaseSector):
     interpolation: InterpolationType = InterpolationType.LINEAR
     dispatch_production: Production = Production.SHARE
     investment_production: Production = Production.SHARE
+    forecast: Optional[int] = None
     demand_share: Literal['new_and_retro'] = 'new_and_retro'
+    lpsolver: Optional[str] = None
+    constraints: Optional[List[str]] = None
+
 
 class PresetSector(BaseSector):
     """

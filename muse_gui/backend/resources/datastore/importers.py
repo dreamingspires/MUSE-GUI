@@ -56,7 +56,10 @@ def get_sectors(settings_model: SettingsModel) -> List[Sector]:
                 priority= sector.priority,
                 interpolation= InterpolationType(sector.interpolation),
                 dispatch_production = Production(sector.dispatch_production),
-                investment_production = Production(sector.investment_production)
+                investment_production = Production(sector.investment_production),
+                forecast = sector.subsectors['retro_and_new'].forecast,
+                lpsolver=sector.subsectors['retro_and_new'].lpsolver,
+                constraints=sector.subsectors['retro_and_new'].constraints,
             )
         else:
             new_sector = PresetSector(

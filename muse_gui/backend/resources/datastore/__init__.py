@@ -1,13 +1,15 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic.main import BaseModel
+from muse_gui.backend import settings
 from muse_gui.backend.data.agent import Agent, AgentObjective
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, Demand, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 from muse_gui.backend.data.run_model import RunModel
 
 from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
-from muse_gui.backend.utils import unpack_timeslice
+from muse_gui.backend.settings.global_input_files_model import GlobalInputFiles
+from muse_gui.backend.utils import pack_timeslice, unpack_timeslice, TimesliceInfo
 from .process import ProcessDatastore
 from .timeslice import TimesliceDatastore
 from .commodity import CommodityDatastore
@@ -185,7 +187,6 @@ class Datastore:
         path = Path(settings_path)
         folder = path.parents[0].absolute()
         settings_model =  SettingsModel.parse_obj(toml_out)
-
         global_commodities_data = path_string_to_dataframe(folder, settings_model.global_input_files.global_commodities)
         projections_data = path_string_to_dataframe(folder, settings_model.global_input_files.projections)
         projections_data_without_unit = projections_data.drop(0)
@@ -230,10 +231,9 @@ class Datastore:
         technodata_folder = Path(f'{folder_path}{os.sep}technodata')
         if not technodata_folder.exists():
             technodata_folder.mkdir(parents=True)
-        commodities_path = f'{str(input_folder)}{os.sep}GlobalCommodities.csv'
-        projections_path = f'{str(input_folder)}{os.sep}Projections.csv'
-
-        #print(self._commodity_datastore._data)
+        commodities_path = Path(f'{str(input_folder)}{os.sep}GlobalCommodities.csv')
+        projections_path = Path(f'{str(input_folder)}{os.sep}Projections.csv')
+        new_settings_path = Path(f'{folder_path}{os.sep}settings.toml')
         commodity_data = self._commodity_datastore._data
         commodities = [commodity.dict() for _, commodity in commodity_data.items()]
         # Export GlobalCommodities
@@ -296,7 +296,7 @@ class Datastore:
         
         # generate agents file
         agents_df = agents_to_dataframe(list(self._agent_datastore._data.values()))
-        agents_path = f"{technodata_folder}{os.sep}Agents.csv"
+        agents_path = Path(f"{technodata_folder}{os.sep}Agents.csv")
         agents_df.to_csv(agents_path, index=False)
         
         comm_names = [commodity.commodity_name for commodity in self.commodity._data.values()]
@@ -305,7 +305,10 @@ class Datastore:
 
         # Create sector folders:
         sector_paths = {}
+        new_sectors = {}
         for sector_name, sector in self.sector._data.items():
+            sector_details = sector.dict()
+
             sector_path = Path(f"{str(technodata_folder)}{os.sep}{sector.name}")
             sector_paths[sector_name] = sector_path
             if not sector_path.exists():
@@ -315,12 +318,20 @@ class Datastore:
 
             rel_processes = [self.process.read(p) for p in rel_process_names]
             if sector.type == 'standard':
+
+                subsector_details = {}
+
+                sector_details['type'] = 'default'
                 comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
                 comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
                 technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
                 existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
-
-
+                sector_details['commodities_in'] = str(comm_in_path.absolute())
+                sector_details['commodities_out'] = str(comm_out_path.absolute())
+                sector_details['technodata'] = str(technodata_path.absolute())
+                subsector_details['agents'] = str(agents_path.absolute())
+                subsector_details['existing_capacity'] = str(existing_capacity_path.absolute())
+                
                 rel_regions = []
                 rel_times = []
                 rel_levels = []
@@ -452,7 +463,9 @@ class Datastore:
                     data.append(final_row)
                 df = pd.DataFrame(data, columns = headers)
                 df.to_csv(existing_capacity_path, index = False)
+                sector_details['subsectors'] = {'retro_and_new': subsector_details}
             elif sector.type == 'preset':
+                sector_details['type'] = 'presets'
                 Year = int
                 data_dict: Dict[Year, List[List[Any]]] = {}
                 basic_headers = ['RegionName','ProcessName','Timeslice']
@@ -483,10 +496,32 @@ class Datastore:
                             data_dict[year] += data
                         else:
                             data_dict[year] = data
-                        
+                consumption_path = None
                 for year, data in data_dict.items():
-                    consumption_path = f"{str(sector_path)}{os.sep}{year}Consumption.csv"
+                    consumption_path = Path(f"{str(sector_path)}{os.sep}{year}Consumption.csv")
                     df = pd.DataFrame(data, columns = headers)
                     df.to_csv(consumption_path)
+                assert consumption_path is not None
+                sector_details['consumption_path'] = f"{str(consumption_path.parents[0].absolute())}{os.sep}*Consumption.csv"
             else:
                 assert False
+            new_sectors[sector_name] = sector_details
+
+        timeslice_info = TimesliceInfo(
+            timeslices={timeslice.name: timeslice.value for timeslice in self.timeslice._data.values()},
+            level_names=self.level_name.list())
+        new_timeslices = pack_timeslice(timeslice_info)
+
+        assert self.run_settings is not None
+        new_settings_model = SettingsModel(
+            **self.run_settings.dict(),
+            global_input_files=GlobalInputFiles(
+                projections=str(projections_path.absolute()), 
+                global_commodities=str(commodities_path.absolute())
+            ),
+            sectors=new_sectors,
+            timeslices=new_timeslices
+        )
+        with open(new_settings_path, 'w+' )as f:
+            toml.dump(new_settings_model.dict(),f)
+        
