@@ -33,6 +33,13 @@ import glob
 import math
 from .importers import path_string_to_dataframe, get_commodities_data, get_sectors, get_agents, get_processes
 from itertools import product
+
+def replace_path_prefix(path: Path, prefix_to_replace: Path) -> str:
+    absolute_path = str(path.absolute())
+    prefix = str(prefix_to_replace.absolute())
+    return "{path}"+f"{absolute_path[len(prefix):]}"
+
+
 def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
     if len(agents) ==0:
         raise ValueError('Agents not defined')
@@ -326,11 +333,11 @@ class Datastore:
                 comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
                 technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
                 existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
-                sector_details['commodities_in'] = str(comm_in_path.absolute())
-                sector_details['commodities_out'] = str(comm_out_path.absolute())
-                sector_details['technodata'] = str(technodata_path.absolute())
-                subsector_details['agents'] = str(agents_path.absolute())
-                subsector_details['existing_capacity'] = str(existing_capacity_path.absolute())
+                sector_details['commodities_in'] = replace_path_prefix(comm_in_path, folder_path_obj)
+                sector_details['commodities_out'] = replace_path_prefix(comm_out_path,folder_path_obj)
+                sector_details['technodata'] = replace_path_prefix(technodata_path,folder_path_obj)
+                subsector_details['agents'] = replace_path_prefix(agents_path,folder_path_obj)
+                subsector_details['existing_capacity'] = replace_path_prefix(existing_capacity_path,folder_path_obj)
                 
                 rel_regions = []
                 rel_times = []
@@ -498,11 +505,11 @@ class Datastore:
                             data_dict[year] = data
                 consumption_path = None
                 for year, data in data_dict.items():
-                    consumption_path = Path(f"{str(sector_path)}{os.sep}{year}Consumption.csv")
+                    consumption_path = Path(f"{str(sector_path)}{os.sep}A{year}Consumption.csv")
                     df = pd.DataFrame(data, columns = headers)
                     df.to_csv(consumption_path)
                 assert consumption_path is not None
-                sector_details['consumption_path'] = f"{str(consumption_path.parents[0].absolute())}{os.sep}*Consumption.csv"
+                sector_details['consumption_path'] = replace_path_prefix(consumption_path.parents[0], folder_path_obj)+f"{os.sep}*Consumption.csv"
             else:
                 assert False
             new_sectors[sector_name] = sector_details
@@ -516,8 +523,8 @@ class Datastore:
         new_settings_model = SettingsModel(
             **self.run_settings.dict(),
             global_input_files=GlobalInputFiles(
-                projections=str(projections_path.absolute()), 
-                global_commodities=str(commodities_path.absolute())
+                projections=replace_path_prefix(projections_path, folder_path_obj),
+                global_commodities=replace_path_prefix(commodities_path, folder_path_obj)
             ),
             sectors=new_sectors,
             timeslices=new_timeslices
