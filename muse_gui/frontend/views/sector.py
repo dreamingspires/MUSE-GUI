@@ -14,10 +14,10 @@ class SectorView(TwoColumnMixin, BaseView):
         super().__init__('sector')
         self._parent_model = model
         self.model = model.sector
-        self._sector_list = partial(
+        self._sector_list_maker = partial(
             ListboxWithButtons
         )
-        self._sector_info = partial(
+        self._sector_info_maker = partial(
             Form,
             BaseSector
         )
@@ -51,8 +51,8 @@ class SectorView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
 
-            self._sector_list = self._sector_list()
-            self._sector_info = self._sector_info()
+            self._sector_list = self._sector_list_maker()
+            self._sector_info = self._sector_info_maker()
 
             # Left Column
             self.column_1 = sg.Col(

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Optional, List
-
+import PySimpleGUI as sg
 from ..widgets.base import BaseWidget
 
 class BaseView(BaseWidget):
@@ -12,6 +12,8 @@ class BaseView(BaseWidget):
         raise NotImplementedError()
 
 class TwoColumnMixin:
+    column_1: sg.Col
+    column_2: sg.Col
     def pack(self):
         column_1_widget = self.column_1.Widget
         column_2_widget = self.column_2.Widget

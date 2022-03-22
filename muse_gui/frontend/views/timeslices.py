@@ -14,7 +14,7 @@ class TimesliceView(BaseView):
         super().__init__('region')
         self._parent_model = model
         self.model = model.timeslice
-        self._timeslice = partial(
+        self._timeslice_maker = partial(
             EditableTable,
             1,
             2,
@@ -25,7 +25,7 @@ class TimesliceView(BaseView):
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
-        self._level_names = partial(
+        self._level_names_maker = partial(
             sg.Input,
             size=(30, 1),
         )
@@ -46,8 +46,8 @@ class TimesliceView(BaseView):
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
             self.prefix = prefix
-            self._timeslice = self._timeslice()
-            self._level_names = self._level_names(key=self._prefixf('level_name'))
+            self._timeslice = self._timeslice_maker()
+            self._level_names = self._level_names_maker(key=self._prefixf('level_name'))
             _left = [
                 [
                     sg.Text('Timeslices'),

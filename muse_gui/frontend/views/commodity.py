@@ -17,14 +17,14 @@ class CommodityView(TwoColumnMixin, BaseView):
         super().__init__('commodity')
         self._parent_model = model
         self.model = model.commodity
-        self._commodity_list = partial(
+        self._commodity_list_maker = partial(
             ListboxWithButtons
         )
-        self._commodity_info = partial(
+        self._commodity_info_maker = partial(
             Form,
             Commodity
         )
-        self._prices_table = partial(
+        self._prices_table_maker = partial(
             FixedColumnTable,
             1,
             3,
@@ -69,8 +69,8 @@ class CommodityView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
 
-            self._commodity_list = self._commodity_list()
-            self._commodity_info = self._commodity_info()
+            self._commodity_list = self._commodity_list_maker()
+            self._commodity_info = self._commodity_info_maker()
 
             # Left Column
             self.column_1 = sg.Col(
@@ -88,7 +88,7 @@ class CommodityView(TwoColumnMixin, BaseView):
                     ['unit']
                 ]
             )
-            self._prices_table = self._prices_table()
+            self._prices_table = self._prices_table_maker()
             _prices_layout = [
                 [],
                 [

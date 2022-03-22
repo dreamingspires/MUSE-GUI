@@ -20,7 +20,7 @@ class RegionView(TwoColumnMixin, BaseView):
         super().__init__('region')
         self._parent_model = model
         self.model = model.region
-        self._region_list = partial(
+        self._region_list_maker = partial(
             ListboxWithButtons
         )
         self._selected = -1
@@ -44,7 +44,7 @@ class RegionView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
             # Left column
-            self._region_list = self._region_list()
+            self._region_list = self._region_list_maker()
 
             # Right Column
             _help = (

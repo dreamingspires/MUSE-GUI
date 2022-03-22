@@ -13,12 +13,11 @@ from .base import BaseView, TwoColumnMixin
 
 
 class AvailableYearsView(TwoColumnMixin, BaseView):
-
     def __init__(self, model: Datastore):
         super().__init__('available_years')
         self._parent_model = model
         self.model = model.available_year
-        self._year_list = partial(
+        self._year_list_maker = partial(
             ListboxWithButtons
         )
         self._selected = -1
@@ -42,7 +41,7 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
             # Left column
-            self._year_list = self._year_list()
+            self._year_list = self._year_list_maker()
 
             # Right Column
             _help = (

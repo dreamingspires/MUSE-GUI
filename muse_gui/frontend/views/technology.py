@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List
+from typing import Callable, Dict, List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
@@ -20,32 +20,32 @@ class TechnologyView(TwoColumnMixin, BaseView):
         self._parent_model = model
         self.model = model.process
 
-        self._tech_list = partial(
+        self._tech_list_maker = partial(
             ListboxWithButtons
         )
 
-        self._tech_info = partial(
+        self._tech_info_maker = partial(
             Form,
             Process
         )
 
-        option_menu_f = partial(sg.OptionMenu, [None])
+        option_menu_f_maker = partial(sg.OptionMenu, [None])
 
         self._render_fields = {
-            'sector': option_menu_f,
-            'fuel': option_menu_f,
-            'end_use': option_menu_f,
+            'sector': option_menu_f_maker,
+            'fuel': option_menu_f_maker,
+            'end_use': option_menu_f_maker,
         }
 
         self._selected = -1
 
         self.TABLE_HEADINGS_GEN = {
-            'agent': lambda _process: list(dict.fromkeys(self.model.agent.read(x).share for x in self.model.process.read(_process).agents)),
+            'agent': lambda _process: list(dict.fromkeys(self.model._parent.agent.read(x).share for x in self.model._parent.process.read(_process).agents)),
             'capacity': lambda _process: ['Max Addition', 'Max Growth', 'Total Limit', 'Technical Life', 'Scaling Size', 'Utilisation Factor', 'Efficiency'],
             'cost': lambda _process: ['cap_par', 'cap_exp', 'fix_par', 'fix_exp', 'var_par', 'var_exp', 'Interest Rate'],
             'existing_capacity': lambda _process: ['Qty'],
-            'input': lambda _process: [x.commodity for x in self.model.process.read(_process).comm_in],
-            'output': lambda _process: [x.commodity for x in self.model.process.read(_process).comm_out],
+            'input': lambda _process: [x.commodity for x in self.model._parent.process.read(_process).comm_in],
+            'output': lambda _process: [x.commodity for x in self.model._parent.process.read(_process).comm_out],
         }
         self.TABLE_VALUES = {
             'agent': [[]],
@@ -55,7 +55,8 @@ class TechnologyView(TwoColumnMixin, BaseView):
             'input': [[]],
             'output': [[]],
         }
-        self._tables = self._create_tables()
+        self._tables = {}
+        self._table_makers = self._create_tables()
 
     @property
     def selected(self):
@@ -141,8 +142,8 @@ class TechnologyView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
 
-            self._tech_list = self._tech_list()
-            self._tech_info = self._tech_info()
+            self._tech_list = self._tech_list_maker()
+            self._tech_info = self._tech_info_maker()
 
             # Left Column
             self.column_1 = sg.Col(
@@ -162,7 +163,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
             _tech_table_layout = []
             for k in FIXED_TABLES:
-                self._tables[k] = self._tables[k]()
+                self._tables[k] = self._table_makers[k]()
                 _tech_table_layout.append([sg.Tab(k.replace('_', ' ').title(), self._tables[k].layout(self._prefixf(k)))])
 
             _tech_table_layout = [[
@@ -201,7 +202,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
         pass
 
-    def _get_table(self, _type, _process=None):
+    def _get_table(self, _type, _process=None) -> Callable[..., FixedColumnTable]:
         headings = ['Year', 'Region'] + self.TABLE_HEADINGS_GEN[_type](_process)
         return partial(
             FixedColumnTable,
@@ -215,7 +216,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
-    def _create_tables(self):
+    def _create_tables(self) -> Dict[str, Callable[..., FixedColumnTable]]:
         return {
             k: self._get_table(k) for k in ['cost', 'capacity', 'existing_capacity']
         }

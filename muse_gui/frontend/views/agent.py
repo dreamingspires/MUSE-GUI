@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List
+from typing import Dict, List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
@@ -11,6 +11,7 @@ from ..widgets.form import Form
 from .base import BaseView, TwoColumnMixin
 
 class AgentRepository():
+    #_agents: Dict[str, Dict[str,Dict[str, Agent]]]
     def __init__(self, model: Datastore):
         self._parent_model = model
         self._model = model.agent
@@ -41,7 +42,7 @@ class AgentRepository():
             if r not in new_agent:
                 _agent = retro_agent[r]
                 new_agent = Agent(**_agent.dict())
-                new_agent.type = AgentType.NEW
+                new_agent.type = AgentType.New
                 new_agent.share = f'{name}_new'
 
                 self._model.create(new_agent)
@@ -51,7 +52,7 @@ class AgentRepository():
             if r not in retro_agent:
                 _agent = new_agent[r]
                 retro_agent = Agent(**_agent.dict())
-                retro_agent.type = AgentType.RETROFIT
+                retro_agent.type = AgentType.Retrofit
                 retro_agent.share = f'{name}'
 
                 self._model.create(retro_agent)
@@ -71,14 +72,14 @@ class AgentView(TwoColumnMixin, BaseView):
         self._parent_model = model
         self.model = AgentRepository(model)
 
-        self._agent_list = partial(
+        self._agent_list_maker = partial(
             ListboxWithButtons
         )
-        self._agent_name = partial(
+        self._agent_name_maker = partial(
             sg.Input,
             size=(20, 1),
         )
-        self._agent_sector = partial(
+        self._agent_sector_maker = partial(
             sg.OptionMenu,
             [None],
             size=(18, 1)
@@ -86,7 +87,7 @@ class AgentView(TwoColumnMixin, BaseView):
 
         _params = ['Region', 'DecisionMethod', 'SearchRule', 'Quantity', 'Budget', 'Maturity Threshold']
         _ncols = len(_params)
-        self._new_agent_info = partial(
+        self._new_agent_info_maker = partial(
             FixedColumnTable,
             1,
             _ncols,
@@ -98,7 +99,7 @@ class AgentView(TwoColumnMixin, BaseView):
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
-        self._retro_agent_info = partial(
+        self._retro_agent_info_maker = partial(
             FixedColumnTable,
             1,
             _ncols,
@@ -179,7 +180,7 @@ class AgentView(TwoColumnMixin, BaseView):
         if not self._layout:
             self.prefix = prefix
             # Left
-            self._agent_list = self._agent_list()
+            self._agent_list = self._agent_list_maker()
 
             self.column_1 = sg.Col(
                 self._agent_list.layout(self._prefixf()),
@@ -187,11 +188,11 @@ class AgentView(TwoColumnMixin, BaseView):
             )
 
             # Right
-            self._new_agent_info = self._new_agent_info()
-            self._retro_agent_info = self._retro_agent_info()
+            self._new_agent_info = self._new_agent_info_maker()
+            self._retro_agent_info = self._retro_agent_info_maker()
 
-            self._agent_name = self._agent_name(key=self._prefixf('name'))
-            self._agent_sector = self._agent_sector(key=self._prefixf('sector'))
+            self._agent_name = self._agent_name_maker(key=self._prefixf('name'))
+            self._agent_sector = self._agent_sector_maker(key=self._prefixf('sector'))
 
             _agent_info_layout = [
                 [
