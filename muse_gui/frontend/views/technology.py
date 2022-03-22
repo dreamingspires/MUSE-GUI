@@ -40,23 +40,23 @@ class TechnologyView(TwoColumnMixin, BaseView):
         self._selected = -1
 
         self.TABLE_HEADINGS_GEN = {
-            'agent': lambda _process: list(dict.fromkeys(self.model._parent.agent.read(x).share for x in self.model._parent.process.read(_process).agents)),
+            'agent': lambda _process: list(dict.fromkeys(self._parent_model.agent.list())),
             'capacity': lambda _process: ['Max Addition', 'Max Growth', 'Total Limit', 'Technical Life', 'Scaling Size', 'Utilisation Factor', 'Efficiency'],
             'cost': lambda _process: ['cap_par', 'cap_exp', 'fix_par', 'fix_exp', 'var_par', 'var_exp', 'Interest Rate'],
             'existing_capacity': lambda _process: ['Qty'],
-            'input': lambda _process: [x.commodity for x in self.model._parent.process.read(_process).comm_in],
-            'output': lambda _process: [x.commodity for x in self.model._parent.process.read(_process).comm_out],
+            'input': lambda _process: [x.commodity for x in self.model.read(_process).comm_in],
+            'output': lambda _process: [x.commodity for x in self.model.read(_process).comm_out],
         }
         self.TABLE_VALUES = {
-            'agent': [[]],
-            'capacity': [[]],
             'cost': [[]],
-            'existing_capacity': [[]],
+            'capacity': [[]],
             'input': [[]],
             'output': [[]],
+            'agent': [[]],
+            'existing_capacity': [[]],
         }
-        self._tables = {}
-        self._table_makers = self._create_tables()
+        self._tables = self._create_tables()
+        self._current_key = None
 
     @property
     def selected(self):
@@ -71,6 +71,10 @@ class TechnologyView(TwoColumnMixin, BaseView):
             self.column_2.expand(expand_x=True, expand_y=True)
         elif self._selected == -1 and self.column_2.visible:
             self.column_2.update(visible=False)
+
+    def get_current_process_id(self):
+        _processes = self.model.list()
+        return _processes[self.selected]
 
     def update(self, window):
         _processes = self.model.list()
@@ -136,6 +140,63 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 ] for x in _tech_info.technodatas
             ]
             self._tables['cost'].values = _cost
+
+            # Update agents
+            agent_headings = self.TABLE_HEADINGS_GEN['agent'](None)
+
+            _agent_values = {}
+            for tdata in _tech_info.technodatas:
+                _year, _region, _agents = tdata.time, tdata.region, tdata.agents
+                _key = (_year, _region)
+                if _key not in _agent_values:
+                    _agent_values[_key] = {}
+
+                for _agent in _agents:
+                    _agent_values[_key][_agent.agent_name] = _agent.share
+
+            sort_keys = sorted(_agent_values.keys())
+            agent_values = []
+            for k in sort_keys:
+                agent_values.append(list(k) + [_agent_values[k][x] if x in _agent_values[k] else 0 for x in agent_headings ])
+            self.TABLE_VALUES['agent'] = agent_values
+
+            # Update commin
+
+            commin_headings = self.TABLE_HEADINGS_GEN['input'](_tech_id)
+            comm_values = {}
+            for comm in _tech_info.comm_in:
+                _year, _region, _commodity, _value = comm.timeslice,  comm.region, comm.commodity, comm.value
+                _key = (_year, _region)
+                if _key not in comm_values:
+                    comm_values[_key] = {}
+
+                comm_values[_key][_commodity] = _value
+
+            sort_keys = sorted(comm_values.keys())
+
+            commin_values = []
+            for k in sort_keys:
+                commin_values.append(list(k) + [comm_values[k][x] for x in commin_headings])
+            self.TABLE_VALUES['input'] = commin_values
+
+            # Update commout
+            commout_headings = self.TABLE_HEADINGS_GEN['output'](_tech_id)
+            comm_values = {}
+            for comm in _tech_info.comm_out:
+                _year, _region, _commodity, _value = comm.timeslice,  comm.region, comm.commodity, comm.value
+                _key = (_year, _region)
+                if _key not in comm_values:
+                    comm_values[_key] = {}
+
+                comm_values[_key][_commodity] = _value
+
+            sort_keys = sorted(comm_values.keys())
+
+            commout_values = []
+            for k in sort_keys:
+                commout_values.append(list(k) + [comm_values[k][x] for x in commout_headings])
+            self.TABLE_VALUES['output'] = commout_values
+
             self._tech_info.update(window, _tech_info)
 
     def layout(self, prefix) -> List[List[Element]]:
@@ -162,12 +223,22 @@ class TechnologyView(TwoColumnMixin, BaseView):
             _tech_options_layout = render(self._render_fields, _prefix=self._prefixf())
 
             _tech_table_layout = []
-            for k in FIXED_TABLES:
-                self._tables[k] = self._table_makers[k]()
-                _tech_table_layout.append([sg.Tab(k.replace('_', ' ').title(), self._tables[k].layout(self._prefixf(k)))])
+            for k in self.TABLE_VALUES:
+                if k in FIXED_TABLES:
+                    self._tables[k] = self._tables[k]()
+                    _table_layout = self._tables[k].layout(self._prefixf(k))
+                else:
+                    _table_layout = [[
+                        sg.Frame('', [[
+                            sg.Text('Table opened in  new window. Close to proceed')
+                        ]], expand_x=True, expand_y=True, vertical_alignment='center', element_justification='center')
+                    ]]
+
+                _tech_table_layout.append([sg.Tab(k.replace('_', ' ').title(), _table_layout)])
+
 
             _tech_table_layout = [[
-                sg.TabGroup(_tech_table_layout, expand_x=True, expand_y=True)
+                sg.TabGroup(_tech_table_layout, expand_x=True, expand_y=True, enable_events=True, key=self._prefixf('tables'))
             ]]
             self.column_2 = sg.Col(
                 _tech_info_layout + _tech_options_layout + [[sg.Text('')]] + _tech_table_layout,
@@ -199,6 +270,10 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
         elif _event in FIXED_TABLES:
             self._tables[_event](window, event, values)
+        elif _event == 'tables':
+            print('tabgroup: ', values[event])
+            _process_id = self.get_current_process_id()
+            self._show_table(_process_id, values[event].lower().replace(' ', '_'))
 
         pass
 
@@ -221,13 +296,16 @@ class TechnologyView(TwoColumnMixin, BaseView):
             k: self._get_table(k) for k in ['cost', 'capacity', 'existing_capacity']
         }
 
-    def _show_table(self, process_id, table_type, window):
-        if self._current_key is not None:
-            self.TABLE_VALUES[self._current_key] = self._current_table.values
+    def _show_table(self, process_id, table_type):
+        if self._current_key is None:
+            self._current_table = self._tables[table_type]
 
-        headings = self.TABLE_HEADINGS_GEN[table_type](process_id)
-        values = self.TABLE_VALUES[table_type]
         self._current_key = table_type
+        if self._current_key in FIXED_TABLES:
+            return
+        headings =['Year', 'Region'] + self.TABLE_HEADINGS_GEN[table_type](process_id)
+        values = self.TABLE_VALUES[table_type]
+
         self._current_table = FixedColumnTable(
             1,
             len(headings),
@@ -239,4 +317,22 @@ class TechnologyView(TwoColumnMixin, BaseView):
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
+        _layout = self._current_table.layout(self._prefixf(table_type))
+        window = sg.Window('MUSE', layout=_layout, finalize=True, font='roman 16',
+                       resizable=True, auto_size_buttons=True, auto_size_text=True)
+        window.set_min_size((512, 512))
+        self._current_table.bind_handlers()
+
+        while True:
+            event, _ = window.read()
+            print(event)
+            if event == sg.WIN_CLOSED or event == 'Exit':
+                break
+
+            if self._current_table.should_handle_event(event):
+                self._current_table(window, event, values)
+            else:
+                print('Unhandled event in window 2 ', event)
+
+        window.close()
 
