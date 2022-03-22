@@ -410,7 +410,7 @@ class Datastore:
                     'Fuel',
                     'EndUse'
                 ] + agent_shares
-                data = []
+                data = [['Unit','-','Year','-','MUS$2010/PJ_a','-','MUS$2010/PJ','-','MUS$2010/PJ','-','PJ','%','PJ','Years','-','PJ','%','-','-','-','-']+[agent.type for agent in agent_index]]
                 for process in rel_processes:
                     technodatas = process.technodatas
                     for technodata in technodatas:
