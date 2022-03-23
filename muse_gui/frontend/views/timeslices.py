@@ -231,6 +231,7 @@ class TimesliceView(BaseView):
         self._save_edit_btns.state = 'idle'
         self.disabled = True
 
+        self.update()
         # Communicate save mode to parent
         return 'idle', self.key
 

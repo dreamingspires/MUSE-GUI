@@ -151,7 +151,7 @@ class RegionView(TwoColumnMixin, BaseView):
 
         self._selected = max(0, self._selected - 1)
         self.update()
-        return None, f'{len(selected_regions)} region(s) deleted'
+        return None, f'{counter} region(s) deleted'
 
     def _handle_add_regions(self):
         regions = sg.popup_get_text(
