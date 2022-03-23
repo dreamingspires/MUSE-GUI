@@ -5,8 +5,6 @@ from PySimpleGUI import Element
 from math import inf
 
 from ...backend.resources.datastore import Datastore
-
-
 from ...backend.resources.datastore.exceptions import KeyAlreadyExists
 from ...backend.data.region import Region
 
@@ -25,20 +23,14 @@ class RegionView(TwoColumnMixin, BaseView):
         )
         self._selected = -1
 
-    @property
-    def selected(self):
-        return self._selected
-    @selected.setter
-    def selected(self, v):
-        if self._selected == v:
-            return
-        self._selected = v
-
-    def update(self, _=None):
+    def update(self, window=None):
+        # model regions
         _regions = self.model.list()
-        self.selected = min(self.selected, len(_regions) - 1)
-        self._region_list.update(_regions)
-        self._region_list.indices = [self.selected] if self.selected != -1 else None
+
+        self._selected = min(self._selected, len(_regions) - 1)
+
+        self._region_list.values = _regions
+        self._region_list.indices = [self._selected] if self._selected != -1 else None
 
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
@@ -48,13 +40,13 @@ class RegionView(TwoColumnMixin, BaseView):
 
             # Right Column
             _help = (
-                'Tip:\n'
+                'Simulation regions:\n'
                 '\n'
                 'Add new regions by using the "Add" button.\n'
                 '\n'
                 'Delete region(s) by selecting them and deleting it.\n'
                 '\n'
-                'Edit region by selecting a row and clicking "Edit"'
+                'Tip: You can filter regions in "Run" tab rather than deleting'
             )
             _right = [
                 [sg.Multiline(
@@ -95,7 +87,7 @@ class RegionView(TwoColumnMixin, BaseView):
             # Selection event
             indices = self._region_list.indices
             if len(indices):
-                self.selected = indices[0]
+                self._selected = indices[0]
 
         elif _event == 'add':
             # Add event
@@ -108,15 +100,56 @@ class RegionView(TwoColumnMixin, BaseView):
             return self._handle_delete_regions()
         else:
             # Pass it down?
-            pass
+            print('Unhandled event - ', event)
+        return None
+
+    def _handle_delete_region_safe(self, region):
+        '''
+        Internal function that deletes the region
+        returns True / False based on whether region was deleted or not
+        '''
+        # Compute forward dependencies
+        deps = self.model.forward_dependents_recursive(self.model.read(region))
+
+        # Check if deps are empty
+        empty_deps = True
+        dep_string = ''
+        for d in deps:
+            if len(deps[d]):
+                empty_deps = False
+                dep_string += f'{d}:\n'
+                dep_string += ','.join(deps[d])
+                dep_string += '\n\n'
+
+
+        # Show popup to confirm
+        if not empty_deps:
+            ret = sg.popup_yes_no(
+                f'Deleting region {region} will result in the following being deleted:\n',
+                f'{dep_string}'
+                f'(You can possibly filter the simulation regions instead in the "Run" tab)\n\n'
+                f'Delete anyway?\n',
+                title="Warning!",
+            )
+            if ret and ret == 'Yes':
+                self.model.delete(region)
+                return True
+            else:
+                return False
+        else:
+            self.model.delete(region)
+            return True
 
     def _handle_delete_regions(self):
         selected_regions = self._region_list.selected
+        if len(selected_regions) == 0:
+            return
 
+        counter = 0
         for r in selected_regions:
-            self.model.delete(r)
+            counter += self._handle_delete_region_safe(r)
 
-        self.selected = max(0, self.selected - 1)
+        self._selected = max(0, self._selected - 1)
         self.update()
         return None, f'{len(selected_regions)} region(s) deleted'
 
@@ -128,13 +161,17 @@ class RegionView(TwoColumnMixin, BaseView):
         try:
             counter = 0
             for x in regions.split(','):
+                _region = x.strip()
+                if not _region:
+                    # Empty values?
+                    continue
                 try:
-                    self.model.create(Region(name=x.strip()))
+                    self.model.create(Region(name=_region))
                     counter += 1
                 except KeyAlreadyExists as e:
                     pass
 
-            self.selected = inf
+            self._selected = inf
             self.update()
             return None, f'{counter} region(s) added'
 
