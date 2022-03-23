@@ -51,9 +51,9 @@ class Output(BaseSettings):
     quantity: Union[Quantity,Dict[str,Any]] = Quantity.capacity
     sink: Sink = Sink.csv
     filename: Optional[str] = None
-    overwrite: bool = False
+    overwrite: bool = True
     keep_columns: Optional[List[str]] = None
-    index: Optional[bool] = False
+    index: Optional[bool] = None
 
     @validator('filename', pre=True, always=True)
     def validate_filename(cls, value, values):
@@ -79,7 +79,6 @@ class RunModel(BaseSettings):
     def validate_case_insensitive(cls,v):
         return v.lower()
     log_level: str = 'info'
-    outputs: Optional[List[Output]] = None
     equilibrium_variable: EquilibriumVariable = EquilibriumVariable.demand
     maximum_iterations: PositiveInt = 3
     tolerance: float = 0.1

@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pandas as pd
 from muse_gui.backend.settings import SettingsModel
+from muse_gui.backend.settings.output import Output, Quantity, Sink
 import os
 
 from .importers import path_string_to_dataframe, get_commodities_data, get_sectors, get_agents, get_processes
@@ -539,7 +540,25 @@ class Datastore:
                 global_commodities=replace_path_prefix(commodities_path, folder_path_obj)
             ),
             sectors=new_sectors,
-            timeslices=new_timeslices
+            timeslices=new_timeslices,
+            outputs=[
+                Output(
+                    quantity=Quantity.prices,
+                    sink = Sink.csv,
+                    filename = "{cwd}/{default_output_dir}/MCA{Quantity}.csv",
+                    overwrite=True,
+                    keep_columns = None,
+                    index = True
+                ),
+                Output(
+                    quantity=Quantity.capacity,
+                    sink = Sink.csv,
+                    filename = "{cwd}/{default_output_dir}/MCA{Quantity}.csv",
+                    overwrite=True,
+                    keep_columns = ["technology","region","agent","type","sector","capacity","year"],
+                    index = False
+                ),
+            ]
         )
         with open(new_settings_path, 'w+' )as f:
             toml.dump(new_settings_model.dict(),f)

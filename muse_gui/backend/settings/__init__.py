@@ -1,16 +1,16 @@
 from pydantic import BaseModel, Field, validator
 from typing import Annotated, Any, Dict, List, Optional, Union
-from muse_gui.backend.data.run_model import RunModel
+from muse_gui.backend.data.run_model import BaseSettings, RunModel
 
 from muse_gui.backend.resources.datastore.exceptions import LevelNameMismatch
 
 from .global_input_files_model import GlobalInputFiles
-from .sectors_model import PresetSector, LegacySector, StandardSector, Output
+from .sectors_model import PresetSector, LegacySector, StandardSector
+from .output import Output
 from pydantic import BaseModel, PositiveInt
 from typing import List, Optional
 from enum import Enum
 from muse_gui.backend.utils import unpack_timeslice
-
 
 
 
@@ -27,5 +27,5 @@ class SettingsModel(RunModel):
             if len(break_down_name) != len(time_slice_info.level_names):
                 raise LevelNameMismatch(time_slice_info.level_names, break_down_name)
         return v
-
+    outputs: Optional[List[Output]] = None
 

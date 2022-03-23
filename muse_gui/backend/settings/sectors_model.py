@@ -1,7 +1,8 @@
 from pydantic import BaseModel, validator
 from typing import Any, Dict, List, Optional, Union, Literal
 from enum import Enum
-from muse_gui.backend.data.run_model import BaseSettings, Output
+from muse_gui.backend.data.run_model import BaseSettings
+from .output import Output
 
 
 class DemandShare(str, Enum):
