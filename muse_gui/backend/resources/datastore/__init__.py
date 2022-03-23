@@ -111,6 +111,283 @@ def generate_empty_data_and_index(
             empty_data_index.append(initial_data)
     return empty_data, empty_data_index
 
+def export_commodities(commodity_data, commodities_path):
+    commodities = [commodity.dict() for _, commodity in commodity_data.items()]
+    # Export GlobalCommodities
+    commodity_dataframe = pd.DataFrame.from_records(
+        data=commodities, 
+        columns=[
+            'commodity', 
+            'commodity_type', 
+            'commodity_name',
+            'c_emission_factor_co2',
+            'heat_rate',
+            'unit'
+        ]
+    )
+    new_commodity_dataframe = commodity_dataframe.rename(
+        columns={
+            'commodity': 'Commodity', 
+            'commodity_type': 'CommodityType', 
+            'commodity_name': 'CommodityName',
+            'c_emission_factor_co2': 'CommodityEmissionFactor_CO2',
+            'heat_rate': 'HeatRate',
+            'unit': 'Unit'
+        }
+    )
+    new_commodity_dataframe.to_csv(commodities_path, index=False)
+
+def export_projections(datastore: "Datastore", commodity_data, projections_path):
+    #Export Projections
+    
+    # Make initial dataframe excluding commodity data
+
+    if len(datastore.commodity._data) ==0:
+        raise NotImplementedError
+    else:
+        _, first_element = next(iter(commodity_data.items()))
+    prices = [price.dict() for price in first_element.commodity_prices]
+    projections_df = pd.DataFrame.from_records(data = prices, columns = ['region_name', 'time'])
+    projections_df['Attribute'] = ['CommodityPrice']*len(projections_df)
+    projections_df = projections_df[['region_name', 'Attribute', 'time']]
+
+    for _, commodity in datastore._commodity_datastore._data.items():
+        projections_df[commodity.commodity_name] = [price.value for price in commodity.commodity_prices]
+
+    # Construct first row
+    first_row = ['Unit', '-',' Year'] + [commodity.price_unit for _, commodity in commodity_data.items()]
+    headers = list(projections_df)
+    new_dict = {header: [first_row[i]] for i, header in enumerate(headers)}
+    first_df = pd.DataFrame(new_dict)
+
+    projections_df = pd.concat([first_df, projections_df])
+    projections_df = projections_df.rename(
+        columns = {
+            'region_name': 'RegionName',
+            'time': 'Time'
+        }
+    )
+    projections_df.to_csv(projections_path, index=False)
+
+def generate_sectors(
+    datastore: "Datastore", 
+    technodata_folder: Path, 
+    folder_path_obj: Path, 
+    agents_path: Path
+):
+    comm_names = [commodity.commodity_name for commodity in datastore.commodity._data.values()]
+    comm_units = [commodity.unit+'/PJ' for commodity in datastore.commodity._data.values()]
+    comm_new_headers = comm_initial_headings + comm_names
+    sector_paths = {}
+    new_sectors = {}
+    for sector_name, sector in datastore.sector._data.items():
+        sector_details = sector.dict()
+
+        sector_path = Path(f"{str(technodata_folder)}{os.sep}{sector.name}")
+        sector_paths[sector_name] = sector_path
+        if not sector_path.exists():
+            sector_path.mkdir(parents=True)
+        # For each sector get forward deps on processes
+        rel_process_names = datastore.sector.forward_dependents(sector)['process']
+
+        rel_processes = [datastore.process.read(p) for p in rel_process_names]
+        if sector.type == 'standard':
+
+            subsector_details = {}
+
+            sector_details['type'] = 'default'
+            comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
+            comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
+            technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
+            existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
+            sector_details['commodities_in'] = replace_path_prefix(comm_in_path, folder_path_obj)
+            sector_details['commodities_out'] = replace_path_prefix(comm_out_path,folder_path_obj)
+            sector_details['technodata'] = replace_path_prefix(technodata_path,folder_path_obj)
+            subsector_details['agents'] = replace_path_prefix(agents_path,folder_path_obj)
+            subsector_details['existing_capacity'] = replace_path_prefix(existing_capacity_path,folder_path_obj)
+            
+            rel_regions = []
+            rel_times = []
+            rel_levels = []
+            for process in rel_processes:
+                for comm in process.comm_in:
+                    if comm.region not in rel_regions:
+                        rel_regions.append(comm.region)
+                    if comm.timeslice not in rel_times:
+                        rel_times.append(comm.timeslice)
+                    if comm.level not in rel_levels:
+                        rel_levels.append(comm.level)
+                for comm in process.comm_out:
+                    if comm.region not in rel_regions:
+                        rel_regions.append(comm.region)
+                    if comm.timeslice not in rel_times:
+                        rel_times.append(comm.timeslice)
+                    if comm.level not in rel_levels:
+                        rel_levels.append(comm.level)
+                for tech in process.technodatas:
+                    if tech.region not in rel_regions:
+                        rel_regions.append(tech.region)
+                    if tech.time not in rel_times:
+                        rel_times.append(tech.time)
+                    if tech.level not in rel_levels:
+                        rel_levels.append(tech.level)
+            region_time_level_combos = list(product(rel_regions, rel_times, rel_levels))
+            comm_in_data,comm_in_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
+            comm_out_data,comm_out_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
+            
+            # Populate empty data
+            for process in rel_processes:
+                for comm in process.comm_in:
+                    v, i, j = data_and_location(datastore, comm_in_data_index, process, comm, comm_names)
+                    comm_in_data[i][j] = v
+                for comm in process.comm_out:
+                    v, i, j = data_and_location(datastore, comm_out_data_index, process, comm, comm_names)
+                    comm_out_data[i][j] = v
+            units: List[Union[str,float]] = ['Unit','-','Year', '-']+ comm_units #type:ignore
+            comm_in_data.insert(0, units)
+            comm_in_df = pd.DataFrame(comm_in_data, columns = comm_new_headers)
+            comm_out_data.insert(0, units)
+            comm_out_df = pd.DataFrame(comm_out_data, columns = comm_new_headers)
+            comm_in_df.to_csv(comm_in_path, index=False)
+            comm_out_df.to_csv(comm_out_path, index=False)
+
+
+            agent_index = [agent for agent in datastore.agent._data.values()]
+            agent_shares = [agent.share for agent in agent_index]
+            technodata_headers = [
+                'ProcessName',
+                'RegionName',
+                'Time',
+                'Level',
+                'cap_par',
+                'cap_exp',
+                'fix_par',
+                'fix_exp',
+                'var_par',
+                'var_exp',
+                'MaxCapacityAddition',
+                'MaxCapacityGrowth',
+                'TotalCapacityLimit',
+                'TechnicalLife',
+                'UtilizationFactor',
+                'ScalingSize',
+                'efficiency',
+                'InterestRate',
+                'Type',
+                'Fuel',
+                'EndUse'
+            ] + agent_shares
+            data = [['Unit','-','Year','-','MUS$2010/PJ_a','-','MUS$2010/PJ','-','MUS$2010/PJ','-','PJ','%','PJ','Years','-','PJ','%','-','-','-','-']+[agent.type for agent in agent_index]]
+            for process in rel_processes:
+                technodatas = process.technodatas
+                for technodata in technodatas:
+                    initial_row = [
+                        process.name,
+                        technodata.region,
+                        technodata.time,
+                        technodata.level,
+                        technodata.cost.cap_par,
+                        technodata.cost.cap_exp,
+                        technodata.cost.fix_par,
+                        technodata.cost.fix_exp,
+                        technodata.cost.var_par,
+                        technodata.cost.var_exp,
+                        technodata.capacity.max_capacity_addition,
+                        technodata.capacity.max_capacity_growth,
+                        technodata.capacity.total_capacity_limit,
+                        technodata.capacity.technical_life,
+                        technodata.utilisation.utilization_factor,
+                        technodata.capacity.scaling_size,
+                        technodata.utilisation.efficiency,
+                        technodata.cost.interest_rate,
+                        process.type,
+                        process.fuel,
+                        process.end_use
+                    ]
+                    zeros = [0.0]*len(datastore.agent._data)
+
+                    for agent in technodata.agents:
+                        agent_model = datastore.agent.read(agent.agent_name)
+                        current_agent_index = agent_index.index(agent_model)
+                        zeros[current_agent_index] = agent.share
+                    row = initial_row + zeros
+                    data.append(row)
+                
+            df = pd.DataFrame(data, columns = technodata_headers)
+            df.to_csv(technodata_path, index= False)
+            
+            data =[]
+            years = datastore.available_year.list()
+            headers = [
+                'ProcessName',
+                'RegionName',
+                'Unit',
+            ] + years
+            years_int = [int(i) for i in years]
+            region_process_combos = list(product(rel_regions, rel_processes))
+            for region_name, process in region_process_combos:
+                row = [0.0]*len(years)
+                final_row = []
+                for existing_capacity in process.existing_capacities:
+                    if region_name == existing_capacity.region:
+                        assert datastore.run_settings is not None
+                        year_index = years_int.index(existing_capacity.year)
+                        row[year_index] = existing_capacity.value
+                        final_row: List[Union[str, float]] = [process.name,existing_capacity.region,process.capacity_unit] + row # type:ignore
+                data.append(final_row)
+            df = pd.DataFrame(data, columns = headers)
+            df.to_csv(existing_capacity_path, index = False)
+            sector_details['subsectors'] = {'retro_and_new': subsector_details}
+        elif sector.type == 'preset':
+            sector_details['type'] = 'presets'
+            Year = int
+            data_dict: Dict[Year, List[List[Any]]] = {}
+            basic_headers = ['RegionName','ProcessName','Timeslice']
+            headers = basic_headers + comm_names
+            
+            for process in rel_processes:
+                rel_demands = process.demands
+                for demand in rel_demands:
+                    year = demand.year
+                    demand_flows = demand.demand_flows
+                    data: List[List[Any]] = []
+                    processes_regions_and_timeslices_seen: List[Tuple[str,str, str]] = []
+                    for demand_flow in demand_flows:
+                        row: List[Any] = [demand_flow.region, process.name, demand_flow.timeslice]
+                        if (process.name, demand_flow.region, demand_flow.timeslice) in processes_regions_and_timeslices_seen:
+                            row_index = processes_regions_and_timeslices_seen.index((process.name, demand_flow.region, demand_flow.timeslice))
+                            commodity_name = datastore.commodity.read(demand_flow.commodity).commodity_name
+                            comm_index = comm_names.index(commodity_name)
+                            data[row_index][comm_index + len(basic_headers)] = demand_flow.value
+                        else:
+                            data_row = [0.0]*len(comm_names)
+                            commodity_name = datastore.commodity.read(demand_flow.commodity).commodity_name
+                            comm_index = comm_names.index(commodity_name)
+                            data_row[comm_index] = demand_flow.value
+                            data.append(row+data_row)
+                            processes_regions_and_timeslices_seen.append((process.name, demand_flow.region, demand_flow.timeslice))
+                    if year in data_dict:
+                        data_dict[year] += data
+                    else:
+                        data_dict[year] = data
+            consumption_path = None
+            for year, data in data_dict.items():
+                consumption_path = Path(f"{str(sector_path)}{os.sep}A{year}Consumption.csv")
+                df = pd.DataFrame(data, columns = headers)
+                df.to_csv(consumption_path)
+            assert consumption_path is not None
+            sector_details['consumption_path'] = replace_path_prefix(consumption_path.parents[0], folder_path_obj)+f"{os.sep}*Consumption.csv"
+        else:
+            assert False
+        new_sectors[sector_name] = sector_details
+    return new_sectors
+
+def convert_timeslices(datastore):
+    timeslice_info = TimesliceInfo(
+        timeslices={timeslice.name: timeslice.value for timeslice in datastore.timeslice._data.values()},
+        level_names=datastore.level_name.list())
+    return pack_timeslice(timeslice_info)
+
 comm_initial_headings = ['ProcessName','RegionName','Time','Level']
 def data_and_location(
     datastore, 
@@ -123,6 +400,7 @@ def data_and_location(
     commod_model = datastore.commodity.read(commodity_flow.commodity)
     col_index = len(comm_initial_headings)+ all_commodity_names.index(commod_model.commodity_name)
     return commodity_flow.value, row_index, col_index
+
 
 class Datastore:
     _region_datastore: RegionDatastore
@@ -258,283 +536,27 @@ class Datastore:
         projections_path = Path(f'{str(input_folder)}{os.sep}Projections.csv')
         new_settings_path = Path(f'{folder_path}{os.sep}settings.toml')
         commodity_data = self._commodity_datastore._data
-        commodities = [commodity.dict() for _, commodity in commodity_data.items()]
-        # Export GlobalCommodities
-        commodity_dataframe = pd.DataFrame.from_records(
-            data=commodities, 
-            columns=[
-                'commodity', 
-                'commodity_type', 
-                'commodity_name',
-                'c_emission_factor_co2',
-                'heat_rate',
-                'unit'
-            ]
-        )
-        new_commodity_dataframe = commodity_dataframe.rename(
-            columns={
-                'commodity': 'Commodity', 
-                'commodity_type': 'CommodityType', 
-                'commodity_name': 'CommodityName',
-                'c_emission_factor_co2': 'CommodityEmissionFactor_CO2',
-                'heat_rate': 'HeatRate',
-                'unit': 'Unit'
-            }
-        )
-        new_commodity_dataframe.to_csv(commodities_path, index=False)
         
-
-        #Export Projections
+        export_commodities(commodity_data, commodities_path)
         
-        # Make initial dataframe excluding commodity data
+        export_projections(self, commodity_data, projections_path)
 
-        if len(self.commodity._data) ==0:
-            raise NotImplementedError
-        else:
-            _, first_element = next(iter(commodity_data.items()))
-        prices = [price.dict() for price in first_element.commodity_prices]
-        projections_df = pd.DataFrame.from_records(data = prices, columns = ['region_name', 'time'])
-        projections_df['Attribute'] = ['CommodityPrice']*len(projections_df)
-        projections_df = projections_df[['region_name', 'Attribute', 'time']]
-
-        for _, commodity in self._commodity_datastore._data.items():
-            projections_df[commodity.commodity_name] = [price.value for price in commodity.commodity_prices]
-
-        # Construct first row
-        first_row = ['Unit', '-',' Year'] + [commodity.price_unit for _, commodity in commodity_data.items()]
-        headers = list(projections_df)
-        new_dict = {header: [first_row[i]] for i, header in enumerate(headers)}
-        first_df = pd.DataFrame(new_dict)
-
-        projections_df = pd.concat([first_df, projections_df])
-        projections_df = projections_df.rename(
-            columns = {
-                'region_name': 'RegionName',
-                'time': 'Time'
-            }
-        )
-        projections_df.to_csv(projections_path, index=False)
-
-
-        
         # generate agents file
         agents_df = agents_to_dataframe(list(self._agent_datastore._data.values()))
         agents_path = Path(f"{technodata_folder}{os.sep}Agents.csv")
         agents_df.to_csv(agents_path, index=False)
         
-        comm_names = [commodity.commodity_name for commodity in self.commodity._data.values()]
-        comm_units = [commodity.unit+'/PJ' for commodity in self.commodity._data.values()]
-        comm_new_headers = comm_initial_headings + comm_names
-
         # Create sector folders:
-        sector_paths = {}
-        new_sectors = {}
-        for sector_name, sector in self.sector._data.items():
-            sector_details = sector.dict()
-
-            sector_path = Path(f"{str(technodata_folder)}{os.sep}{sector.name}")
-            sector_paths[sector_name] = sector_path
-            if not sector_path.exists():
-                sector_path.mkdir(parents=True)
-            # For each sector get forward deps on processes
-            rel_process_names = self.sector.forward_dependents(sector)['process']
-
-            rel_processes = [self.process.read(p) for p in rel_process_names]
-            if sector.type == 'standard':
-
-                subsector_details = {}
-
-                sector_details['type'] = 'default'
-                comm_in_path = Path(f"{str(sector_path)}{os.sep}CommIn.csv")
-                comm_out_path = Path(f"{str(sector_path)}{os.sep}CommOut.csv")
-                technodata_path = Path(f"{str(sector_path)}{os.sep}Technodata.csv")
-                existing_capacity_path = Path(f"{str(sector_path)}{os.sep}ExistingCapacity.csv")
-                sector_details['commodities_in'] = replace_path_prefix(comm_in_path, folder_path_obj)
-                sector_details['commodities_out'] = replace_path_prefix(comm_out_path,folder_path_obj)
-                sector_details['technodata'] = replace_path_prefix(technodata_path,folder_path_obj)
-                subsector_details['agents'] = replace_path_prefix(agents_path,folder_path_obj)
-                subsector_details['existing_capacity'] = replace_path_prefix(existing_capacity_path,folder_path_obj)
-                
-                rel_regions = []
-                rel_times = []
-                rel_levels = []
-                for process in rel_processes:
-                    for comm in process.comm_in:
-                        if comm.region not in rel_regions:
-                            rel_regions.append(comm.region)
-                        if comm.timeslice not in rel_times:
-                            rel_times.append(comm.timeslice)
-                        if comm.level not in rel_levels:
-                            rel_levels.append(comm.level)
-                    for comm in process.comm_out:
-                        if comm.region not in rel_regions:
-                            rel_regions.append(comm.region)
-                        if comm.timeslice not in rel_times:
-                            rel_times.append(comm.timeslice)
-                        if comm.level not in rel_levels:
-                            rel_levels.append(comm.level)
-                    for tech in process.technodatas:
-                        if tech.region not in rel_regions:
-                            rel_regions.append(tech.region)
-                        if tech.time not in rel_times:
-                            rel_times.append(tech.time)
-                        if tech.level not in rel_levels:
-                            rel_levels.append(tech.level)
-                region_time_level_combos = list(product(rel_regions, rel_times, rel_levels))
-                comm_in_data,comm_in_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
-                comm_out_data,comm_out_data_index = generate_empty_data_and_index(rel_processes, region_time_level_combos, comm_names)
-                
-                # Populate empty data
-                for process in rel_processes:
-                    for comm in process.comm_in:
-                        v, i, j = data_and_location(self, comm_in_data_index, process, comm, comm_names)
-                        comm_in_data[i][j] = v
-                    for comm in process.comm_out:
-                        v, i, j = data_and_location(self, comm_out_data_index, process, comm, comm_names)
-                        comm_out_data[i][j] = v
-                units: List[Union[str,float]] = ['Unit','-','Year', '-']+ comm_units #type:ignore
-                comm_in_data.insert(0, units)
-                comm_in_df = pd.DataFrame(comm_in_data, columns = comm_new_headers)
-                comm_out_data.insert(0, units)
-                comm_out_df = pd.DataFrame(comm_out_data, columns = comm_new_headers)
-                comm_in_df.to_csv(comm_in_path, index=False)
-                comm_out_df.to_csv(comm_out_path, index=False)
+        new_sectors = generate_sectors(
+            self, 
+            technodata_folder, 
+            folder_path_obj, 
+            agents_path
+        )
 
 
-                agent_index = [agent for agent in self.agent._data.values()]
-                agent_shares = [agent.share for agent in agent_index]
-                technodata_headers = [
-                    'ProcessName',
-                    'RegionName',
-                    'Time',
-                    'Level',
-                    'cap_par',
-                    'cap_exp',
-                    'fix_par',
-                    'fix_exp',
-                    'var_par',
-                    'var_exp',
-                    'MaxCapacityAddition',
-                    'MaxCapacityGrowth',
-                    'TotalCapacityLimit',
-                    'TechnicalLife',
-                    'UtilizationFactor',
-                    'ScalingSize',
-                    'efficiency',
-                    'InterestRate',
-                    'Type',
-                    'Fuel',
-                    'EndUse'
-                ] + agent_shares
-                data = [['Unit','-','Year','-','MUS$2010/PJ_a','-','MUS$2010/PJ','-','MUS$2010/PJ','-','PJ','%','PJ','Years','-','PJ','%','-','-','-','-']+[agent.type for agent in agent_index]]
-                for process in rel_processes:
-                    technodatas = process.technodatas
-                    for technodata in technodatas:
-                        initial_row = [
-                            process.name,
-                            technodata.region,
-                            technodata.time,
-                            technodata.level,
-                            technodata.cost.cap_par,
-                            technodata.cost.cap_exp,
-                            technodata.cost.fix_par,
-                            technodata.cost.fix_exp,
-                            technodata.cost.var_par,
-                            technodata.cost.var_exp,
-                            technodata.capacity.max_capacity_addition,
-                            technodata.capacity.max_capacity_growth,
-                            technodata.capacity.total_capacity_limit,
-                            technodata.capacity.technical_life,
-                            technodata.utilisation.utilization_factor,
-                            technodata.capacity.scaling_size,
-                            technodata.utilisation.efficiency,
-                            technodata.cost.interest_rate,
-                            process.type,
-                            process.fuel,
-                            process.end_use
-                        ]
-                        zeros = [0.0]*len(self.agent._data)
-
-                        for agent in technodata.agents:
-                            agent_model = self.agent.read(agent.agent_name)
-                            current_agent_index = agent_index.index(agent_model)
-                            zeros[current_agent_index] = agent.share
-                        row = initial_row + zeros
-                        data.append(row)
-                    
-                df = pd.DataFrame(data, columns = technodata_headers)
-                df.to_csv(technodata_path, index= False)
-                
-                data =[]
-                years = self.available_year.list()
-                headers = [
-                    'ProcessName',
-                    'RegionName',
-                    'Unit',
-                ] + years
-                years_int = [int(i) for i in years]
-                region_process_combos = list(product(rel_regions, rel_processes))
-                for region_name, process in region_process_combos:
-                    row = [0.0]*len(years)
-                    final_row = []
-                    for existing_capacity in process.existing_capacities:
-                        if region_name == existing_capacity.region:
-                            assert self.run_settings is not None
-                            year_index = years_int.index(existing_capacity.year)
-                            row[year_index] = existing_capacity.value
-                            final_row: List[Union[str, float]] = [process.name,existing_capacity.region,process.capacity_unit] + row # type:ignore
-                    data.append(final_row)
-                df = pd.DataFrame(data, columns = headers)
-                df.to_csv(existing_capacity_path, index = False)
-                sector_details['subsectors'] = {'retro_and_new': subsector_details}
-            elif sector.type == 'preset':
-                sector_details['type'] = 'presets'
-                Year = int
-                data_dict: Dict[Year, List[List[Any]]] = {}
-                basic_headers = ['RegionName','ProcessName','Timeslice']
-                headers = basic_headers + comm_names
-                
-                for process in rel_processes:
-                    rel_demands = process.demands
-                    for demand in rel_demands:
-                        year = demand.year
-                        demand_flows = demand.demand_flows
-                        data: List[List[Any]] = []
-                        processes_regions_and_timeslices_seen: List[Tuple[str,str, str]] = []
-                        for demand_flow in demand_flows:
-                            row: List[Any] = [demand_flow.region, process.name, demand_flow.timeslice]
-                            if (process.name, demand_flow.region, demand_flow.timeslice) in processes_regions_and_timeslices_seen:
-                                row_index = processes_regions_and_timeslices_seen.index((process.name, demand_flow.region, demand_flow.timeslice))
-                                commodity_name = self.commodity.read(demand_flow.commodity).commodity_name
-                                comm_index = comm_names.index(commodity_name)
-                                data[row_index][comm_index + len(basic_headers)] = demand_flow.value
-                            else:
-                                data_row = [0.0]*len(comm_names)
-                                commodity_name = self.commodity.read(demand_flow.commodity).commodity_name
-                                comm_index = comm_names.index(commodity_name)
-                                data_row[comm_index] = demand_flow.value
-                                data.append(row+data_row)
-                                processes_regions_and_timeslices_seen.append((process.name, demand_flow.region, demand_flow.timeslice))
-                        if year in data_dict:
-                            data_dict[year] += data
-                        else:
-                            data_dict[year] = data
-                consumption_path = None
-                for year, data in data_dict.items():
-                    consumption_path = Path(f"{str(sector_path)}{os.sep}A{year}Consumption.csv")
-                    df = pd.DataFrame(data, columns = headers)
-                    df.to_csv(consumption_path)
-                assert consumption_path is not None
-                sector_details['consumption_path'] = replace_path_prefix(consumption_path.parents[0], folder_path_obj)+f"{os.sep}*Consumption.csv"
-            else:
-                assert False
-            new_sectors[sector_name] = sector_details
-
-        timeslice_info = TimesliceInfo(
-            timeslices={timeslice.name: timeslice.value for timeslice in self.timeslice._data.values()},
-            level_names=self.level_name.list())
-        new_timeslices = pack_timeslice(timeslice_info)
-
+        new_timeslices = convert_timeslices(self)
+        
         assert self.run_settings is not None
 
         prices_path = Path(results_path + os.sep +"MCAPrices.csv")
