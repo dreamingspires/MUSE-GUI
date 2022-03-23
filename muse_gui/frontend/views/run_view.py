@@ -1,9 +1,8 @@
-
-from os import terminal_size
 from typing import Optional
 from muse_gui.backend.data.run_model import EquilibriumVariable, InterpolationMode, MethodOptions
 from muse_gui.frontend.views.base import BaseView
 import PySimpleGUI as sg
+
 def get_col1_layout():
     return [
         [
@@ -97,12 +96,18 @@ def get_col1_layout():
 def get_col2_layout(key_prefix):
     return [
         [
+            sg.Checkbox(
+                'Activate carbon market', 
+                key='carbon_market_active',
+                enable_events = True
+            )
+        ],
+        [
             sg.Frame(
                 'Carbon Market',
+                key='carbon_market_frame',
+                visible=False,
                 layout = [
-                    [
-                        sg.Checkbox('Activate carbon market')
-                    ],
                     [
                         sg.Text('Commodities'),
                         sg.Listbox(
@@ -150,7 +155,7 @@ class RunView(BaseView):
                 )
             ],
             [
-                sg.Push(), sg.Button('RunMuse', key = (*key_prefix,'button')), sg.Push()]
+                sg.Push(), sg.Button('RunMuse', key = (*key_prefix,'button'), size = (20,2)), sg.Push()]
         ]
     def _prefixf(self, k: Optional[str] = None):
         if k is None:

@@ -1,11 +1,9 @@
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import PySimpleGUI as sg
-from muse_gui.backend.data.run_model import EquilibriumVariable, InterpolationMode, MethodOptions
-from muse_gui.backend.resources import datastore
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
-from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
+from muse_gui.frontend.views.base import TwoColumnMixin
 from muse_gui.frontend.views.technology import TechnologyView
 from muse_gui.frontend.views.timeslices import TimesliceView
 from muse_gui.frontend.widgets.tabgroup import TabGroup
@@ -141,6 +139,7 @@ def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
     sector_view = SectorView(datastore)
     agent_view = AgentView(datastore)
     tech_view = TechnologyView(datastore)
+    run_view = RunView()
     tabs: Dict[str, sg.Tab] = {
         'timeslices': timeslice_view,
         'years': year_view,
@@ -149,7 +148,7 @@ def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
         'sectors': sector_view,
         'agents': agent_view,
         'technologies': tech_view,
-        'run': RunView()
+        'run': run_view
     }
     tab_group = TabGroup(tabs, 'tg')
     status_bar = sg.StatusBar(
@@ -178,6 +177,12 @@ def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
         if event == sg.WIN_CLOSED or event == 'Exit':
             window.close()
             break
+        elif event == 'carbon_market_active':
+            if values['carbon_market_active']:
+                window['carbon_market_frame'].update(visible=True)
+            else:
+                window['carbon_market_frame'].update(visible=False)
+            
         if type(event) is str:
             # Handle event in window level
             pass
