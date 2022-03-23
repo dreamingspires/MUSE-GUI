@@ -37,10 +37,10 @@ class SaveEditButtons(BaseWidget):
             return
 
         if val == 'edit':
-            self._edit_btn.update(disabled=True)
+            self._edit_btn.update(text="Reset", button_color=("red", "white"))
             self._save_btn.update(disabled=False)
         else:
-            self._edit_btn.update(disabled=False)
+            self._edit_btn.update(text="Edit", button_color=sg.theme_button_color())
             self._save_btn.update(disabled=True)
 
         self._state = val
