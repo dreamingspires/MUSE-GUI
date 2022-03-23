@@ -4,6 +4,8 @@ import PySimpleGUI as sg
 from PySimpleGUI import Element
 from math import inf
 
+from muse_gui.frontend.views.exceptions import SaveException
+
 from ...backend.resources.datastore import Datastore
 from ...backend.resources.datastore.exceptions import KeyAlreadyExists
 from ...backend.data.region import Region
@@ -176,4 +178,4 @@ class RegionView(TwoColumnMixin, BaseView):
             return None, f'{counter} region(s) added'
 
         except Exception as e:
-            return e, 'Add region(s) failed!'
+            raise SaveException('Add region(s) failed!') from e

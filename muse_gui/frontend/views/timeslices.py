@@ -4,6 +4,7 @@ from typing import List, Union
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 from muse_gui.backend.data.timeslice import LevelName, Timeslice
+from muse_gui.frontend.views.exceptions import SaveException
 
 from muse_gui.frontend.widgets.button import SaveEditButtons
 
@@ -12,8 +13,6 @@ from ...backend.resources.datastore import Datastore
 from .base import BaseView
 from ..widgets.table import EditableTable
 
-class TimesliceUpdateFailedException(Exception):
-    pass
 class TimesliceModelHelper:
     def __init__(self, model: Datastore):
         self._model = model
@@ -65,7 +64,7 @@ class TimesliceModelHelper:
         except Exception as e:
             self.levelnames = _current_level_names
             self.timeslices = _current_timeslices
-            raise TimesliceUpdateFailedException from e
+            raise e
 
     def delete_all_levelnames(self):
         for x in self.levelnames_list:
@@ -190,6 +189,8 @@ class TimesliceView(BaseView):
     def _handle_edit(self):
         if self.disabled == False:
             # Already in edit state, so reset
+            self._save_edit_btns.state = 'idle'
+            self.disabled = True
             self.update()
             return 'idle', self.key
 
@@ -207,7 +208,7 @@ class TimesliceView(BaseView):
         _lname = self._level_names.get()
         if not _lname:
             self._update_level_name()
-            return 'Level name cannot be empty', 'Update level names failed!'
+            raise SaveException('Update level names failed - Level names cannot be empty!')
 
         _current_level_names = []
         for l in _lname.split(','):
@@ -218,12 +219,12 @@ class TimesliceView(BaseView):
 
         if not len(_current_level_names):
             self._update_level_name()
-            return 'Level name cannot be empty', 'Update level names failed!'
+            raise SaveException('Update level names failed - Level names cannot be empty!')
 
         try:
             self.model.replace_all(_current_level_names, self._timeslice.values)
-        except TimesliceUpdateFailedException as e:
-            return e, 'Save failed. Please fix the errors'
+        except Exception as e:
+            raise SaveException() from e
 
             # Fingers crossed
 

@@ -3,6 +3,8 @@ from typing import List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
+from muse_gui.frontend.views.exceptions import SaveException
+
 from ...backend.resources.datastore import Datastore
 from ...backend.resources.datastore.exceptions import KeyAlreadyExists
 from ...backend.data.timeslice import AvailableYear
@@ -196,4 +198,4 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
             return None, f'{counter} year(s) added'
 
         except Exception as e:
-            return e, 'Add Year(s) failed!'
+            raise SaveException('Add Year(s) failed!') from e
