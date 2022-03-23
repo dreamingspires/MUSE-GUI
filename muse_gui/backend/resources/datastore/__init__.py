@@ -2,10 +2,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 from muse_gui.backend.data.agent import Agent
-from muse_gui.backend.data.process import CommodityFlow, Cost, Demand, DemandFlow, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
+from muse_gui.backend.data.process import CommodityFlow, Process
 from muse_gui.backend.data.run_model import RunModel
 
-from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
+from muse_gui.backend.data.sector import Sector
 from muse_gui.backend.data.timeslice import AvailableYear, LevelName, Timeslice
 from muse_gui.backend.settings.global_input_files_model import GlobalInputFiles
 from muse_gui.backend.utils import pack_timeslice, unpack_timeslice, TimesliceInfo
@@ -556,7 +556,7 @@ class Datastore:
 
 
         new_timeslices = convert_timeslices(self)
-        
+
         assert self.run_settings is not None
 
         prices_path = Path(results_path + os.sep +"MCAPrices.csv")
