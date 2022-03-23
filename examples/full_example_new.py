@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import PySimpleGUI as sg
+from muse_gui.backend.data.run_model import EquilibriumVariable, InterpolationMode, MethodOptions
 from muse_gui.backend.resources import datastore
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
@@ -19,7 +20,6 @@ from muse_gui.backend.plots import capacity_data_frame_to_plots, price_data_fram
 
 from muse_gui.frontend.widget_funcs.plotting import GuiFigureElements, attach_capacity_plot_to_figure, generate_plot,  generate_plot_layout, attach_price_plot_to_figure
 import pandas as pd
-import time
 
 def boot_initial_window(font) -> Tuple[Optional[bool], Optional[str]]:
     layout = [[
@@ -60,7 +60,6 @@ def boot_waiting_window(font, datastore) -> Tuple[Path,Path]:
         element_justification='c'
     )
     prices_path, capacity_path = datastore.run_muse()
-    time.sleep(2)
     window.close()
     return prices_path, capacity_path
     
@@ -223,7 +222,126 @@ if __name__ == '__main__':
 
     class RunView(BaseView):
         def layout(self, key_prefix):
-            return [[sg.Button('RunMuse', key = (*key_prefix,'button'))]]
+            return [
+                [
+                    sg.Text('Regions Selected: '), 
+                    sg.Push(),
+                    sg.Listbox(
+                        values = ["R1", "R2"],
+                        default_values = [],
+                        select_mode = "multiple",
+                        size = (50,5)
+                    )
+                ],
+                [
+                    sg.Text('Time Framework: '),
+                    sg.Push(), 
+                    sg.Listbox(
+                        values = ["2010", "2020"],
+                        default_values = [],
+                        select_mode = "multiple",
+                        size = (50,5)
+                    )
+                ],
+                [
+                    sg.Text('Interest Rate: '), 
+                    sg.Push(),
+                    sg.Input()
+                ],
+                [
+                    sg.Text('Interpolation Mode: '), 
+                    sg.Push(),
+                    sg.Combo(
+                        [e.value for e in InterpolationMode],
+                        default_value = InterpolationMode.linear.value
+                    )
+                ],
+                [
+                    sg.Text('Log Level: '), 
+                    sg.Push(),
+                    sg.Input(
+                        default_text = 'info'
+                    )
+                ],
+                [
+                    sg.Text('Equilibrium Variable: '), 
+                    sg.Push(),
+                    sg.Combo(
+                        [e.value for e in EquilibriumVariable],
+                        default_value = EquilibriumVariable.demand.value
+                    )
+                ],
+                [
+                    sg.Text('Maximum Iterations: '), 
+                    sg.Push(),
+                    sg.Input(
+                        default_text = '3'
+                    )
+                ],
+                [
+                    sg.Text('Tolerance: '), 
+                    sg.Push(),
+                    sg.Input(
+                        default_text = '0.1'
+                    )
+                ],
+                [
+                    sg.Text('Tolerance Unmet Demand: '), 
+                    sg.Push(),
+                    sg.Input(
+                        default_text = '-0.1'
+                    )
+                ],
+                [
+                    sg.Text('Foresight: '), 
+                    sg.Push(),
+                    sg.Input(
+                        default_text = '0'
+                    )
+                ],
+                [
+                    sg.Text('Excluded Commodities: '),
+                    sg.Push(), 
+                    sg.Listbox(
+                        values = ["Electric", "Gas"],
+                        default_values = [],
+                        select_mode = "multiple",
+                        size = (50,5)
+                    )
+                ],
+                [
+                    sg.Frame(
+                        'Carbon Market',
+                        layout = [
+                            [
+                                sg.Checkbox('Activate carbon market')
+                            ],
+                            [
+                                sg.Text('Commodities'),
+                                sg.Listbox(
+                                    values = ["Electric", "Gas"],
+                                    default_values = [],
+                                    select_mode = "multiple",
+                                    size = (50,5)
+                                )
+                            ],
+                            [
+                                sg.Checkbox('Control undershoot')
+                            ],
+                            [
+                                sg.Checkbox('Control overshoot')
+                            ],
+                            [
+                                sg.Combo(
+                                    [e.value for e in MethodOptions],
+                                    default_value = MethodOptions.linear.value
+                                )
+                            ]
+                        ]
+                    )
+                ],
+                [sg.Push(), sg.Button('RunMuse', key = (*key_prefix,'button')), sg.Push()]
+            ]
         def _prefixf(self, k: Optional[str] = None):
             if k is None:
                 return 'run_view'
