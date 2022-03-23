@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Dict, Optional, Tuple
 import PySimpleGUI as sg
+from muse_gui.backend.resources import datastore
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
 from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
@@ -29,7 +31,7 @@ def boot_initial_window(font) -> Tuple[Optional[bool], Optional[str]]:
         )
     ]]
     window = sg.Window(
-        'Plot Manager', 
+        'Start Screen', 
         layout, 
         resizable = True,
         finalize=True,
@@ -47,7 +49,7 @@ def boot_initial_window(font) -> Tuple[Optional[bool], Optional[str]]:
     return event, file_path
 
 
-def boot_waiting_window(font):
+def boot_waiting_window(font, datastore) -> Tuple[Path,Path]:
     window = sg.Window(
         'Waiting', 
         [[sg.Text('Calculating MUSE')]], 
@@ -57,13 +59,15 @@ def boot_waiting_window(font):
         finalize=True,
         element_justification='c'
     )
+    prices_path, capacity_path = datastore.run_muse()
     time.sleep(2)
     window.close()
+    return prices_path, capacity_path
     
 
-def boot_plot_window():
-    out_cap = pd.read_csv('MCACapacity.csv')
-    out_price = pd.read_csv('MCAPrices.csv')
+def boot_plot_window(capacity_path, price_path):
+    out_cap = pd.read_csv(capacity_path)
+    out_price = pd.read_csv(price_path)
     fig = generate_plot()
 
     capacity_plots = capacity_data_frame_to_plots(out_cap)
@@ -179,8 +183,8 @@ def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
             pass
         elif event == ('tg', 'button'):
             window.close()
-            boot_waiting_window(font)
-            boot_plot_window()
+            prices_path, capacity_path = boot_waiting_window(font, datastore)
+            boot_plot_window(capacity_path, prices_path)
             break
         elif event and isinstance(event, tuple):
             if tab_group.should_handle_event(event):
@@ -196,12 +200,8 @@ def boot_tabbed_window(import_bool: bool, file_path: Optional[str] = None):
                 pass
         else:
             print(event)
-        
-
 
 if __name__ == '__main__':
-# Add your new theme colors and settings
-
     light = '#E7F5F9'
     dark = '#D8EEF4'
     darker = '#CEEAF2'
@@ -217,10 +217,7 @@ if __name__ == '__main__':
                     'SLIDER_DEPTH': 0,
                     'PROGRESS_DEPTH': 0}
 
-    # Add your dictionary to the PySimpleGUI themes
     sg.theme_add_new('CustomTheme', custom_theme)
-
-    # Switch your theme to use the newly added one. You can add spaces to make it more readable
     sg.theme('CustomTheme')
     font = ('Arial', 14)
 

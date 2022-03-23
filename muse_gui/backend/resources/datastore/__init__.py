@@ -189,16 +189,17 @@ class Datastore:
     def agent(self):
         return self._agent_datastore
     
-    def run_muse(self, export_path: Optional[str] = None):
+    def run_muse(self, export_path: Optional[str] = None, results_path: Optional[str] = None) -> Tuple[Path, Path]:
         if export_path is None:
             export_path = './Output'
         export_path_obj = Path(export_path)
-        export_settings_file = self.export_to_folder(str(export_path_obj))
+        export_settings_file, prices_path, capacity_path = self.export_to_folder(str(export_path_obj), results_path)
         
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=FutureWarning)
             my_mca = MCA.factory(export_settings_file)
             my_mca.run()
+        return prices_path, capacity_path
         
 
     @classmethod
@@ -241,7 +242,9 @@ class Datastore:
             run_model = RunModel.parse_obj(toml_out)
         )
     
-    def export_to_folder(self, folder_path: str) -> Path:
+    def export_to_folder(self, folder_path: str, results_path: Optional[str] = None) -> Tuple[Path, Path, Path]:
+        if results_path is None:
+            results_path = f"{folder_path}{os.sep}Results"
         folder_path_obj = Path(folder_path)
         if not folder_path_obj.exists():
             folder_path_obj.mkdir(parents=True)
@@ -533,6 +536,36 @@ class Datastore:
         new_timeslices = pack_timeslice(timeslice_info)
 
         assert self.run_settings is not None
+
+        prices_path = Path(results_path + os.sep +"MCAPrices.csv")
+        capacity_path = Path(results_path + os.sep +"MCACapacity.csv")
+        outputs = [
+            Output(
+                quantity=Quantity.prices,
+                sink = Sink.csv,
+                filename = str(prices_path.absolute()),
+                overwrite=True,
+                keep_columns = None,
+                index = True
+            ),
+            Output(
+                quantity=Quantity.capacity,
+                sink = Sink.aggregate,
+                filename = str(capacity_path.absolute()),
+                overwrite=True,
+                keep_columns = [
+                    "technology",
+                    "region",
+                    "agent",
+                    "type",
+                    "sector",
+                    "capacity",
+                    "year"
+                ],
+                index = False
+            ),
+        ]
+
         new_settings_model = SettingsModel(
             **self.run_settings.dict(),
             global_input_files=GlobalInputFiles(
@@ -541,25 +574,9 @@ class Datastore:
             ),
             sectors=new_sectors,
             timeslices=new_timeslices,
-            outputs=[
-                Output(
-                    quantity=Quantity.prices,
-                    sink = Sink.csv,
-                    filename = "{cwd}/{default_output_dir}/MCA{Quantity}.csv",
-                    overwrite=True,
-                    keep_columns = None,
-                    index = True
-                ),
-                Output(
-                    quantity=Quantity.capacity,
-                    sink = Sink.csv,
-                    filename = "{cwd}/{default_output_dir}/MCA{Quantity}.csv",
-                    overwrite=True,
-                    keep_columns = ["technology","region","agent","type","sector","capacity","year"],
-                    index = False
-                ),
-            ]
+            outputs=outputs
         )
+
         with open(new_settings_path, 'w+' )as f:
             toml.dump(new_settings_model.dict(),f)
-        return new_settings_path
+        return new_settings_path, prices_path, capacity_path
