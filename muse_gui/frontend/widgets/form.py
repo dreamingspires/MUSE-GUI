@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from pydantic import BaseModel
 
 from .base import BaseWidget
@@ -6,8 +6,8 @@ from .utils import get_creator_and_updater_for_type, render
 from PySimpleGUI.PySimpleGUI import Element
 
 def get_creator_and_updater_for_model(model: Type[BaseModel]) -> Tuple[
-        Dict[str, Callable[...,Element]], 
-        Dict[str, Callable[...,Dict[str, Any]]], 
+        Dict[str, Callable[...,Element]],
+        Dict[str, Callable[...,Dict[str, Any]]],
     ]:
 
     if not issubclass(model, BaseModel):
@@ -37,6 +37,35 @@ class Form(BaseWidget):
         self._model = model
         self._creator, self._updater = get_creator_and_updater_for_model(model)
         self._layout = None
+        self._disabled = False
+
+    def _disable(self, window, disabled: bool):
+        for k in self._creator:
+            if isinstance(self._creator[k], Form):
+                self._creator[k]._disable(window, disabled)
+            else:
+                _key = self._prefixf(k)
+                window[_key].update(disabled=disabled)
+
+    def disable(self, window):
+        if not self._disabled:
+            self._disable(window, True)
+            self._disabled = True
+
+    def enable(self, window):
+        if self._disabled:
+            self._disable(window, False)
+            self._disabled = False
+
+    def read(self, values_dict):
+        values = {}
+        for k in self._creator:
+            if isinstance(self._creator[k], Form):
+                values[k] = self._creator[k].read(values_dict)
+            else:
+                _key = self._prefixf(k)
+                values[k] = values_dict[_key]
+        return values
 
     def update(self, window, values: BaseModel):
         if not isinstance(values, self._model):

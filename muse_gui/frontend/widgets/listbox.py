@@ -2,6 +2,8 @@ from functools import partial
 from typing import Optional, List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
+
+from muse_gui.frontend.widgets.button import AddDeleteButtons
 from .base import BaseWidget
 
 
@@ -24,6 +26,21 @@ class ListboxWithButtons(BaseWidget):
             enable_events=enable_events,
             **kwargs,
         )
+        self._btns = AddDeleteButtons()
+
+        self._disabled = False
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, val: bool):
+        if self._disabled == val:
+            return
+        self._listbox.update(disabled=val)
+        self._btns.disabled = val
+        self._disabled = val
 
     @property
     def selected(self):
@@ -57,14 +74,10 @@ class ListboxWithButtons(BaseWidget):
             self._listbox = self._listbox_maker(
                 key=self._prefixf('listbox')
             )
+            _btn_layout = self._btns.layout(self._prefixf())
             self._layout = [
                 [
                     self._listbox
-                ],
-                [
-                    sg.Push(),
-                    sg.Button('Add', key=self._prefixf('add')),
-                    sg.Button('Delete', key=self._prefixf('delete')),
                 ]
-            ]
+            ] + _btn_layout
         return self._layout
