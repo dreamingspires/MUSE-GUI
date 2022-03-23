@@ -33,7 +33,6 @@ class SectorView(TwoColumnMixin, BaseView):
         )
         self._save_edit_btns = SaveEditButtons()
 
-        self._mode = 'ready'
         self._editing = None
         self._selected = -1
 
@@ -73,8 +72,6 @@ class SectorView(TwoColumnMixin, BaseView):
 
         self.selected = min(self.selected, len(_sectors) - 1)
         self._sector_list.indices = [self.selected] if self.selected != -1 else None
-
-        return _sectors
 
     def _update_info(self, window, model: BaseSector):
         self._sector_info.update(window, model)
