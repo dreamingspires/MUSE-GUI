@@ -66,10 +66,10 @@ if __name__ == '__main__':
         'timeslices': timeslice_view,
         'years': year_view,
         'regions': region_view,
-        'commodities': commodity_view,
-        'sectors': sector_view,
-        'agents': agent_view,
-        'technologies': tech_view,
+        # 'commodities': commodity_view,
+        # 'sectors': sector_view,
+        # 'agents': agent_view,
+        # 'technologies': tech_view,
     }
     tab_group = TabGroup(tabs, 'tg')
     status_bar = sg.StatusBar(
@@ -105,6 +105,8 @@ if __name__ == '__main__':
                     if ret:
                         # Log exception
                         print(ret)
+                        sg.popup_error(str(ret) or str(ret.__cause__), title='Error')
+
                     status_bar(status)
             else:
                 print('Unhandled - ', event)
