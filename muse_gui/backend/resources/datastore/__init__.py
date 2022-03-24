@@ -117,8 +117,8 @@ class Datastore:
         path = Path(settings_path)
         folder = path.parents[0].absolute()
         settings_model =  SettingsModel.parse_obj(toml_out)
-        global_commodities_data = path_string_to_dataframe(folder, settings_model.global_input_files.global_commodities)
-        projections_data = path_string_to_dataframe(folder, settings_model.global_input_files.projections)
+        global_commodities_data = path_string_to_dataframe(folder, Path(settings_model.global_input_files.global_commodities))
+        projections_data = path_string_to_dataframe(folder, Path(settings_model.global_input_files.projections))
         projections_data_without_unit = projections_data.drop(0)
         unit_row = projections_data.iloc[0]
 
