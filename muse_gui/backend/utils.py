@@ -1,19 +1,19 @@
 from typing import Dict, List, Union
 from dataclasses import dataclass
 from copy import copy
-Timeslice = Dict[str, Union["Timeslice", float]]
-OriginalTimeslice = Dict[str, Union[Timeslice, float, List[str]]]
+Timeslice = Dict[str, Union["Timeslice", int]]
+OriginalTimeslice = Dict[str, Union[Timeslice, int, List[str]]]
 @dataclass
 class TimesliceInfo:
-    timeslices: Dict[str, float]
+    timeslices: Dict[str, int]
     level_names: List[str]
 
 def unpack_timeslice(timeslices: OriginalTimeslice) -> TimesliceInfo:
     timeslices_copy = copy(timeslices)
-    def unpack_timeslice_inner(timeslice_dict: Timeslice) -> Dict[str, float]:
+    def unpack_timeslice_inner(timeslice_dict: Timeslice) -> Dict[str, int]:
         new_dict = {}
         for k, v in timeslice_dict.items():
-            if isinstance(v, float) or isinstance(v, int):
+            if isinstance(v, int):
                 new_dict[k] = v
             elif isinstance(v, dict):
                 dict_of_keys = unpack_timeslice_inner(v)
@@ -35,7 +35,7 @@ def unpack_timeslice(timeslices: OriginalTimeslice) -> TimesliceInfo:
     return TimesliceInfo(new_timeslices, level_names)
 
 def pack_timeslice(timeslices: TimesliceInfo) -> Timeslice:
-    def pack_timeslice_inner(existing_dict: Timeslice, address: List[str], value: Union[int, float]) -> Timeslice:
+    def pack_timeslice_inner(existing_dict: Timeslice, address: List[str], value: Union[int, int]) -> Timeslice:
         current_point = address[0]
         if current_point in existing_dict:
             assert len(address) != 1

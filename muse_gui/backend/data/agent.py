@@ -61,7 +61,7 @@ class Agent(Data):
     name: str
     type: AgentType
     region: str
-    num: int
+    num: Optional[int] = None
     sectors: List[str] = []
     objective_1: AgentObjective
     budget: float = math.inf

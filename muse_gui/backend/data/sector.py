@@ -1,7 +1,6 @@
-from typing import Annotated, Any, Dict, Literal, Optional, Union
+from typing import List, Optional, Union, Literal
 from .abstract import Data
 from enum import Enum
-from pydantic import Field
 
 class InterpolationType(str, Enum):
     """
@@ -15,6 +14,10 @@ class Production(str, Enum):
     SHARE = 'share'
     COSTED = 'costed'
 
+class InvProduction(Data):
+    name: Optional[str] = None
+    costing: Optional[str] = None
+
 class SectorType(str, Enum):
     STANDARD = 'standard'
     PRESET = 'preset'
@@ -22,7 +25,7 @@ class SectorType(str, Enum):
 class BaseSector(Data):
     name: str
     priority: int = 100
-
+    type: SectorType
 
 class StandardSector(BaseSector):
     """
@@ -31,8 +34,12 @@ class StandardSector(BaseSector):
     type: Literal[SectorType.STANDARD] = SectorType.STANDARD
     interpolation: InterpolationType = InterpolationType.LINEAR
     dispatch_production: Production = Production.SHARE
-    investment_production: Production = Production.SHARE
+    investment_production: Optional[InvProduction] = None
+    forecast: Optional[int] = None
     demand_share: Literal['new_and_retro'] = 'new_and_retro'
+    lpsolver: Optional[str] = None
+    constraints: Optional[List[str]] = None
+
 
 class PresetSector(BaseSector):
     """

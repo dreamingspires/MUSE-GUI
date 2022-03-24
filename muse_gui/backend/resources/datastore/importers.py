@@ -4,7 +4,7 @@ from muse_gui.backend.data.agent import Agent, AgentObjective
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, Demand, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 
-from muse_gui.backend.data.sector import InterpolationType, Production, StandardSector, PresetSector, Sector
+from muse_gui.backend.data.sector import InterpolationType, InvProduction, Production, StandardSector, PresetSector, Sector
 
 from muse_gui.backend.data.commodity import Commodity, CommodityPrice
 
@@ -17,7 +17,7 @@ from muse_gui.backend.settings import SettingsModel
 import os
 import glob
 import math
-from dataclasses import dataclass
+
 
 def replace_path(folder_path:Path, current_path_string: str) -> str:
     return re.sub(r"{path}", str(folder_path), current_path_string)
@@ -56,7 +56,10 @@ def get_sectors(settings_model: SettingsModel) -> List[Sector]:
                 priority= sector.priority,
                 interpolation= InterpolationType(sector.interpolation),
                 dispatch_production = Production(sector.dispatch_production),
-                investment_production = Production(sector.investment_production)
+                investment_production = InvProduction(name = sector.production.name, costing = sector.production.costing) if sector.production is not None else None,
+                forecast = sector.subsectors['retro_and_new'].forecast,
+                lpsolver=sector.subsectors['retro_and_new'].lpsolver,
+                constraints=sector.subsectors['retro_and_new'].constraints,
             )
         else:
             new_sector = PresetSector(
@@ -67,6 +70,8 @@ def get_sectors(settings_model: SettingsModel) -> List[Sector]:
     return sector_models
 
 def is_nan_new(value) -> bool:
+    if value is None:
+        return False
     try:
         return math.isnan(float(value))
     except ValueError:
@@ -98,6 +103,7 @@ def get_objective(
 def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Technodata]:
     technodatas = []
     for i, technodata in process_technodata.iterrows():
+
         technodatas.append(
             Technodata(
                 region = technodata['RegionName'],
@@ -123,7 +129,12 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                     technical_life = technodata['TechnicalLife'],
                     scaling_size= technodata['ScalingSize']
                 ),
-                agents = [CapacityShare(agent_name=agent.share, share= technodata[agent.share]) for agent in agent_models if float(technodata[agent.share]) > 0]
+                agents = [
+                    CapacityShare(
+                        agent_name=agent.share, 
+                        share= technodata[agent.share]
+                    ) for agent in agent_models if agent.share in technodata and float(technodata[agent.share]) > 0
+                ]
             )
         )
     return technodatas
@@ -247,7 +258,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                         name = agent['Name'],
                         type = agent['Type'],
                         region = agent['RegionName'],
-                        num = agent['AgentNumber'],
+                        num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
                         sectors = [sector_name],
                         objective_1 = objective_1,
                         objective_2 = objective_2,
@@ -271,7 +282,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                         name = agent['Name'],
                         type = agent['Type'],
                         region = agent['RegionName'],
-                        num = agent['AgentNumber'],
+                        num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
                         sectors = existing_agent.sectors + [sector_name],
                         objective_1 = objective_1,
                         objective_2 = objective_2,

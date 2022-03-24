@@ -29,38 +29,10 @@ class InterpolationMode(str, Enum):
     active = 'active'
 
 
-class EquilibirumVariable(str, Enum):
+class EquilibriumVariable(str, Enum):
     demand = 'demand'
     prices = 'prices'
 
-
-
-class Sink(str, Enum):
-    csv = 'csv'
-    netcfd = 'netcfd'
-    excel = 'excel'
-    aggregate = 'aggregate'
-
-
-class Quantity(str, Enum):
-    capacity = 'capacity'
-    prices = 'prices'
-    supply = 'supply'
-
-class Output(BaseSettings):
-    quantity: Union[Quantity,Dict[str,Any]] = Quantity.capacity
-    sink: Sink = Sink.csv
-    filename: Optional[str] = None
-    overwrite: bool = False
-    keep_columns: Optional[List[str]] = None
-    index: Optional[bool] = False
-
-    @validator('filename', pre=True, always=True)
-    def validate_filename(cls, value, values):
-        if value is None:
-            return '{cwd}/{default_output_dir}/{Sector}/'+values.quantity+'/{year}'+values.sink
-        else:
-            return value
 
 class CarbonMarket(BaseSettings):
     budget: List[str] = []
@@ -79,8 +51,7 @@ class RunModel(BaseSettings):
     def validate_case_insensitive(cls,v):
         return v.lower()
     log_level: str = 'info'
-    outputs: Optional[List[Output]] = None
-    equilibirum_variable: EquilibirumVariable = EquilibirumVariable.demand
+    equilibrium_variable: EquilibriumVariable = EquilibriumVariable.demand
     maximum_iterations: PositiveInt = 3
     tolerance: float = 0.1
     tolerance_unmet_demand: float = -0.1
