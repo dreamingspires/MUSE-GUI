@@ -132,12 +132,14 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                     technical_life = technodata['TechnicalLife'],
                     scaling_size= technodata['ScalingSize']
                 ),
-                agents = [
-                    CapacityShare(
-                        agent_name=agent.name, 
-                        share= technodata[agent.name]
-                    ) for agent in agent_models if agent.share in technodata and float(technodata[agent.share]) > 0
-                ]
+                agents = []
+                # TODO
+                #CapacityShare(
+                #    agent_name=agent.name, 
+                #    share= technodata[agent.name]
+                #) for agent in agent_models if agent.share in technodata and float(technodata[agent.share]) > 0
+                    
+                
             )
         )
     return technodatas

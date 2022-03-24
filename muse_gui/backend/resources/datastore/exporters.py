@@ -25,46 +25,46 @@ def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
 
     agents_list =[]
     for agent in agents:
-        #for agent_data in agent
-        if agent.objective_2 is None:
-            objective_2_objective_type = None
-            objective_2_objective_data = None
-            objective_2_objective_sort = None
-        else:
-            objective_2_objective_type = agent.objective_2.objective_type
-            objective_2_objective_data = agent.objective_2.objective_data
-            objective_2_objective_sort = agent.objective_2.objective_sort
-        if agent.objective_3 is None:
-            objective_3_objective_type = None
-            objective_3_objective_data = None
-            objective_3_objective_sort = None
-        else:
-            objective_3_objective_type = agent.objective_3.objective_type
-            objective_3_objective_data = agent.objective_3.objective_data
-            objective_3_objective_sort = agent.objective_3.objective_sort
-        agents_list.append(
-            {
-                'AgentShare': agent.share,
-                'Name': agent.name,
-                'AgentNumber': agent.num,
-                'RegionName': agent.region,
-                'Objective1': agent.objective_1.objective_type,
-                'Objective2': objective_2_objective_type,
-                'Objective3': objective_3_objective_type,
-                'ObjData1': agent.objective_1.objective_data,
-                'ObjData2': objective_2_objective_data,
-                'ObjData3': objective_3_objective_data,
-                'Objsort1': agent.objective_1.objective_sort,
-                'Objsort2': objective_2_objective_sort,
-                'Objsort3': objective_3_objective_sort,
-                'SearchRule': agent.search_rule,
-                'DecisionMethod': agent.decision_method,
-                'Quantity': agent.quantity,
-                'MaturityThreshold': agent.maturity_threshold,
-                'Budget': agent.budget,
-                'Type': agent.type
-            }
-        )
+        for agent_data in agent.new + agent.retrofit:
+            if agent_data.objective_2 is None:
+                objective_2_objective_type = None
+                objective_2_objective_data = None
+                objective_2_objective_sort = None
+            else:
+                objective_2_objective_type = agent_data.objective_2.objective_type
+                objective_2_objective_data = agent_data.objective_2.objective_data
+                objective_2_objective_sort = agent_data.objective_2.objective_sort
+            if agent_data.objective_3 is None:
+                objective_3_objective_type = None
+                objective_3_objective_data = None
+                objective_3_objective_sort = None
+            else:
+                objective_3_objective_type = agent_data.objective_3.objective_type
+                objective_3_objective_data = agent_data.objective_3.objective_data
+                objective_3_objective_sort = agent_data.objective_3.objective_sort
+            agents_list.append(
+                {
+                    'AgentShare': agent_data.share,
+                    'Name': agent.name,
+                    'AgentNumber': agent_data.num,
+                    'RegionName': agent_data.region,
+                    'Objective1': agent_data.objective_1.objective_type,
+                    'Objective2': objective_2_objective_type,
+                    'Objective3': objective_3_objective_type,
+                    'ObjData1': agent_data.objective_1.objective_data,
+                    'ObjData2': objective_2_objective_data,
+                    'ObjData3': objective_3_objective_data,
+                    'Objsort1': agent_data.objective_1.objective_sort,
+                    'Objsort2': objective_2_objective_sort,
+                    'Objsort3': objective_3_objective_sort,
+                    'SearchRule': agent_data.search_rule,
+                    'DecisionMethod': agent_data.decision_method,
+                    'Quantity': agent_data.quantity,
+                    'MaturityThreshold': agent_data.maturity_threshold,
+                    'Budget': agent_data.budget,
+                    'Type': agent_data.type
+                }
+            )
     agent_df = pd.DataFrame(agents_list, columns=headers)
     return agent_df
 
