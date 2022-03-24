@@ -17,7 +17,7 @@ from muse_gui.backend.settings import SettingsModel
 import os
 import glob
 import math
-from dataclasses import dataclass
+
 
 def replace_path(folder_path:Path, current_path_string: str) -> str:
     return re.sub(r"{path}", str(folder_path), current_path_string)
