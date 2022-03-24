@@ -57,12 +57,10 @@ class AgentType(str, Enum):
     New = 'New'
     Retrofit = 'Retrofit'
 
-class Agent(Data):
-    name: str
+class AgentData(Data):
     type: AgentType
     region: str
     num: Optional[int] = None
-    sectors: List[str] = []
     objective_1: AgentObjective
     budget: float = math.inf
     share: str = ''
@@ -72,3 +70,10 @@ class Agent(Data):
     decision_method: DecisionMethod = DecisionMethod.SingleObjective
     quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
+
+class Agent(Data):
+    name: str
+    sectors: List[str] = []
+    new: List[AgentData]
+    retrofit: List[AgentData]
+

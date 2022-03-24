@@ -25,6 +25,7 @@ def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
 
     agents_list =[]
     for agent in agents:
+        #for agent_data in agent
         if agent.objective_2 is None:
             objective_2_objective_type = None
             objective_2_objective_data = None

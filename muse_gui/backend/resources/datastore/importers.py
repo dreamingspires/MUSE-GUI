@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple
 
-from muse_gui.backend.data.agent import Agent, AgentObjective
+from muse_gui.backend.data.agent import Agent, AgentData, AgentObjective
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, Demand, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 
@@ -134,8 +134,8 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                 ),
                 agents = [
                     CapacityShare(
-                        agent_name=agent.share, 
-                        share= technodata[agent.share]
+                        agent_name=agent.name, 
+                        share= technodata[agent.name]
                     ) for agent in agent_models if agent.share in technodata and float(technodata[agent.share]) > 0
                 ]
             )
@@ -226,10 +226,52 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                             
     return demand_mapper
 
+def get_agent_datas(agent_raw_data, agent_name) -> Tuple[List[AgentData], List[AgentData]]:
+    rel_data = agent_raw_data.query(f'Name == "{agent_name}"')
+    agent_new_datas = []
+    agent_retrofit_datas = []
+    for i, agent in rel_data.iterrows():
+        objective_1 = get_objective(
+            objective_type = agent['Objective1'],
+            objective_data = agent['ObjData1'],
+            objective_sort= agent['Objsort1']
+        )
+        assert objective_1 is not None
+        objective_2 = get_objective(
+            objective_type = agent['Objective2'],
+            objective_data = agent['ObjData2'],
+            objective_sort= agent['Objsort2']
+        )
+        objective_3 = get_objective(
+            objective_type = agent['Objective3'],
+            objective_data = agent['ObjData3'],
+            objective_sort= agent['Objsort3']
+        )
+        agent_data = AgentData(
+            type = agent['Type'],
+            region = agent['RegionName'],
+            num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
+            objective_1 = objective_1,
+            objective_2 = objective_2,
+            objective_3 = objective_3,
+            budget = agent['Budget'],
+            share = agent['AgentShare'],
+            search_rule= agent['SearchRule'],
+            decision_method=agent['DecisionMethod'],
+            quantity = agent['Quantity'],
+            maturity_threshold = agent['MaturityThreshold']
+        )
+        if agent['Type'] == 'Retrofit':
+            agent_retrofit_datas.append(agent_data)
+        elif agent['Type'] == 'New':
+            agent_new_datas.append(agent_data)
+        else:
+            raise ValueError
+    return agent_new_datas, agent_retrofit_datas
 
 def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
     agent_models: List[Agent] = []
-    shares_seen: List[str] = []
+    agent_name_index: List[str] = []
     for sector_name, sector in settings_model.sectors.items():
         if sector.type == 'default':
             if len(sector.subsectors) != 1:
@@ -238,67 +280,36 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                 subsector_name, subsector = next(iter(sector.subsectors.items()))
 
             agent_raw_data = path_string_to_dataframe(folder, Path(subsector.agents))
-            for i, agent in agent_raw_data.iterrows():
-                objective_1 = get_objective(
-                    objective_type = agent['Objective1'],
-                    objective_data = agent['ObjData1'],
-                    objective_sort= agent['Objsort1']
-                )
-                assert objective_1 is not None
-                objective_2 = get_objective(
-                    objective_type = agent['Objective2'],
-                    objective_data = agent['ObjData2'],
-                    objective_sort= agent['Objsort2']
-                )
-                objective_3 = get_objective(
-                    objective_type = agent['Objective3'],
-                    objective_data = agent['ObjData3'],
-                    objective_sort= agent['Objsort3']
-                )
-
-                if agent['AgentShare'] not in shares_seen:
-                    agent_model = Agent(
-                        name = agent['Name'],
-                        type = agent['Type'],
-                        region = agent['RegionName'],
-                        num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
-                        sectors = [sector_name],
-                        objective_1 = objective_1,
-                        objective_2 = objective_2,
-                        objective_3 = objective_3,
-                        budget = agent['Budget'],
-                        share = agent['AgentShare'],
-                        search_rule= agent['SearchRule'],
-                        decision_method=agent['DecisionMethod'],
-                        quantity = agent['Quantity'],
-                        maturity_threshold = agent['MaturityThreshold']
-                    )
-                    agent_models.append(agent_model)
-                    shares_seen.append(agent['AgentShare'])
+            agent_names = agent_raw_data['Name'].unique()
+            for agent_name in agent_names:
+                agent_new_datas, agent_retrofit_datas = get_agent_datas(agent_raw_data, agent_name)
+                
+                if agent_name in agent_name_index:
+                    existing_agent_no = agent_name_index.index(agent_name)
+                    existing_agent = agent_models[existing_agent_no]
+                    if (
+                        set([i.json() for i in agent_new_datas]) == set([i.json() for i in existing_agent.new])
+                    ) and (
+                        set([i.json() for i in agent_retrofit_datas]) == set([i.json() for i in existing_agent.retrofit])
+                    ):
+                        new_agent = Agent(
+                            name= agent_name,
+                            sectors= [sector_name] + existing_agent.sectors,
+                            new = agent_new_datas,
+                            retrofit = agent_retrofit_datas
+                        )
+                        agent_models[existing_agent_no] = new_agent
+                    else:
+                        raise RuntimeError(f'Multiple definitions found for AgentName {agent_name} ')
                 else:
-                    # Get agent and update with associated sectors
-                    existing_agents = [i for i in agent_models if i.share == agent['AgentShare']]
-                    assert len(existing_agents) ==1
-                    existing_agent = existing_agents[0]
-                    existing_agent_index = agent_models.index(existing_agent)
                     new_agent = Agent(
-                        name = agent['Name'],
-                        type = agent['Type'],
-                        region = agent['RegionName'],
-                        num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
-                        sectors = existing_agent.sectors + [sector_name],
-                        objective_1 = objective_1,
-                        objective_2 = objective_2,
-                        objective_3 = objective_3,
-                        budget = agent['Budget'],
-                        share = agent['AgentShare'],
-                        search_rule= agent['SearchRule'],
-                        decision_method=agent['DecisionMethod'],
-                        quantity = agent['Quantity'],
-                        maturity_threshold = agent['MaturityThreshold']
+                        name= agent_name,
+                        sectors= [sector_name],
+                        new = agent_new_datas,
+                        retrofit = agent_retrofit_datas
                     )
-                    agent_models[existing_agent_index] = new_agent
-    
+                    agent_name_index.append(agent_name)
+                    agent_models.append(new_agent)    
     return agent_models
 
 def get_processes(settings_model: SettingsModel, folder: Path, commodity_models: List[Commodity], agent_models: List[Agent]) -> List[Process]:
