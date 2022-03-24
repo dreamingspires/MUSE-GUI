@@ -43,8 +43,8 @@ sg.theme_add_new('CustomTheme', custom_theme)
 sg.theme('CustomTheme')
 font = ('Arial', 14)
 
-out_cap = pd.read_csv('MCACapacity.csv')
-out_price = pd.read_csv('MCAPrices.csv')
+out_cap = pd.read_csv('Results/MCACapacity.csv')
+out_price = pd.read_csv('Results/MCAPrices.csv')
 fig = generate_plot()
 
 capacity_plots = capacity_data_frame_to_plots(out_cap)
@@ -67,7 +67,7 @@ window = sg.Window(
     'Window Title', 
     layout, 
     resizable = True,
-    #size=(1000, 800), 
+    size=(1000, 800), 
     font = font, 
     auto_size_text=True,
     finalize=True,
@@ -81,7 +81,7 @@ figure_elems.draw_figures()
 figure_elems.draw_figures()
 
 figure_elems.draw_figures()
-window['figure1'].set_size((1000,2000))
+#window['figure1'].set_size((1000,2000))
 toggle =False
 while True:
     event, values = window.read()

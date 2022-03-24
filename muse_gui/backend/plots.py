@@ -15,7 +15,14 @@ class CapacityPlot:
 def capacity_data_frame_to_plots(dataframe: pd.DataFrame) -> List[CapacityPlot]:
     def get_data(all_data: pd.DataFrame, region: str, agent: str, sector: str) -> pd.DataFrame:
         relevant_data = all_data.loc[(all_data['region'] == region) & (all_data['agent'] == agent) &  (all_data['sector'] == sector)]
-        return relevant_data[['technology', 'year', 'capacity']]
+        new_data =  relevant_data[['technology', 'year', 'capacity']]
+        fresh = new_data.groupby(['technology','year']).sum()
+        brand_new = []
+        for _, row in fresh.iterrows():
+            tech, year = row.name
+            capacity = row['capacity']
+            brand_new.append([tech, year, capacity])
+        return pd.DataFrame(brand_new, columns = ['technology', 'year', 'capacity'])
 
     regions = dataframe['region'].unique()
     agents = dataframe['agent'].unique()
