@@ -19,9 +19,12 @@ import glob
 import math
 
 
-def replace_path(folder_path:Path, current_path_string: str) -> str:
-    return re.sub(r"{path}", str(folder_path), current_path_string)
-def path_string_to_dataframe(folder_path:Path, current_path_string: str) -> pd.DataFrame:
+def replace_path(folder_path:Path, current_path_string: Path) -> str:
+    new_folder = folder_path.as_posix()
+    new_current = current_path_string.as_posix()
+    return str(Path(re.sub(r"{path}", new_folder, new_current)))
+
+def path_string_to_dataframe(folder_path:Path, current_path_string: Path) -> pd.DataFrame:
     return pd.read_csv(replace_path(folder_path, current_path_string))
 
 def get_commodities_data(global_commodities_data, projections_data, unit_row) -> List[Commodity]:
@@ -152,7 +155,7 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                 split_path = consumption_path.split(os.sep)
                 preset_path = os.sep.join(split_path[:-1])
                 regex = split_path[-1]
-                replaced_p = replace_path(folder, preset_path)
+                replaced_p = replace_path(folder, Path(preset_path))
                 path_set = [Path(p) for p in glob.glob(os.path.join(replaced_p, regex))]
                 return path_set
             
@@ -234,7 +237,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
             else:
                 subsector_name, subsector = next(iter(sector.subsectors.items()))
 
-            agent_raw_data = path_string_to_dataframe(folder, subsector.agents)
+            agent_raw_data = path_string_to_dataframe(folder, Path(subsector.agents))
             for i, agent in agent_raw_data.iterrows():
                 objective_1 = get_objective(
                     objective_type = agent['Objective1'],
@@ -303,15 +306,15 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
     process_models: List[Process] = []
     for sector_name, sector in settings_model.sectors.items():
         if sector.type == 'default':
-            technodata_data = path_string_to_dataframe(folder, sector.technodata)
+            technodata_data = path_string_to_dataframe(folder, Path(sector.technodata))
             technodata_data_without_unit = technodata_data.drop(0)
             technodata_data_unit = technodata_data.loc[0]
             
-            comm_in_data = path_string_to_dataframe(folder, sector.commodities_in)
+            comm_in_data = path_string_to_dataframe(folder, Path(sector.commodities_in))
             comm_in_data_without_unit = comm_in_data.drop(0)
             comm_in_data_unit = comm_in_data.loc[0]
 
-            comm_out_data = path_string_to_dataframe(folder, sector.commodities_out)
+            comm_out_data = path_string_to_dataframe(folder, Path(sector.commodities_out))
             comm_out_data_without_unit = comm_out_data.drop(0)
             comm_out_data_unit = comm_out_data.loc[0]
 
@@ -321,7 +324,7 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
                 subsector_name, subsector = next(iter(sector.subsectors.items()))
 
             
-            existing_cap_data = path_string_to_dataframe(folder, subsector.existing_capacity)
+            existing_cap_data = path_string_to_dataframe(folder, Path(subsector.existing_capacity))
             process_names = technodata_data_without_unit['ProcessName'].unique()
             for process_name in process_names:
                 
