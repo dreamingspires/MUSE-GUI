@@ -44,21 +44,34 @@ class EditableTable(BaseWidget):
         self._col = 0
         self._editing = False
         self._focus = False
+        self._disabled = True
+
+    def commit(self):
+        if self._editing:
+            self.cell_text = self._input.get()
 
     @property
     def values(self):
-        _values = []
-        for r in range(1, self.nrows + 1):
-            _values.append(
-                self.table_widget.item(r, "values")
-            )
-        return _values
+        if self.nrows == 0 or self.ncols == 0:
+            return [[]]
+        self.commit()
+        return [
+            self.table_widget.item(r, "values")
+            for r in range(1, self.nrows + 1)
+        ]
 
     @values.setter
     def values(self, _val):
         self.nrows = len(_val)
         self.ncols = len(_val[0])
         self._table.update(values=_val)
+        if self.nrows == 0 or self.ncols == 0:
+            return
+
+        self._row = self._row % (self.nrows + 1)
+        if self._row == 0:
+            self._row = 1
+        self._col = self._col % self.ncols
         self._update_cell_position()
 
     @property
@@ -97,10 +110,13 @@ class EditableTable(BaseWidget):
 
     @property
     def cell_text(self):
+        if self.nrows == 0 or self.ncols == 0:
+            return ''
         return self.table_widget.item(self.row, "values")[self.col]
 
     @cell_text.setter
     def cell_text(self, val):
+
         # TODO Validation
         values = list(self.table_widget.item(self.row, 'values'))
         values[self.col] = val
@@ -112,7 +128,7 @@ class EditableTable(BaseWidget):
 
     @editing.setter
     def editing(self, val):
-        self._editing = val
+        self._editing = val and not self._disabled
         if not self._editing:
             self._table.set_focus()
             self._focus = True
@@ -127,6 +143,17 @@ class EditableTable(BaseWidget):
             self._input.set_focus()
             self._input.update(
                 select=True, move_cursor_to='end', disabled=False)
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, val):
+        if self._disabled == val:
+            return
+        self._disabled = val
+        if self.editing:
+            self.editing = False
 
     def _bind_resize_handler(self):
         self._table.bind('<B1-Motion>', 'configure')
@@ -167,7 +194,7 @@ class EditableTable(BaseWidget):
             return True
 
         if e == 'enter' or e == 'senter':
-            if e == 'enter' and not self.editing:
+            if e == 'enter' and not self.disabled and not self.editing:
                 self.editing = True
                 return True
 
@@ -188,6 +215,9 @@ class EditableTable(BaseWidget):
         print(e, rest)
         if e == '+CLICKED+':
             cell = row, col = rest[0]
+            if self.nrows == 0 or self.ncols == 0:
+                # Clicking on an empty table
+                return None
             if row is not None and col is not None:
                 if self.editing:
                     # Currently editing a cell, copy value
