@@ -66,10 +66,10 @@ if __name__ == '__main__':
         'timeslices': timeslice_view,
         'years': year_view,
         'regions': region_view,
-        # 'commodities': commodity_view,
-        # 'sectors': sector_view,
-        # 'agents': agent_view,
-        # 'technologies': tech_view,
+        'sectors': sector_view,
+        'commodities': commodity_view,
+        'agents': agent_view,
+        'technologies': tech_view,
     }
     tab_group = TabGroup(tabs, 'tg')
     status_bar = sg.StatusBar(
@@ -99,15 +99,23 @@ if __name__ == '__main__':
         elif event and isinstance(event, tuple):
             # Non empty tuple
             if tab_group.should_handle_event(event):
-                ret = tab_group(window, event, values)
-                if ret:
-                    ret, status = ret
+                try:
+                    ret = tab_group(window, event, values)
                     if ret:
-                        # Log exception
-                        print(ret)
-                        sg.popup_error(str(ret) or str(ret.__cause__), title='Error')
+                        ret, status = ret
+                        if ret:
+                            # Log exception
+                            print(ret)
+                            sg.popup_error(str(ret), title='Error')
 
-                    status_bar(status)
+                        status_bar(status)
+                except Exception as e:
+                    print(e)
+                    if e.__cause__:
+                        sg.popup_error(str(e.__cause__), title='Error')
+                    else:
+                        sg.popup_error(str(e), title='Error')
+                    status_bar(str(e))
             else:
                 print('Unhandled - ', event)
                 pass
