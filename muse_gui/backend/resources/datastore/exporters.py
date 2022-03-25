@@ -222,7 +222,6 @@ def export_technodata(
     datastore: "Datastore",
     technodata_path: Path
 ):
-
     agent_data_index = []
     agent_shares = []
     agent_types = []
@@ -387,7 +386,6 @@ def get_sector_details(
         sector_path.mkdir(parents=True)
     # For each sector get forward deps on processes
     rel_process_names = datastore.sector.forward_dependents(sector)['process']
-
     rel_processes = [datastore.process.read(p) for p in rel_process_names]
     if sector.type == 'standard':
 

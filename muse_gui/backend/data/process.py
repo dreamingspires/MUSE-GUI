@@ -62,9 +62,8 @@ class Technodata(BaseModel):
     agents: List[CapacityShare]
     @validator('agents')
     def sum_agent_share_to_one(cls,v):
-
         shares = [agent.share for agent in v]
-        if len(shares) > 0 and sum(shares) != 1 :
+        if sum(shares) != 1 :
             raise NotImplementedError
         else:
             return v

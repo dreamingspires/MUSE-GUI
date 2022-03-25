@@ -110,7 +110,7 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
         agent_shares = []
         for agent_model in agent_models:
             for i, agent_data in enumerate(agent_model.new):
-                if agent_data.share in technodata:
+                if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
                         agent_name=agent_model.name, 
                         agent_type = AgentType.New,
@@ -119,7 +119,7 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                     )
                     agent_shares.append(agent_share)
             for i, agent_data in enumerate(agent_model.retrofit):
-                if agent_data.share in technodata:
+                if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
                         agent_name=agent_model.name, 
                         agent_type =  AgentType.Retrofit,
