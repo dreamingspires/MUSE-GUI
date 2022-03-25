@@ -14,7 +14,7 @@ from muse_gui.frontend.views.run_view import RunView
 from muse_gui.frontend.windows.calc_window import boot_waiting_window
 from muse_gui.frontend.windows.plot_window import boot_plot_window
 from muse_gui.frontend.windows.utils import Font
-    
+
 def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] = None):
     if import_bool:
         assert file_path is not None
@@ -33,9 +33,9 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
         'timeslices': timeslice_view,
         'years': year_view,
         'regions': region_view,
-        'commodities': commodity_view,
         'sectors': sector_view,
-        'agents': agent_view,
+        'commodities': commodity_view,
+        # 'agents': agent_view,
         'technologies': tech_view,
         'run': run_view
     }
@@ -71,7 +71,7 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
                 window['carbon_market_frame'].update(visible=True)
             else:
                 window['carbon_market_frame'].update(visible=False)
-            
+
         if type(event) is str:
             # Handle event in window level
             pass
@@ -82,13 +82,23 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
             break
         elif event and isinstance(event, tuple):
             if tab_group.should_handle_event(event):
-                ret = tab_group(window, event, values)
-                if ret:
-                    ret, status = ret
+                try:
+                    ret = tab_group(window, event, values)
                     if ret:
-                        # Log exception
-                        print(ret)
-                    status_bar(status)
+                        ret, status = ret
+                        if ret:
+                            # Log exception
+                            print(ret)
+                            sg.popup_error(str(ret), title='Error')
+
+                        status_bar(status)
+                except Exception as e:
+                    print(e)
+                    if e.__cause__:
+                        sg.popup_error(str(e.__cause__), title='Error')
+                    else:
+                        sg.popup_error(str(e), title='Error')
+                    status_bar(str(e))
             else:
                 print('Unhandled - ', event)
                 pass
