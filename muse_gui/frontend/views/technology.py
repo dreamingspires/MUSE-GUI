@@ -840,23 +840,22 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
             # Disable tab group
             self._tech_tables.disable_tabs(window)
-            _headings = []
-
-            _form_values = self._tech_info.read(values)
-            if ret == 'input':
-                _fuel = _form_values.get('fuel', '')
-                _headings = [ _fuel ] + [ x for x in self._commin if x.lower() != _fuel.lower()]
-
-            elif ret == 'output':
-                _end_use = _form_values.get('end_use', '')
-                _headings = [ _end_use ] + [ x for x in self._commout if x.lower() != _end_use.lower()]
-
-            elif ret == 'agent':
-                _headings = self.model.retrofit_agents
-            else:
-                raise ValueError('Unknown value')
-
             try:
+                _headings = []
+
+                _form_values = self._tech_info.read(values)
+                if ret == 'input':
+                    _fuel = _form_values.get('fuel', '')
+                    _headings = [ _fuel ] + [ x for x in self._commin if x.lower() != _fuel.lower()]
+
+                elif ret == 'output':
+                    _end_use = _form_values.get('end_use', '')
+                    _headings = [ _end_use ] + [ x for x in self._commout if x.lower() != _end_use.lower()]
+
+                elif ret == 'agent':
+                    _headings = self.model.retrofit_agents
+                else:
+                    raise ValueError('Unknown value')
                 # Show next table
                 _values = self._tech_tables.show_table(
                     self._current_key,
