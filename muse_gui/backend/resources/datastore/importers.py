@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple
 
-from muse_gui.backend.data.agent import Agent, AgentData, AgentObjective
+from muse_gui.backend.data.agent import Agent, AgentData, AgentObjective, AgentType
 from muse_gui.backend.data.process import Capacity, CommodityFlow, Cost, DemandFlow, Demand, ExistingCapacity, Process, Technodata, Utilisation, CapacityShare
 
 
@@ -106,6 +106,27 @@ def get_objective(
 def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Technodata]:
     technodatas = []
     for i, technodata in process_technodata.iterrows():
+        # TODO Consider structure of capacity share
+        agent_shares = []
+        for agent_model in agent_models:
+            for i, agent_data in enumerate(agent_model.new):
+                if agent_data.share in technodata:
+                    agent_share = CapacityShare(
+                        agent_name=agent_model.name, 
+                        agent_type = AgentType.New,
+                        agent_data_index = i,
+                        share= technodata[agent_data.share]
+                    )
+                    agent_shares.append(agent_share)
+            for i, agent_data in enumerate(agent_model.retrofit):
+                if agent_data.share in technodata:
+                    agent_share = CapacityShare(
+                        agent_name=agent_model.name, 
+                        agent_type =  AgentType.Retrofit,
+                        agent_data_index = i,
+                        share= technodata[agent_data.share]
+                    )
+                    agent_shares.append(agent_share)
 
         technodatas.append(
             Technodata(
@@ -132,13 +153,8 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                     technical_life = technodata['TechnicalLife'],
                     scaling_size= technodata['ScalingSize']
                 ),
-                agents = []
-                # TODO
-                #CapacityShare(
-                #    agent_name=agent.name, 
-                #    share= technodata[agent.name]
-                #) for agent in agent_models if agent.share in technodata and float(technodata[agent.share]) > 0
-                    
+                agents = agent_shares
+
                 
             )
         )
