@@ -10,6 +10,12 @@ from .base import BaseWidget
 def get_all_keys(d: Dict) -> List:
     return list(d.keys()) + [x for v in d.values() if isinstance(v, dict) for x in get_all_keys(v)]
 
+def get_btn_maker(text, **kwargs):
+    return partial(
+        sg.Button,
+        text,
+        **kwargs
+    )
 
 def get_optionmenu_for_enum(_enum: Type[Enum]) -> Tuple[Callable[..., Element], Callable[..., Dict[str,Any]]]:
     values = [f'{x}' for x in _enum]
@@ -41,7 +47,7 @@ def get_creator_and_updater_for_type(
     _type: Any
 ) -> Tuple[Callable[..., Element], Callable[..., Dict[str,Any]]]:
     # Get direct match if any
-    
+
     if isinstance(_type, type) and issubclass(_type, Enum):
         return get_optionmenu_for_enum(_type)
     elif _type in registry:

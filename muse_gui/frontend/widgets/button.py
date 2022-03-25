@@ -4,20 +4,32 @@ from typing import List, Optional
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
+from muse_gui.frontend.widgets.utils import get_btn_maker
+
 from .base import BaseWidget
+
+
+class DoneCancelButtons(BaseWidget):
+    def __init__(self, key: Optional[str] = None):
+        super().__init__(key)
+
+    def layout(self, prefix):
+        if not self._layout:
+            self.prefix = prefix
+
+            self._layout = [
+                [
+                    sg.Push(),
+                    get_btn_maker('Done')(key=self._prefixf('done')),
+                    get_btn_maker('Cancel')(key=self._prefixf('cancel')),
+                    sg.Push(),
+                ],
+            ]
+        return self._layout
 
 class AddDeleteButtons(BaseWidget):
     def __init__(self, key: Optional[str] = None):
         super().__init__(key)
-
-        self._add_btn_maker = partial(
-            sg.Button,
-            'Add'
-        )
-        self._delete_btn_maker = partial(
-            sg.Button,
-            'Delete',
-        )
 
         self._add_disabled = False
         self._delete_disabled = False
@@ -62,8 +74,8 @@ class AddDeleteButtons(BaseWidget):
         if not self._layout:
             self.prefix = prefix
 
-            self._add_btn = self._add_btn_maker(key=self._prefixf('add'))
-            self._delete_btn = self._delete_btn_maker(key=self._prefixf('delete'))
+            self._add_btn = get_btn_maker('Add')(key=self._prefixf('add'))
+            self._delete_btn = get_btn_maker('Delete')(key=self._prefixf('delete'))
 
             self._layout = [
                 [
@@ -81,12 +93,8 @@ class SaveEditButtons(BaseWidget):
     def __init__(self, key: Optional[str] = None):
         super().__init__(key)
 
-        self._edit_btn_maker = partial(
-            sg.Button,
-            'Edit'
-        )
-        self._save_btn_maker = partial(
-            sg.Button,
+        self._edit_btn_maker = get_btn_maker('Edit')
+        self._save_btn_maker = get_btn_maker(
             'Save',
             disabled=True
         )
