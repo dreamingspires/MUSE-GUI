@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Tuple, Union
-from muse_gui.backend.data.agent import Agent
+from muse_gui.backend.data.agent import Agent, AgentType
 from muse_gui.backend.data.process import CommodityFlow, Process
 from muse_gui.backend.data.sector import Sector
 from muse_gui.backend.utils import pack_timeslice, TimesliceInfo
@@ -222,8 +222,16 @@ def export_technodata(
     datastore: "Datastore",
     technodata_path: Path
 ):
-    agent_index = [agent for agent in datastore.agent._data.values()]
-    agent_shares = [agent.share for agent in agent_index]
+
+    agent_data_index = []
+    agent_shares = []
+    agent_types = []
+    for agent in datastore.agent._data.values():
+        for agent_data in agent.new + agent.retrofit:
+            agent_shares.append(agent_data.share)
+            agent_types.append(agent_data.type)
+            agent_data_index.append(agent_data)
+        
     technodata_headers = [
         'ProcessName',
         'RegionName',
@@ -247,7 +255,7 @@ def export_technodata(
         'Fuel',
         'EndUse'
     ] + agent_shares
-    data = [['Unit','-','Year','-','MUS$2010/PJ_a','-','MUS$2010/PJ','-','MUS$2010/PJ','-','PJ','%','PJ','Years','-','PJ','%','-','-','-','-']+[agent.type for agent in agent_index]]
+    data = [['Unit','-','Year','-','MUS$2010/PJ_a','-','MUS$2010/PJ','-','MUS$2010/PJ','-','PJ','%','PJ','Years','-','PJ','%','-','-','-','-']+agent_types]
     for process in rel_processes:
         technodatas = process.technodatas
         for technodata in technodatas:
@@ -274,12 +282,19 @@ def export_technodata(
                 process.fuel,
                 process.end_use
             ]
-            zeros = [0.0]*len(datastore.agent._data)
+            zeros = [0.0]*len(agent_data_index)
 
-            for agent in technodata.agents:
-                agent_model = datastore.agent.read(agent.agent_name)
-                current_agent_index = agent_index.index(agent_model)
-                zeros[current_agent_index] = agent.share
+            for capacity_share in technodata.agents:
+                agent_model = datastore.agent.read(capacity_share.agent_name)
+                if capacity_share.agent_type == AgentType.New:
+                    agent_data = agent_model.new
+                elif capacity_share.agent_type == AgentType.Retrofit:
+                    agent_data = agent_model.retrofit
+                else:
+                    raise RuntimeError
+                rel_agent_data = agent_data[capacity_share.agent_data_index]
+                current_agent_index = agent_data_index.index(rel_agent_data)
+                zeros[current_agent_index] = capacity_share.share
             row = initial_row + zeros
             data.append(row)
         

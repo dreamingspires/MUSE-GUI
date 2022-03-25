@@ -4,6 +4,8 @@ from pydantic import BaseModel, confloat
 from pydantic.class_validators import root_validator, validator
 from pydantic.types import NonNegativeFloat, NonNegativeInt
 
+from muse_gui.backend.data.agent import AgentType
+
 from .abstract import Data
 
 Float0To100 = confloat(ge=0, le=100)
@@ -46,6 +48,8 @@ ZeroToOne = confloat(gt=0.0, le=1.0)
 
 class CapacityShare(BaseModel):
     agent_name: str
+    agent_type: AgentType
+    agent_data_index: int
     share: ZeroToOne
 
 class Technodata(BaseModel):
