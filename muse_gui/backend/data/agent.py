@@ -25,7 +25,7 @@ class ObjectiveType(str, Enum):
     NPV = 'NPV'
     EAC = 'EAC'
 
-class AgentObjective(BaseModel):
+class AgentObjective(Data):
     objective_type: ObjectiveType = ObjectiveType.LCOE
     objective_data: float
     objective_sort: Optional[bool] = None
