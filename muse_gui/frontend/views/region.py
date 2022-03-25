@@ -151,8 +151,9 @@ class RegionView(TwoColumnMixin, BaseView):
         for r in selected_regions:
             counter += self._handle_delete_region_safe(r)
 
-        self._selected = max(0, self._selected - 1)
-        self.update()
+        if counter:
+            self._selected = max(0, self._selected - 1)
+            self.update()
         return None, f'{counter} region(s) deleted'
 
     def _handle_add_regions(self):

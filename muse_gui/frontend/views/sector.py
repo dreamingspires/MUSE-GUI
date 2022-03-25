@@ -265,11 +265,12 @@ class SectorView(TwoColumnMixin, BaseView):
 
         selected_sectors = self.model.list()[self.selected]
 
-        self._handle_delete_sector_safe(selected_sectors)
+        is_deleted = self._handle_delete_sector_safe(selected_sectors)
 
-        self._selected = max(0, self._selected - 1)
-        self.update(window)
-        return None, '1 sector deleted'
+        if is_deleted:
+            self._selected = max(0, self._selected - 1)
+            self.update(window)
+        return None, f'Sector "{selected_sectors}" deleted'
 
     def bind_handlers(self):
         pass

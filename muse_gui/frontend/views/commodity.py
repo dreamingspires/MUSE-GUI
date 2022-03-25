@@ -3,8 +3,6 @@ from math import inf
 from typing import List
 import PySimpleGUI as sg
 from PySimpleGUI import Element
-from matplotlib.style import available
-from muse_gui.backend.resources.datastore import commodity
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
 from muse_gui.frontend.views.exceptions import SaveException
 
@@ -353,8 +351,9 @@ class CommodityView(TwoColumnMixin, BaseView):
 
         selected_commodity = self.model.list()[self.selected]
 
-        self._handle_delete_commodity_safe(selected_commodity)
-
+        is_deleted = self._handle_delete_commodity_safe(selected_commodity)
+        if not is_deleted:
+            return
         self._selected = max(0, self._selected - 1)
         self.update(window)
         return None, f'Commodity "{selected_commodity}" deleted'
