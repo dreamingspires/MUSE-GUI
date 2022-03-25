@@ -10,7 +10,7 @@ from muse_gui.frontend.views.exceptions import SaveException
 from muse_gui.frontend.widgets.base import BaseWidget
 from muse_gui.frontend.widgets.button import SaveEditButtons
 from muse_gui.frontend.widgets.table import FixedColumnTable
-from muse_gui.frontend.windows import show_dual_listbox
+from muse_gui.frontend.popups import show_dual_listbox
 from ...backend.data.agent import Agent, AgentData, AgentObjective, AgentType, ObjectiveType
 from ..widgets.listbox import ListboxWithButtons
 from ..widgets.form import Form

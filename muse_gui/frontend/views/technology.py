@@ -11,7 +11,7 @@ from muse_gui.frontend.widgets.base import BaseWidget
 from muse_gui.frontend.widgets.button import SaveEditButtons
 
 from muse_gui.frontend.widgets.utils import render
-from muse_gui.frontend.windows.associations_popup import show_dual_listbox
+from muse_gui.frontend.popups import show_dual_listbox
 
 from ...backend.resources.datastore import Datastore
 from ...backend.data.process import Capacity, CapacityShare, CommodityFlow, Cost, ExistingCapacity, Process, Technodata, Utilisation
