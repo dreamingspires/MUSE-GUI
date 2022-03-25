@@ -69,10 +69,9 @@ class TechnologyModelHelper():
 
     @property
     def retrofit_agents(self):
-        return [
-            x for x in self.agents
-            if self._agent.read(x).type == 'Retrofit'
-        ]
+        return list(dict.fromkeys(
+            y.share for x in self.agents for y in self._agent.read(x).retrofit
+        ))
 
 
     @property
@@ -580,7 +579,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
             'capacity': [[]],
             'input': [[]],
             'output': [[]],
-            'agent': [[]],
+            # 'agent': [[]],
             'existing_capacity': [[]],
         }
 
@@ -694,12 +693,12 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 [ _enduse ] + self._commout
             )
 
-        _values['agent'] = \
-            self.model.get_agent_table_for_process(
-                _process,
-                year_region,
-                self.model.retrofit_agents
-            )
+        # _values['agent'] = \
+        #     self.model.get_agent_table_for_process(
+        #         _process,
+        #         year_region,
+        #         self.model.retrofit_agents
+        #     )
         return _values
 
     def _read_tables(self):
@@ -926,14 +925,14 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 scaling_size=x[6],
             ) for x in self.TABLE_VALUES['capacity'] if x
         }
-        keyed_agents = {
-            (str(x[0]), x[1]): [
-                CapacityShare(
-                    agent_name=self.model.retrofit_agents[i],
-                    share=v
-                ) for i, v in enumerate(x[2:])
-            ] for x in self.TABLE_VALUES['agent'] if x
-        }
+        # keyed_agents = {
+        #     (str(x[0]), x[1]): [
+        #         CapacityShare(
+        #             agent_name=self.model.retrofit_agents[i],
+        #             share=v
+        #         ) for i, v in enumerate(x[2:])
+        #     ] for x in self.TABLE_VALUES['agent'] if x
+        # }
 
         # technodatas
         # cost, capacity, utilisation
@@ -945,7 +944,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 cost=keyed_cost[x],
                 utilisation=keyed_utilisation[x],
                 capacity=keyed_capacity[x],
-                agents=keyed_agents[x]
+                agents=[]
             ) for x in year_region
         ]
 
