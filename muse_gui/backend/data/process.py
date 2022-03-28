@@ -49,7 +49,7 @@ ZeroToOne = confloat(gt=0.0, le=1.0)
 class CapacityShare(BaseModel):
     agent_name: str
     agent_type: AgentType
-    agent_data_index: int
+    region: str
     share: ZeroToOne
 
 class Technodata(BaseModel):

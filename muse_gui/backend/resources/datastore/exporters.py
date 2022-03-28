@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Tuple, Union
-from muse_gui.backend.data.agent import Agent, AgentType
+from muse_gui.backend.data.agent import Agent, AgentData, AgentType
 from muse_gui.backend.data.process import CommodityFlow, Process
 from muse_gui.backend.data.sector import Sector
 from muse_gui.backend.utils import pack_timeslice, TimesliceInfo
@@ -25,46 +25,53 @@ def agents_to_dataframe(agents: List[Agent]) -> pd.DataFrame:
 
     agents_list =[]
     for agent in agents:
-        for agent_data in agent.new + agent.retrofit:
-            if agent_data.objective_2 is None:
-                objective_2_objective_type = None
-                objective_2_objective_data = None
-                objective_2_objective_sort = None
+        for agent_type in AgentType:
+            if agent_type == AgentType.New:
+                rel_data: Dict[str, AgentData] = getattr(agent, 'new')
+            elif agent_type == AgentType.Retrofit:
+                rel_data: Dict[str, AgentData] = getattr(agent, 'retrofit')
             else:
-                objective_2_objective_type = agent_data.objective_2.objective_type
-                objective_2_objective_data = agent_data.objective_2.objective_data
-                objective_2_objective_sort = agent_data.objective_2.objective_sort
-            if agent_data.objective_3 is None:
-                objective_3_objective_type = None
-                objective_3_objective_data = None
-                objective_3_objective_sort = None
-            else:
-                objective_3_objective_type = agent_data.objective_3.objective_type
-                objective_3_objective_data = agent_data.objective_3.objective_data
-                objective_3_objective_sort = agent_data.objective_3.objective_sort
-            agents_list.append(
-                {
-                    'AgentShare': agent_data.share,
-                    'Name': agent.name,
-                    'AgentNumber': agent_data.num,
-                    'RegionName': agent_data.region,
-                    'Objective1': agent_data.objective_1.objective_type,
-                    'Objective2': objective_2_objective_type,
-                    'Objective3': objective_3_objective_type,
-                    'ObjData1': agent_data.objective_1.objective_data,
-                    'ObjData2': objective_2_objective_data,
-                    'ObjData3': objective_3_objective_data,
-                    'Objsort1': agent_data.objective_1.objective_sort,
-                    'Objsort2': objective_2_objective_sort,
-                    'Objsort3': objective_3_objective_sort,
-                    'SearchRule': agent_data.search_rule,
-                    'DecisionMethod': agent_data.decision_method,
-                    'Quantity': agent_data.quantity,
-                    'MaturityThreshold': agent_data.maturity_threshold,
-                    'Budget': agent_data.budget,
-                    'Type': agent_data.type
-                }
-            )
+                raise ValueError
+            for region, agent_data in rel_data.items():
+                if agent_data.objective_2 is None:
+                    objective_2_objective_type = None
+                    objective_2_objective_data = None
+                    objective_2_objective_sort = None
+                else:
+                    objective_2_objective_type = agent_data.objective_2.objective_type
+                    objective_2_objective_data = agent_data.objective_2.objective_data
+                    objective_2_objective_sort = agent_data.objective_2.objective_sort
+                if agent_data.objective_3 is None:
+                    objective_3_objective_type = None
+                    objective_3_objective_data = None
+                    objective_3_objective_sort = None
+                else:
+                    objective_3_objective_type = agent_data.objective_3.objective_type
+                    objective_3_objective_data = agent_data.objective_3.objective_data
+                    objective_3_objective_sort = agent_data.objective_3.objective_sort
+                agents_list.append(
+                    {
+                        'AgentShare': agent_data.share,
+                        'Name': agent.name,
+                        'AgentNumber': agent_data.num,
+                        'RegionName': region,
+                        'Objective1': agent_data.objective_1.objective_type,
+                        'Objective2': objective_2_objective_type,
+                        'Objective3': objective_3_objective_type,
+                        'ObjData1': agent_data.objective_1.objective_data,
+                        'ObjData2': objective_2_objective_data,
+                        'ObjData3': objective_3_objective_data,
+                        'Objsort1': agent_data.objective_1.objective_sort,
+                        'Objsort2': objective_2_objective_sort,
+                        'Objsort3': objective_3_objective_sort,
+                        'SearchRule': agent_data.search_rule,
+                        'DecisionMethod': agent_data.decision_method,
+                        'Quantity': agent_data.quantity,
+                        'MaturityThreshold': agent_data.maturity_threshold,
+                        'Budget': agent_data.budget,
+                        'Type': agent_type
+                    }
+                )
     agent_df = pd.DataFrame(agents_list, columns=headers)
     return agent_df
 
@@ -222,15 +229,18 @@ def export_technodata(
     datastore: "Datastore",
     technodata_path: Path
 ):
-    agent_data_index = []
+    agent_data_index: List[Tuple[str, AgentType, AgentData]] = []
     agent_shares = []
     agent_types = []
     for agent in datastore.agent._data.values():
-        for agent_data in agent.new + agent.retrofit:
+        for region, agent_data in agent.new.items():
             agent_shares.append(agent_data.share)
-            agent_types.append(agent_data.type)
-            agent_data_index.append(agent_data)
-        
+            agent_types.append(AgentType.New)
+            agent_data_index.append((region, AgentType.New, agent_data))
+        for region, agent_data in agent.retrofit.items():
+            agent_shares.append(agent_data.share)
+            agent_types.append(AgentType.Retrofit)
+            agent_data_index.append((region, AgentType.Retrofit, agent_data))
     technodata_headers = [
         'ProcessName',
         'RegionName',
@@ -291,8 +301,8 @@ def export_technodata(
                     agent_data = agent_model.retrofit
                 else:
                     raise RuntimeError
-                rel_agent_data = agent_data[capacity_share.agent_data_index]
-                current_agent_index = agent_data_index.index(rel_agent_data)
+                rel_agent_data = agent_data[capacity_share.region]
+                current_agent_index = agent_data_index.index((capacity_share.region, capacity_share.agent_type, rel_agent_data))
                 zeros[current_agent_index] = capacity_share.share
             row = initial_row + zeros
             data.append(row)
@@ -305,7 +315,7 @@ def export_existing_capacities(
     rel_regions: List[str],
     rel_processes: List[Process],
     existing_capacity_path: Path
-):
+) -> None:
     data =[]
     years = datastore.available_year.list()
     headers = [
@@ -333,7 +343,7 @@ def export_preset_consumption(
     rel_processes: List[Process],
     comm_names: List[str],
     sector_path: Path
-):
+) -> None:
     Year = int
     data_dict: Dict[Year, List[List[Any]]] = {}
     basic_headers = ['RegionName','ProcessName','Timeslice']

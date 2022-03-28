@@ -109,21 +109,21 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
         # TODO Consider structure of capacity share
         agent_shares = []
         for agent_model in agent_models:
-            for i, agent_data in enumerate(agent_model.new):
+            for region, agent_data in agent_model.new.items():
                 if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
                         agent_name=agent_model.name, 
                         agent_type = AgentType.New,
-                        agent_data_index = i,
+                        region = region,
                         share= technodata[agent_data.share]
                     )
                     agent_shares.append(agent_share)
-            for i, agent_data in enumerate(agent_model.retrofit):
+            for region, agent_data in agent_model.retrofit.items():
                 if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
                         agent_name=agent_model.name, 
                         agent_type =  AgentType.Retrofit,
-                        agent_data_index = i,
+                        region = region,
                         share= technodata[agent_data.share]
                     )
                     agent_shares.append(agent_share)
@@ -244,10 +244,10 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                             
     return demand_mapper
 
-def get_agent_datas(agent_raw_data, agent_name) -> Tuple[List[AgentData], List[AgentData]]:
+def get_agent_datas(agent_raw_data, agent_name) -> Tuple[Dict[str, AgentData], Dict[str, AgentData]]:
     rel_data = agent_raw_data.query(f'Name == "{agent_name}"')
-    agent_new_datas = []
-    agent_retrofit_datas = []
+    agent_new_datas: Dict[str, AgentData] = {}
+    agent_retrofit_datas: Dict[str, AgentData] = {}
     for i, agent in rel_data.iterrows():
         objective_1 = get_objective(
             objective_type = agent['Objective1'],
@@ -266,8 +266,6 @@ def get_agent_datas(agent_raw_data, agent_name) -> Tuple[List[AgentData], List[A
             objective_sort= agent['Objsort3']
         )
         agent_data = AgentData(
-            type = agent['Type'],
-            region = agent['RegionName'],
             num = agent.get('AgentNumber') if not is_nan_new(agent.get('AgentNumber')) else None,
             objective_1 = objective_1,
             objective_2 = objective_2,
@@ -280,9 +278,9 @@ def get_agent_datas(agent_raw_data, agent_name) -> Tuple[List[AgentData], List[A
             maturity_threshold = agent['MaturityThreshold']
         )
         if agent['Type'] == 'Retrofit':
-            agent_retrofit_datas.append(agent_data)
+            agent_retrofit_datas[agent['RegionName']] = agent_data
         elif agent['Type'] == 'New':
-            agent_new_datas.append(agent_data)
+            agent_new_datas[agent['RegionName']] = agent_data
         else:
             raise ValueError
     return agent_new_datas, agent_retrofit_datas
@@ -306,9 +304,9 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                     existing_agent_no = agent_name_index.index(agent_name)
                     existing_agent = agent_models[existing_agent_no]
                     if (
-                        set([i.json() for i in agent_new_datas]) == set([i.json() for i in existing_agent.new])
+                        agent_new_datas == existing_agent.new
                     ) and (
-                        set([i.json() for i in agent_retrofit_datas]) == set([i.json() for i in existing_agent.retrofit])
+                        agent_retrofit_datas == existing_agent.retrofit
                     ):
                         new_agent = Agent(
                             name= agent_name,

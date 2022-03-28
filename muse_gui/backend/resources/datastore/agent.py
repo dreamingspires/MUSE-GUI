@@ -15,12 +15,12 @@ class AgentDatastore(BaseDatastore[Agent]):
 
     def back_dependents(self, model: Agent) -> Dict[str,List[str]]:
         regions = []
-        for data in (model.new + model.retrofit):
+        for region, data in model.new.items():
             try:
-                region = self._parent.region.read(data.region)
+                region_model = self._parent.region.read(region)
             except KeyNotFound:
-                raise DependentNotFound(model, data.region, self._parent.region)
-            regions.append(region.name)
+                raise DependentNotFound(model, region, self._parent.region)
+            regions.append(region_model.name)
         
         sectors = []
         for sector in model.sectors:
