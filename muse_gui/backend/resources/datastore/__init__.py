@@ -42,6 +42,7 @@ class Datastore:
     _commodity_datastore: CommodityDatastore
     _process_datastore: ProcessDatastore
     _agent_datastore : AgentDatastore
+    _export_path: Optional[Path]
     run_settings: Optional[RunModel]
     def __init__(
         self, 
@@ -64,6 +65,7 @@ class Datastore:
         self._agent_datastore = AgentDatastore(self, agents)
         self._process_datastore = ProcessDatastore(self, processes)
         self.run_settings = run_model
+        self._export_path = None
 
 
     @property
@@ -99,9 +101,12 @@ class Datastore:
         return self._agent_datastore
     
     def run_muse(self, export_path: Optional[str] = None, results_path: Optional[str] = None) -> Tuple[Path, Path]:
-        if export_path is None:
-            export_path = './Output'
-        export_path_obj = Path(export_path)
+        if export_path is None and self._export_path is None:
+            export_path_obj = Path('./Output')
+        elif export_path is None:
+            export_path_obj = self._export_path
+        else:
+            export_path_obj = Path(export_path)
         export_settings_file, prices_path, capacity_path = self.export_to_folder(str(export_path_obj), results_path)
         
         with warnings.catch_warnings():
@@ -155,6 +160,7 @@ class Datastore:
         if results_path is None:
             results_path = f"{folder_path}{os.sep}Results"
         folder_path_obj = Path(folder_path)
+        self._export_path = folder_path_obj
         if not folder_path_obj.exists():
             folder_path_obj.mkdir(parents=True)
         input_folder = Path(f'{folder_path}{os.sep}input')

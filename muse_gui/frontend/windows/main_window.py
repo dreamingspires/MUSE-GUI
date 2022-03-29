@@ -35,7 +35,7 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
         'regions': region_view,
         'sectors': sector_view,
         'commodities': commodity_view,
-        # 'agents': agent_view,
+        'agents': agent_view,
         'technologies': tech_view,
         'run': run_view
     }
