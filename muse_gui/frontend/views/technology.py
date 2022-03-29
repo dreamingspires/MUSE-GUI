@@ -5,6 +5,7 @@ import textwrap
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 from pydantic import root_validator
+from muse_gui.backend.data.agent import AgentType
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
 from muse_gui.frontend.views.exceptions import SaveException
 from muse_gui.frontend.widgets.base import BaseWidget
@@ -67,11 +68,24 @@ class TechnologyModelHelper():
             if self._sector.read(x).type == 'standard'
         ]
 
-    @property
-    def retrofit_agents(self):
-        return list(dict.fromkeys(
-            y.share for x in self.agents for y in self._agent.read(x).retrofit
-        ))
+    def get_agent_share_map_for_regions(self, _regions: List[str]) -> Dict[Tuple[str, AgentType, str], str]:
+        if len(_regions) == 0:
+            return {}
+
+        share_names = {}
+        for x in self.agents:
+            _agent = self._agent.read(x)
+            # TODO Change to itertools chain?
+            share_names.update({
+                (_agent.name, 'Retrofit', r): _data.share
+                for r, _data in _agent.retrofit.items() if r in _regions
+            })
+            share_names.update({
+                (_agent.name, 'New', r): _data.share
+                for r, _data in _agent.new.items() if r in _regions
+            })
+
+        return share_names
 
 
     @property
@@ -93,7 +107,7 @@ class TechnologyModelHelper():
 
     def get_inputs_for_process(self, _process: Process):
         return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_in)))
-    def get_outputs_for_process(Self, _process: Process):
+    def get_outputs_for_process(self, _process: Process):
         return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_out)))
 
     def get_additional_inputs_for_process(self, _process: Process):
@@ -102,14 +116,10 @@ class TechnologyModelHelper():
     def get_additional_outputs_for_process(self, _process: Process):
         return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_out if x.commodity.lower() != _process.end_use.lower())))
 
-    def get_existing_capacity(self, id:str):
-        _process = self._process.read(id)
-        return self.get_existing_capacity_for_process(_process)
-
     def get_existing_capacity_for_process(self, process: Process, rows: List[Tuple[int, str]]):
         if len(rows) == 0:
             return [[]]
-        _values = {}
+        _values: Dict[Tuple[int, str], List[float]] = {}
         for x in process.existing_capacities:
             _val = [ x.value ]
             _key = (int(x.year), x.region)
@@ -120,10 +130,6 @@ class TechnologyModelHelper():
             list(k) + (_values[k] if k in _values else [''])
             for k in sort_keys
         ]
-
-    def get_capacity(self, id:str):
-        _process = self._process.read(id)
-        return self.get_capacity_for_process(_process)
 
     def get_capacity_for_process(self, _process: Process, rows: List[Tuple[int, str]]):
         if len(rows) == 0:
@@ -148,10 +154,6 @@ class TechnologyModelHelper():
             list(k) + (_values[k] if k in _values else ['' for _ in range(NCOLS)])
             for k in sort_keys
         ]
-
-    def get_cost(self, id: str):
-        _process = self._process.read(id)
-        return self.get_cost_for_process(_process)
 
     def get_cost_for_process(self, _process: Process, rows: List[Tuple[int, str]]):
         if len(rows) == 0:
@@ -218,7 +220,7 @@ class TechnologyModelHelper():
     def get_commin_table_for_process(self, _process:Process, rows: List[Tuple[int, str]], cols: List[str]):
         return self._get_comm_table_for_process(_process, 'input', rows, cols)
 
-    def get_agent_table_for_process(self, _process: Process, rows: List[Tuple[int, str]], cols: List[str]):
+    def get_agent_table_for_process(self, _process: Process, rows: List[Tuple[int, str]], cols: Dict[Tuple[str, AgentType, str], str]):
         if len(rows) == 0:
             return [[]]
         # Update agents
@@ -231,7 +233,8 @@ class TechnologyModelHelper():
                 _values[_key] = {}
 
             for _agent in _agents:
-                _values[_key][_agent.agent_name] = _agent.share
+                _agent_key = (_agent.agent_name, _agent.agent_type, _agent.region)
+                _values[_key][_agent_key] = _agent.share
 
         sort_keys = sorted(rows)
 
@@ -521,7 +524,7 @@ class TechnologyTables(BaseWidget):
 
     def show_table(self, key: str, values: List[List], headings=None, disabled=True) -> Optional[List[List]]:
         if key in self._tables:
-            self._tables[key] = values
+            self._tables[key].values = values
             self._tables[key].disabled = disabled
             return None
 
@@ -579,7 +582,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
             'capacity': [[]],
             'input': [[]],
             'output': [[]],
-            # 'agent': [[]],
+            'agent': [[]],
             'existing_capacity': [[]],
         }
 
@@ -693,12 +696,12 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 [ _enduse ] + self._commout
             )
 
-        # _values['agent'] = \
-        #     self.model.get_agent_table_for_process(
-        #         _process,
-        #         year_region,
-        #         self.model.retrofit_agents
-        #     )
+        _values['agent'] = \
+            self.model.get_agent_table_for_process(
+                _process,
+                year_region,
+                self.model.get_agent_share_map_for_regions(self._regions)
+            )
         return _values
 
     def _read_tables(self):
@@ -852,7 +855,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
                     _headings = [ _end_use ] + [ x for x in self._commout if x.lower() != _end_use.lower()]
 
                 elif ret == 'agent':
-                    _headings = self.model.retrofit_agents
+                    _headings = list(self.model.get_agent_share_map_for_regions(self._regions).values())
                 else:
                     raise ValueError('Unknown value')
                 # Show next table
@@ -925,14 +928,27 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 scaling_size=x[6],
             ) for x in self.TABLE_VALUES['capacity'] if x
         }
-        # keyed_agents = {
-        #     (str(x[0]), x[1]): [
-        #         CapacityShare(
-        #             agent_name=self.model.retrofit_agents[i],
-        #             share=v
-        #         ) for i, v in enumerate(x[2:])
-        #     ] for x in self.TABLE_VALUES['agent'] if x
-        # }
+        keyed_agents = {}
+        _share_names = self.model.get_agent_share_map_for_regions(self._regions)
+        for x in self.TABLE_VALUES['agent']:
+            if len(x) == 0:
+                continue
+            _x_year, _x_region = str(x[0]), x[1]
+            _key = (_x_year, _x_region)
+            keyed_agents[_key] = []
+
+            # Get retrofit agent with share name
+            for (v, k) in zip(x[2:], _share_names):
+                if not v:
+                    continue
+                _name, _type, _ = k
+                capacity_share = CapacityShare(
+                    agent_name=_name,
+                    agent_type=_type,
+                    region=_x_region,
+                    share=v
+                )
+                keyed_agents[_x_year, _x_region].append(capacity_share)
 
         # technodatas
         # cost, capacity, utilisation
@@ -944,7 +960,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 cost=keyed_cost[x],
                 utilisation=keyed_utilisation[x],
                 capacity=keyed_capacity[x],
-                agents=[]
+                agents=keyed_agents[x]
             ) for x in year_region
         ]
 
