@@ -50,7 +50,7 @@ def get_commodities_data(global_commodities_data, projections_data, unit_row) ->
     return commodity_models
 
 def get_sectors(settings_model: SettingsModel) -> List[Sector]:
-    sectors = settings_model.sectors    
+    sectors = settings_model.sectors
     sector_models = []
     for sector_name, sector in sectors.items():
         if sector.type == 'default':
@@ -81,7 +81,7 @@ def is_nan_new(value) -> bool:
         return False
 def get_objective(
     objective_type,
-    objective_data, 
+    objective_data,
     objective_sort
 ) -> Optional[AgentObjective]:
     if is_nan_new(objective_type):
@@ -112,7 +112,7 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
             for region, agent_data in agent_model.new.items():
                 if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
-                        agent_name=agent_model.name, 
+                        agent_name=agent_model.name,
                         agent_type = AgentType.New,
                         region = region,
                         share= technodata[agent_data.share]
@@ -121,7 +121,7 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
             for region, agent_data in agent_model.retrofit.items():
                 if agent_data.share in technodata and float(technodata[agent_data.share]) !=0:
                     agent_share = CapacityShare(
-                        agent_name=agent_model.name, 
+                        agent_name=agent_model.name,
                         agent_type =  AgentType.Retrofit,
                         region = region,
                         share= technodata[agent_data.share]
@@ -155,7 +155,7 @@ def _get_technodatas(process_technodata, agent_models: List[Agent]) -> List[Tech
                 ),
                 agents = agent_shares
 
-                
+
             )
         )
     return technodatas
@@ -176,7 +176,7 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                 replaced_p = replace_path(folder, Path(preset_path))
                 path_set = [Path(p) for p in glob.glob(os.path.join(replaced_p, regex))]
                 return path_set
-            
+
             path_set = construct_path_set(sector.consumption_path, folder)
 
             years = []
@@ -191,7 +191,7 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
 
             for year, consumption_df in consumption_dataframes.items():
                 process_names = consumption_df['ProcessName'].unique()
-                
+
                 for process_name in process_names:
                     rel_c_df = consumption_df.query(f'ProcessName == "{process_name}"')
                     for i, row in rel_c_df.iterrows():
@@ -202,9 +202,9 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                                 demand_index = demand_years.index(year)
                                 new_demands = demand_mapper[process_name][sector_name][demand_index].demand_flows + [
                                     DemandFlow(
-                                        commodity=commodity.commodity, 
-                                        region=row['RegionName'], 
-                                        timeslice=row['Timeslice'], 
+                                        commodity=commodity.commodity,
+                                        region=row['RegionName'],
+                                        timeslice=row['Timeslice'],
                                         value=row[commodity.commodity_name]
                                     ) for commodity in commodity_models
                                 ]
@@ -218,30 +218,30 @@ def _get_demand_mapper(settings_model: SettingsModel, folder: Path, commodity_mo
                                         year = year,
                                         demand_flows = [
                                             DemandFlow(
-                                                commodity=commodity.commodity, 
-                                                region=row['RegionName'], 
-                                                timeslice=row['Timeslice'], 
+                                                commodity=commodity.commodity,
+                                                region=row['RegionName'],
+                                                timeslice=row['Timeslice'],
                                                 value=row[commodity.commodity_name]
                                             ) for commodity in commodity_models
                                         ]
                                     )
                                 ]
-                                    
+
                         else:
                             demand_mapper[process_name] = {sector_name: [
                                 Demand(
                                     year = year,
                                     demand_flows = [
                                         DemandFlow(
-                                            commodity=commodity.commodity, 
-                                            region=row['RegionName'], 
-                                            timeslice=row['Timeslice'], 
+                                            commodity=commodity.commodity,
+                                            region=row['RegionName'],
+                                            timeslice=row['Timeslice'],
                                             value=row[commodity.commodity_name]
                                         ) for commodity in commodity_models
                                     ]
                                 )
                             ]}
-                            
+
     return demand_mapper
 
 def get_agent_datas(agent_raw_data, agent_name) -> Tuple[Dict[str, AgentData], Dict[str, AgentData]]:
@@ -299,7 +299,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
             agent_names = agent_raw_data['Name'].unique()
             for agent_name in agent_names:
                 agent_new_datas, agent_retrofit_datas = get_agent_datas(agent_raw_data, agent_name)
-                
+
                 if agent_name in agent_name_index:
                     existing_agent_no = agent_name_index.index(agent_name)
                     existing_agent = agent_models[existing_agent_no]
@@ -325,7 +325,7 @@ def get_agents(settings_model: SettingsModel, folder: Path) -> List[Agent]:
                         retrofit = agent_retrofit_datas
                     )
                     agent_name_index.append(agent_name)
-                    agent_models.append(new_agent)    
+                    agent_models.append(new_agent)
     return agent_models
 
 def get_processes(settings_model: SettingsModel, folder: Path, commodity_models: List[Commodity], agent_models: List[Agent]) -> List[Process]:
@@ -336,7 +336,7 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
             technodata_data = path_string_to_dataframe(folder, Path(sector.technodata))
             technodata_data_without_unit = technodata_data.drop(0)
             technodata_data_unit = technodata_data.loc[0]
-            
+
             comm_in_data = path_string_to_dataframe(folder, Path(sector.commodities_in))
             comm_in_data_without_unit = comm_in_data.drop(0)
             comm_in_data_unit = comm_in_data.loc[0]
@@ -350,13 +350,13 @@ def get_processes(settings_model: SettingsModel, folder: Path, commodity_models:
             else:
                 subsector_name, subsector = next(iter(sector.subsectors.items()))
 
-            
+
             existing_cap_data = path_string_to_dataframe(folder, Path(subsector.existing_capacity))
             process_names = technodata_data_without_unit['ProcessName'].unique()
             for process_name in process_names:
-                
+
                 process_technodata = technodata_data_without_unit.query(f'ProcessName == "{process_name}"')
-                
+
                 process_comm_in = comm_in_data_without_unit.query(f'ProcessName == "{process_name}"')
                 assert len(process_comm_in) == 1
                 process_comm_in = process_comm_in.iloc[0]

@@ -53,11 +53,11 @@ class AgentModelHelper():
 
     def get_regions_for_agent(self, _agent:Agent):
         return sorted(list(dict.fromkeys(
-            x.region
-            for x in (_agent.new + _agent.retrofit)
+            x for x in (list(_agent.new.keys()) + list(_agent.retrofit.keys()))
         )))
     def get_sectors_for_agent(self, _agent: Agent):
         return sorted(list(dict.fromkeys(x for x in _agent.sectors)))
+
     def get_data_for_agent(self, _agent: Agent, rows: List[str]):
         if len(rows) == 0:
             return {
@@ -69,18 +69,37 @@ class AgentModelHelper():
             'New': {},
             'Retrofit': {}
         }
-        for x in _agent.new + _agent.retrofit:
-            region = x.region
-            _type = x.type
+        for r, _agent_data in _agent.new.items():
+            region = r
+            _type = 'New'
             params = [
-                x.share,
-                x.decision_method,
-                x.search_rule,
-                x.quantity,
-                x.budget,
-                x.maturity_threshold
+                _agent_data.share,
+                _agent_data.decision_method,
+                _agent_data.search_rule,
+                _agent_data.quantity,
+                _agent_data.budget,
+                _agent_data.maturity_threshold
             ]
-            for obj in (x.objective_1, x.objective_2, x.objective_3):
+            for obj in (_agent_data.objective_1, _agent_data.objective_2, _agent_data.objective_3):
+                if obj:
+                    params.extend([obj.objective_type, obj.objective_data, obj.objective_sort])
+                else:
+                    params.extend(['', '', ''])
+
+            _values[_type][region] = params
+
+        for r, _agent_data in _agent.retrofit.items():
+            region = r
+            _type = 'Retrofit'
+            params = [
+                _agent_data.share,
+                _agent_data.decision_method,
+                _agent_data.search_rule,
+                _agent_data.quantity,
+                _agent_data.budget,
+                _agent_data.maturity_threshold
+            ]
+            for obj in (_agent_data.objective_1, _agent_data.objective_2, _agent_data.objective_3):
                 if obj:
                     params.extend([obj.objective_type, obj.objective_data, obj.objective_sort])
                 else:
@@ -203,6 +222,7 @@ class AgentTables(BaseWidget):
                 _agent_table_layout = []
                 for k in self._tables:
                     if k.endswith(h.lower()):
+                        _agent_table_layout += [[sg.Text(k.split('_', 1)[0].title()), sg.HorizontalSeparator()]]
                         _agent_table_layout += self._tables[k].layout(self._prefixf(k))
 
                 _table_layout.append([sg.Tab(h.replace('_', ' ').title(), _agent_table_layout)])
@@ -484,12 +504,11 @@ class AgentView(TwoColumnMixin, BaseView):
             ret = self._agent_tables(window, event, values)
             print('Agent tables tab returned - ', ret)
             return
+
     def _convert_tables_to_models(self, current_values: Dict[str, Any]):
         for k in ['new', 'retrofit']:
             keyed_agent = {
                 x[0]: AgentData(
-                    type=AgentType[k.title()],
-                    region=x[0],
                     num=None,
                     share=x[1],
                     decision_method=x[2],
@@ -506,21 +525,21 @@ class AgentView(TwoColumnMixin, BaseView):
                         objective_type=y[4],
                         objective_data=y[5],
                         objective_sort=y[6],
-                    ) if all(y[4:6]) else None,
+                    ) if y[4] else None,
                     objective_3=AgentObjective(
                         objective_type=y[7],
                         objective_data=y[8],
                         objective_sort=y[9],
-                    ) if all(y[7:]) else None,
+                    ) if y[7] else None,
                 ) for x, y in zip(
                     self.TABLE_VALUES[f'{k}_params'],
                     self.TABLE_VALUES[f'{k}_objectives']
                 ) if x and y
             }
-            current_values[k] = [
-                keyed_agent[x]
+            current_values[k] = {
+                x: keyed_agent[x]
                 for x in self._regions
-            ]
+            }
         return current_values
 
     def _handle_add(self, window):
@@ -538,8 +557,8 @@ class AgentView(TwoColumnMixin, BaseView):
         _agent = Agent(
             name=agent,
             sectors=[],
-            new=[],
-            retrofit=[],
+            new={},
+            retrofit={},
         )
 
         _agents = self.model.agents
