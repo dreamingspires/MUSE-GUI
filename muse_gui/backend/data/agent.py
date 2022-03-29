@@ -1,5 +1,5 @@
 import math
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 from pydantic import validator
 from pydantic import BaseModel
 
@@ -58,8 +58,6 @@ class AgentType(str, Enum):
     Retrofit = 'Retrofit'
 
 class AgentData(Data):
-    type: AgentType
-    region: str
     num: Optional[int] = None
     objective_1: AgentObjective
     budget: float = math.inf
@@ -71,9 +69,10 @@ class AgentData(Data):
     quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
 
+Region = str
 class Agent(Data):
     name: str
     sectors: List[str] = []
-    new: List[AgentData]
-    retrofit: List[AgentData]
+    new: Dict[Region, AgentData]
+    retrofit: Dict[Region, AgentData]
 
