@@ -28,7 +28,7 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
     sector_view = SectorView(datastore)
     agent_view = AgentView(datastore)
     tech_view = TechnologyView(datastore)
-    run_view = RunView()
+    run_view = RunView(datastore)
     tabs: Dict[str, sg.Tab] = {
         'timeslices': timeslice_view,
         'years': year_view,
@@ -75,11 +75,6 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
         if type(event) is str:
             # Handle event in window level
             pass
-        elif event == ('tg', 'button'):
-            window.close()
-            prices_path, capacity_path = boot_waiting_window(font, datastore)
-            boot_plot_window(capacity_path, prices_path, font)
-            break
         elif event and isinstance(event, tuple):
             if tab_group.should_handle_event(event):
                 try:
@@ -102,5 +97,10 @@ def boot_tabbed_window(import_bool: bool, font: Font, file_path: Optional[str] =
             else:
                 print('Unhandled - ', event)
                 pass
+            if event == ('tg', 'run', 'run'):
+                window.close()
+                prices_path, capacity_path = boot_waiting_window(font, datastore)
+                boot_plot_window(capacity_path, prices_path, font)
+                break
         else:
             print(event)

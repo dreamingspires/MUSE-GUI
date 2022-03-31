@@ -420,8 +420,7 @@ class RunView(BaseView):
 
         current_model_dict = self.model.dict()
         current_model_dict.update(_values)
-
-        self.model = RunModel.parse_obj(current_model_dict)
+        self._datastore.run_settings = RunModel.parse_obj(current_model_dict)
 
     def _handle_edit_commodities(self, window):
         current_comm = self._carbon_market_commodities[:]
@@ -430,7 +429,7 @@ class RunView(BaseView):
 
         _, self._carbon_market_commodities = show_dual_listbox(
             'Carbon Market Commodities',
-            v_one=[x for x in all_commodities if x not  in current_comm],
+            v_one=[x for x in all_commodities if x not in current_comm],
             v_two=self._carbon_market_commodities
         )
 
