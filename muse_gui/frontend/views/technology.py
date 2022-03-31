@@ -6,6 +6,7 @@ import PySimpleGUI as sg
 from PySimpleGUI import Element
 from pydantic import root_validator
 from muse_gui.backend.data.agent import AgentType
+from muse_gui.backend.data.sector import SectorType
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
 from muse_gui.frontend.views.exceptions import SaveException
 from muse_gui.frontend.widgets.base import BaseWidget
@@ -65,7 +66,14 @@ class TechnologyModelHelper():
     def standard_sectors(self):
         return [
             x for x in self.sectors
-            if self._sector.read(x).type == 'standard'
+            if self._sector.read(x).type == SectorType.STANDARD
+        ]
+
+    @property
+    def preset_sectors(self):
+        return [
+            x for x in self.sectors
+            if self._sector.read(x).type == SectorType.PRESET
         ]
 
     def get_agent_share_map_for_regions(self, _regions: List[str]) -> Dict[Tuple[str, AgentType, str], str]:
@@ -255,6 +263,7 @@ class TechnologyInfo(BaseWidget):
             'sector': option_menu_f_maker,
             'fuel': option_menu_f_maker,
             'end_use': option_menu_f_maker,
+            'preset_sector': option_menu_f_maker,
         }
         self._editing = None
 
@@ -264,6 +273,7 @@ class TechnologyInfo(BaseWidget):
             'sector': values[self._prefixf('sector')],
             'fuel': values[self._prefixf('fuel')],
             'end_use': values[self._prefixf('end_use')],
+            'preset_sector': values[self._prefixf('preset_sector')],
         })
         return _form_values
 
@@ -275,6 +285,7 @@ class TechnologyInfo(BaseWidget):
             window[self._prefixf('sector')](disabled=False)
             window[self._prefixf('fuel')](disabled=False)
             window[self._prefixf('end_use')](disabled=False)
+            window[self._prefixf('preset_sector')](disabled=False)
 
             # Enable association buttons
             window[self._prefixf('edit_regions')](disabled=False)
@@ -291,6 +302,7 @@ class TechnologyInfo(BaseWidget):
             window[self._prefixf('sector')](disabled=True)
             window[self._prefixf('fuel')](disabled=True)
             window[self._prefixf('end_use')](disabled=True)
+            window[self._prefixf('preset_sector')](disabled=True)
 
             # Enable association buttons
             window[self._prefixf('edit_regions')](disabled=True)
@@ -317,6 +329,9 @@ class TechnologyInfo(BaseWidget):
     def set_sector_options(self, window, val):
         window[self._prefixf('sector')](values=val)
 
+    def set_preset_options(self, window, val):
+        window[self._prefixf('preset_sector')](values=val)
+
     def set_commodity_options(self, window, val):
         window[self._prefixf('fuel')](values=val)
         window[self._prefixf('end_use')](values=val)
@@ -335,6 +350,7 @@ class TechnologyInfo(BaseWidget):
         window[self._prefixf('sector')].update(value=process.sector)
         window[self._prefixf('fuel')].update(value=_fuel)
         window[self._prefixf('end_use')].update(value=_end_use)
+        window[self._prefixf('preset_sector')].update(value=process.preset_sector)
 
         # Update commin commout
         _regions = sorted(list(dict.fromkeys(x.region for x in process.technodatas)))
@@ -589,7 +605,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
         # Widgets
         self._tech_info = TechnologyInfo()
         self._tech_tables = TechnologyTables(
-            tab_headings=[x for x in self.TABLE_VALUES]
+            tab_headings=[x for x in self.TABLE_VALUES] + ['demand']
         )
         self._tech_list = ListboxWithButtons()
         self._save_edit_btns = SaveEditButtons()
@@ -755,6 +771,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
         _processes = self.model.processes
         self._update_list(_processes)
 
+        self._tech_info.set_preset_options(window, [None] + self.model.preset_sectors)
         self._tech_info.set_sector_options(window, self.model.standard_sectors)
         self._tech_info.set_commodity_options(window, self.model.commodities)
 
@@ -1037,6 +1054,14 @@ class TechnologyView(TwoColumnMixin, BaseView):
         # Get current values from view
         self._read_tables()
         _values = self._tech_info.read(values)
+
+        # Handle preset_sector case
+        # TODO move this to process model as santisation step?
+        _preset_sector = _values.pop('preset_sector', None)
+        if not _preset_sector or _preset_sector == 'None':
+            # Empty string, None, or 'None' should be None
+            _preset_sector = None
+        _values['preset_sector'] = _preset_sector
 
         # Get name in the form
         new_name = _values['name']

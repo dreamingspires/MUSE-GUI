@@ -5,6 +5,7 @@ import PySimpleGUI as sg
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
 from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
+from muse_gui.frontend.views.run_view import RunView
 from muse_gui.frontend.views.technology import TechnologyView
 from muse_gui.frontend.views.timeslices import TimesliceView
 from muse_gui.frontend.widgets.tabgroup import TabGroup
@@ -62,6 +63,7 @@ if __name__ == '__main__':
     sector_view = SectorView(datastore)
     agent_view = AgentView(datastore)
     tech_view = TechnologyView(datastore)
+    run_view = RunView(datastore)
     tabs: Dict[str, BaseView] = {
         'timeslices': timeslice_view,
         'years': year_view,
@@ -70,6 +72,7 @@ if __name__ == '__main__':
         'commodities': commodity_view,
         'agents': agent_view,
         'technologies': tech_view,
+        'run': run_view,
     }
     tab_group = TabGroup(tabs, 'tg')
     status_bar = sg.StatusBar(

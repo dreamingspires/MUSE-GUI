@@ -50,8 +50,12 @@ def get_creator_and_updater_for_type(
 
     if isinstance(_type, type) and issubclass(_type, Enum):
         return get_optionmenu_for_enum(_type)
-    elif _type in registry:
+    if _type in registry:
         return registry[_type]
+
+    creator_f = next((v for x, v in registry.items() if isinstance(_type, type) and issubclass(_type, x)), None)
+    if creator_f:
+        return creator_f
     else:
         return partial(sg.Text), identity
 
