@@ -1,11 +1,13 @@
-from typing import List
+from typing import List, Tuple
 
 import PySimpleGUI as sg
 
 from muse_gui.frontend.widgets.listbox import DualListbox
 
 
-def show_dual_listbox(title: str, v_one: List[str] = [], v_two: List[str] = []):
+def show_dual_listbox(
+    title: str, v_one: List[str] = [], v_two: List[str] = []
+) -> Tuple[List[str], List[str]]:
     dual_listbox = DualListbox(values1=v_one, values2=v_two)
 
     _layout = [
@@ -40,9 +42,10 @@ def show_dual_listbox(title: str, v_one: List[str] = [], v_two: List[str] = []):
             # Non empty tuple
             if dual_listbox.should_handle_event(event):
                 ret = dual_listbox(window, event, values)
-                if ret:
+                if ret is not None:
                     _ret, _val = ret
                     if _ret == "done":
+                        assert _val is not None
                         return_values = _val
                         break
                     elif _ret == "cancel":

@@ -13,14 +13,7 @@ from muse_gui.frontend.widgets.base import BaseWidget
 from muse_gui.frontend.widgets.button import SaveEditButtons
 from muse_gui.frontend.widgets.table import FixedColumnTable
 
-from ...backend.data.agent import (
-    Agent,
-    AgentData,
-    AgentObjective,
-    AgentType,
-    ObjectiveType,
-)
-from ..widgets.form import Form
+from ...backend.data.agent import Agent, AgentData, AgentObjective
 from ..widgets.listbox import ListboxWithButtons
 from .base import BaseView, TwoColumnMixin
 
@@ -345,6 +338,8 @@ class AgentTables(BaseWidget):
 
 
 class AgentView(TwoColumnMixin, BaseView):
+    _current_agent: Optional[Agent]
+
     def __init__(self, model: Datastore):
         super().__init__("agent")
         self._datastore = model
@@ -409,8 +404,11 @@ class AgentView(TwoColumnMixin, BaseView):
         elif self._selected == -1 and self.column_2.visible:
             self.column_2.update(visible=False)
 
-    def get_current_agent(self):
-        return self._current_agent
+    def get_current_agent(self) -> Agent:
+        if self._current_agent is None:
+            raise ValueError("Agent not set")
+        else:
+            return self._current_agent
 
     def get_current_agent_id(self):
         # Should be used only when not in edit mode

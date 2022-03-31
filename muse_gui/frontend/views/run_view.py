@@ -277,6 +277,8 @@ class SettingsInfo(BaseWidget):
 
 
 class RunView(BaseView):
+    _timeframework: List[int]
+
     def __init__(self, model: Datastore):
         super().__init__("run")
         self._datastore = model
@@ -467,13 +469,13 @@ class RunView(BaseView):
         current_years = self._timeframework[:]
         all_years = self._datastore.available_year.list()
 
-        _, self._timeframework = show_dual_listbox(
+        _, timeframework_strings = show_dual_listbox(
             "Time Framework",
             v_one=[x for x in all_years if int(x) not in current_years],
-            v_two=self._timeframework,
+            v_two=[str(x) for x in self._timeframework],
         )
 
-        self._timeframework = sorted([int(x) for x in self._timeframework])
+        self._timeframework = sorted([int(x) for x in timeframework_strings])
 
         self._info.set_timeframework(window, self._timeframework)
         # Patch budget

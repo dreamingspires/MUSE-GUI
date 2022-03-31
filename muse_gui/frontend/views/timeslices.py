@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Union
+from typing import List
 
 import PySimpleGUI as sg
 from PySimpleGUI import Element
@@ -20,34 +20,32 @@ class TimesliceModelHelper:
         self._tmodel = model.timeslice
 
     @property
-    def levelnames_list(self):
+    def levelnames_list(self) -> List[str]:
         return self._lmodel.list()
 
     @property
-    def timeslices_list(self):
+    def timeslices_list(self) -> List[str]:
         return self._tmodel.list()
 
     @property
-    def timeslices(self):
+    def timeslices(self) -> List[Timeslice]:
         return [self._tmodel.read(x) for x in self.timeslices_list]
 
     @property
-    def levelnames(self):
+    def levelnames(self) -> List[LevelName]:
         return [self._lmodel.read(x) for x in self.levelnames_list]
 
     @levelnames.setter
-    def levelnames(self, val: List[Union[LevelName, str]]):
+    def levelnames(self, val: List[LevelName]):
         self.delete_all_levelnames()
         for v in val:
             self._lmodel.create(v if isinstance(v, LevelName) else LevelName(level=v))
 
     @timeslices.setter
-    def timeslices(self, val: List[Union[Timeslice, List]]):
+    def timeslices(self, val: List[Timeslice]):
         self.delete_all_timeslices()
         for v in val:
-            self._tmodel.create(
-                v if isinstance(v, Timeslice) else Timeslice(name=v[0], value=v[1])
-            )
+            self._tmodel.create(v)
 
     def replace_all(self, level_names: List[str], timeslices: List[List]):
         # Save
@@ -55,8 +53,8 @@ class TimesliceModelHelper:
         _current_timeslices = self.timeslices
 
         try:
-            self.levelnames = level_names
-            self.timeslices = timeslices
+            self.levelnames = [LevelName(level=i) for i in level_names]
+            self.timeslices = [Timeslice(name=v[0], value=v[1]) for v in timeslices]
         except Exception as e:
             self.levelnames = _current_level_names
             self.timeslices = _current_timeslices
