@@ -1,11 +1,11 @@
+from argparse import ArgumentTypeError
 from typing import Dict
 import PySimpleGUI as sg
-from muse_gui.backend.data.commodity import Commodity, CommodityPrice, CommodityType
-from muse_gui.backend.data.region import Region
-from muse_gui.backend.data.timeslice import AvailableYear
+
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.views.available_years import AvailableYearsView
 from muse_gui.frontend.views.base import BaseView, TwoColumnMixin
+from muse_gui.frontend.views.run_view import RunView
 from muse_gui.frontend.views.technology import TechnologyView
 from muse_gui.frontend.views.timeslices import TimesliceView
 from muse_gui.frontend.widgets.tabgroup import TabGroup
@@ -45,7 +45,17 @@ if __name__ == '__main__':
     #         )
     #     ]
     # )
-    datastore = Datastore.from_settings('./example_data/settings.toml')
+    import argparse
+    from pathlib import Path
+    def valid_file(v):
+        if not Path(v).is_file():
+            raise ArgumentTypeError(f'"{v}" is not a valid file')
+        return v
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--settings', type=valid_file, help="Path to settings.toml to import from", default="./examples/example_data/settings.toml")
+    args = parser.parse_args()
+
+    datastore = Datastore.from_settings(args.settings)
     timeslice_view = TimesliceView(datastore)
     year_view = AvailableYearsView(datastore)
     region_view = RegionView(datastore)
@@ -53,14 +63,16 @@ if __name__ == '__main__':
     sector_view = SectorView(datastore)
     agent_view = AgentView(datastore)
     tech_view = TechnologyView(datastore)
+    run_view = RunView(datastore)
     tabs: Dict[str, BaseView] = {
         'timeslices': timeslice_view,
         'years': year_view,
         'regions': region_view,
-        'commodities': commodity_view,
         'sectors': sector_view,
+        'commodities': commodity_view,
         'agents': agent_view,
         'technologies': tech_view,
+        'run': run_view,
     }
     tab_group = TabGroup(tabs, 'tg')
     status_bar = sg.StatusBar(
@@ -90,13 +102,23 @@ if __name__ == '__main__':
         elif event and isinstance(event, tuple):
             # Non empty tuple
             if tab_group.should_handle_event(event):
-                ret = tab_group(window, event, values)
-                if ret:
-                    ret, status = ret
+                try:
+                    ret = tab_group(window, event, values)
                     if ret:
-                        # Log exception
-                        print(ret)
-                    status_bar(status)
+                        ret, status = ret
+                        if ret:
+                            # Log exception
+                            print(ret)
+                            sg.popup_error(str(ret), title='Error')
+
+                        status_bar(status)
+                except Exception as e:
+                    print(e)
+                    if e.__cause__:
+                        sg.popup_error(str(e.__cause__), title='Error')
+                    else:
+                        sg.popup_error(str(e), title='Error')
+                    status_bar(str(e))
             else:
                 print('Unhandled - ', event)
                 pass

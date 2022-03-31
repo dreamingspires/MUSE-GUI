@@ -11,14 +11,17 @@ if TYPE_CHECKING:
 
 class AgentDatastore(BaseDatastore[Agent]):
     def __init__(self, parent: "Datastore", agents: List[Agent] = []) -> None:
-        super().__init__(parent, 'share', data = agents)
+        super().__init__(parent, 'name', data = agents)
 
     def back_dependents(self, model: Agent) -> Dict[str,List[str]]:
-        try:
-            region = self._parent.region.read(model.region)
-        except KeyNotFound:
-            raise DependentNotFound(model, model.region, self._parent.region)
-        regions = [region.name]
+        regions = []
+        for region, data in model.new.items():
+            try:
+                region_model = self._parent.region.read(region)
+            except KeyNotFound:
+                raise DependentNotFound(model, region, self._parent.region)
+            regions.append(region_model.name)
+        
         sectors = []
         for sector in model.sectors:
             try:
@@ -36,7 +39,7 @@ class AgentDatastore(BaseDatastore[Agent]):
         for key, process in self._parent.process._data.items():
             for technodata in process.technodatas:
                 for agent in technodata.agents:
-                    if agent.agent_name == model.share:
+                    if agent.agent_name == model.name:
                         processes.append(key)
         return {
             'process': processes

@@ -1,5 +1,5 @@
 import math
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 from pydantic import validator
 from pydantic import BaseModel
 
@@ -25,7 +25,7 @@ class ObjectiveType(str, Enum):
     NPV = 'NPV'
     EAC = 'EAC'
 
-class AgentObjective(BaseModel):
+class AgentObjective(Data):
     objective_type: ObjectiveType = ObjectiveType.LCOE
     objective_data: float
     objective_sort: Optional[bool] = None
@@ -57,12 +57,8 @@ class AgentType(str, Enum):
     New = 'New'
     Retrofit = 'Retrofit'
 
-class Agent(Data):
-    name: str
-    type: AgentType
-    region: str
+class AgentData(Data):
     num: Optional[int] = None
-    sectors: List[str] = []
     objective_1: AgentObjective
     budget: float = math.inf
     share: str = ''
@@ -72,3 +68,11 @@ class Agent(Data):
     decision_method: DecisionMethod = DecisionMethod.SingleObjective
     quantity: NonNegativeFloat = 1.0
     maturity_threshold: float = -1.0
+
+Region = str
+class Agent(Data):
+    name: str
+    sectors: List[str] = []
+    new: Dict[Region, AgentData]
+    retrofit: Dict[Region, AgentData]
+

@@ -23,8 +23,12 @@ class RegionDatastore(BaseDatastore[Region]):
                     processes.append(key)
         agents = []
         for key, agent in self._parent.agent._data.items():
-            if agent.region == model.name:
-                agents.append(key)
+            for region, data in agent.new.items():
+                if region == model.name:
+                    agents.append(key)
+            for region, data in agent.retrofit.items():
+                if region == model.name:
+                    agents.append(key)
         return {
             'commodity': list(set(commodities)),
             'process': list(set(processes)),
