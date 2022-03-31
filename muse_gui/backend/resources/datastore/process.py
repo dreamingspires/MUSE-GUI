@@ -15,7 +15,7 @@ class ProcessDatastore(BaseDatastore[Process]):
     def back_dependents(self, model: Process) -> Dict[str,List[str]]:
         commodities: List[str] = []
         regions: List[str] = []
-        sectors: List[str] = []       
+        sectors: List[str] = []
         agents: List[str] = []
         for technodata in model.technodatas:
             try:
@@ -61,7 +61,7 @@ class ProcessDatastore(BaseDatastore[Process]):
                 sector = self._parent.sector.read(model.preset_sector)
                 sectors.append(sector.name)
         except KeyNotFound:
-            raise DependentNotFound(model, model.sector, self._parent.sector)
+            raise DependentNotFound(model, model.preset_sector, self._parent.sector)
 
         return {
             'commodity': list(set(commodities)),
