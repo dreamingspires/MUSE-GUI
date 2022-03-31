@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Any, Dict, List, Optional
 
-from muse_gui.backend.data.run_model import CarbonMarket, EquilibriumVariable, InterpolationMode, MethodOptions, RunModel
+from muse_gui.backend.data.run_model import CarbonMarket, MethodOptions, RunModel
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.frontend.popups.associations_popup import show_dual_listbox
 from muse_gui.frontend.views.base import BaseView
@@ -340,6 +340,7 @@ class RunView(BaseView):
                 self.carbon_model
             )
             self._info.update(window, self.model)
+            self._updated = True
 
         # Update regions
         available_regions = self._datastore.region.list()
