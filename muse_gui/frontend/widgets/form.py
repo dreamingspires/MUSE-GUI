@@ -1,14 +1,18 @@
-from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Type
+
 from pydantic import BaseModel
+from PySimpleGUI.PySimpleGUI import Element
 
 from .base import BaseWidget
 from .utils import get_creator_and_updater_for_type, render
-from PySimpleGUI.PySimpleGUI import Element
 
-def get_creator_and_updater_for_model(model: Type[BaseModel]) -> Tuple[
-        Dict[str, Callable[...,Element]],
-        Dict[str, Callable[...,Dict[str, Any]]],
-    ]:
+
+def get_creator_and_updater_for_model(
+    model: Type[BaseModel],
+) -> Tuple[
+    Dict[str, Callable[..., Element]],
+    Dict[str, Callable[..., Dict[str, Any]]],
+]:
 
     if not issubclass(model, BaseModel):
         raise NotImplementedError
@@ -32,6 +36,7 @@ def get_creator_and_updater_for_model(model: Type[BaseModel]) -> Tuple[
 
 class Form(BaseWidget):
     _model: Type[BaseModel]
+
     def __init__(self, model: Type[BaseModel], key: Optional[str] = None):
         super().__init__(key)
         self._model = model
@@ -86,7 +91,9 @@ class Form(BaseWidget):
         if not self._layout:
             self.prefix = prefix
             if layout:
-                all_keys = [c if isinstance(c, str) else c[0] for r in layout if r for c in r]
+                all_keys = [
+                    c if isinstance(c, str) else c[0] for r in layout if r for c in r
+                ]
                 dkeys = [k for k in self._creator if k not in all_keys]
                 for k in dkeys:
                     self._creator.pop(k, None)
@@ -97,4 +104,3 @@ class Form(BaseWidget):
 
     def bind_handlers(self):
         pass
-

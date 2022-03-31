@@ -1,16 +1,18 @@
-from typing import Dict, List
-from .base import BaseDatastore
+from typing import TYPE_CHECKING, Dict, List
+
 from muse_gui.backend.data.region import Region
 
-from typing import TYPE_CHECKING
+from .base import BaseDatastore
+
 if TYPE_CHECKING:
     from . import Datastore
 
-class RegionDatastore(BaseDatastore[Region]):    
-    def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
-        super().__init__(parent, 'name', data = regions)
 
-    def forward_dependents(self, model: Region) -> Dict[str,List[str]]:
+class RegionDatastore(BaseDatastore[Region]):
+    def __init__(self, parent: "Datastore", regions: List[Region] = []) -> None:
+        super().__init__(parent, "name", data=regions)
+
+    def forward_dependents(self, model: Region) -> Dict[str, List[str]]:
         commodities = []
         for key, commodity in self._parent.commodity._data.items():
             for price in commodity.commodity_prices:
@@ -30,7 +32,7 @@ class RegionDatastore(BaseDatastore[Region]):
                 if region == model.name:
                     agents.append(key)
         return {
-            'commodity': list(set(commodities)),
-            'process': list(set(processes)),
-            'agent': list(set(agents))
+            "commodity": list(set(commodities)),
+            "process": list(set(processes)),
+            "agent": list(set(agents)),
         }

@@ -1,19 +1,21 @@
-from typing import List
 from enum import Enum
+from typing import List
 
 from pydantic import BaseModel
+
 from .abstract import Data
 
 
 class CommodityType(str, Enum):
-    energy = 'Energy'
-    environmental = 'Environmental'
+    energy = "Energy"
+    environmental = "Environmental"
 
 
 class CommodityPrice(BaseModel):
     region_name: str
     time: int
     value: float
+
 
 class Commodity(Data):
     commodity: str

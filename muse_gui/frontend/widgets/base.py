@@ -1,20 +1,21 @@
 from abc import abstractmethod
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
+
 from PySimpleGUI import Element
+
 
 def is_subset(tuple_a, tuple_b):
     return all(k in tuple_b for k in tuple_a)
 
 
 class BaseWidget:
-
     def __init__(self, key: Optional[str] = None):
         self.key = key
         self._layout = None
         self._prefix = tuple()
 
     def _prefixf(self, k: Optional[str] = None):
-        return self._prefix + ((k, ) if k else tuple())
+        return self._prefix + ((k,) if k else tuple())
 
     @property
     def prefix(self):
@@ -38,5 +39,4 @@ class BaseWidget:
         return is_subset(self._prefixf(), address)
 
     def __call__(self, window, event, values):
-        print(f'Unhandled event - Widget {self._prefixf()}, event {event}')
-
+        print(f"Unhandled event - Widget {self._prefixf()}, event {event}")

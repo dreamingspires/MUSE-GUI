@@ -1,29 +1,73 @@
-from math import inf
 import textwrap
+from math import inf
 from typing import Any, Dict, List, Optional
+
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
 from muse_gui.backend.resources.datastore import Datastore
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
+from muse_gui.frontend.popups import show_dual_listbox
 from muse_gui.frontend.views.exceptions import SaveException
 from muse_gui.frontend.widgets.base import BaseWidget
 from muse_gui.frontend.widgets.button import SaveEditButtons
 from muse_gui.frontend.widgets.table import FixedColumnTable
-from muse_gui.frontend.popups import show_dual_listbox
-from ...backend.data.agent import Agent, AgentData, AgentObjective, AgentType, ObjectiveType
-from ..widgets.listbox import ListboxWithButtons
+
+from ...backend.data.agent import (
+    Agent,
+    AgentData,
+    AgentObjective,
+    AgentType,
+    ObjectiveType,
+)
 from ..widgets.form import Form
+from ..widgets.listbox import ListboxWithButtons
 from .base import BaseView, TwoColumnMixin
 
 AGENT_TABLE_HEADINGS = {
-    'new_objectives': ['Obj1', 'Obj1Weight', 'Obj1Maximize?', 'Obj2', 'Obj2Weight', 'Obj2Maximize?', 'Obj3', 'Obj3Weight', 'Obj3Maximize?'],
-    'retrofit_objectives': ['Obj1', 'Obj1Weight', 'Obj1Maximize?', 'Obj2', 'Obj2Weight', 'Obj2Maximize?', 'Obj3', 'Obj3Weight', 'Obj3Maximize?'],
-    'new_params': ['Share', 'DecisionMethod', 'SearchRule', 'Quantity', 'Budget', 'M. Threshold'],
-    'retrofit_params': ['Share', 'DecisionMethod', 'SearchRule', 'Quantity', 'Budget', 'M. Threshold'],
+    "new_objectives": [
+        "Obj1",
+        "Obj1Weight",
+        "Obj1Maximize?",
+        "Obj2",
+        "Obj2Weight",
+        "Obj2Maximize?",
+        "Obj3",
+        "Obj3Weight",
+        "Obj3Maximize?",
+    ],
+    "retrofit_objectives": [
+        "Obj1",
+        "Obj1Weight",
+        "Obj1Maximize?",
+        "Obj2",
+        "Obj2Weight",
+        "Obj2Maximize?",
+        "Obj3",
+        "Obj3Weight",
+        "Obj3Maximize?",
+    ],
+    "new_params": [
+        "Share",
+        "DecisionMethod",
+        "SearchRule",
+        "Quantity",
+        "Budget",
+        "M. Threshold",
+    ],
+    "retrofit_params": [
+        "Share",
+        "DecisionMethod",
+        "SearchRule",
+        "Quantity",
+        "Budget",
+        "M. Threshold",
+    ],
 }
-class AgentModelHelper():
-    def __init__(self, model:Datastore):
+
+
+class AgentModelHelper:
+    def __init__(self, model: Datastore):
         self._parent_model = model
         self._agent = model.agent
         self._sector = model.sector
@@ -43,108 +87,119 @@ class AgentModelHelper():
 
     @property
     def standard_sectors(self):
-        return [
-            x for x in self.sectors
-            if self._sector.read(x).type == 'standard'
-        ]
+        return [x for x in self.sectors if self._sector.read(x).type == "standard"]
 
-    def get_agent(self, id:str):
+    def get_agent(self, id: str):
         return self._agent.read(id)
 
-    def get_regions_for_agent(self, _agent:Agent):
-        return sorted(list(dict.fromkeys(
-            x for x in (list(_agent.new.keys()) + list(_agent.retrofit.keys()))
-        )))
+    def get_regions_for_agent(self, _agent: Agent):
+        return sorted(
+            list(
+                dict.fromkeys(
+                    x for x in (list(_agent.new.keys()) + list(_agent.retrofit.keys()))
+                )
+            )
+        )
+
     def get_sectors_for_agent(self, _agent: Agent):
         return sorted(list(dict.fromkeys(x for x in _agent.sectors)))
 
     def get_data_for_agent(self, _agent: Agent, rows: List[str]):
         if len(rows) == 0:
-            return {
-                'New': [[]],
-                'Retrofit': [[]]
-            }
+            return {"New": [[]], "Retrofit": [[]]}
         NCOLS = 15
-        _values = {
-            'New': {},
-            'Retrofit': {}
-        }
+        _values = {"New": {}, "Retrofit": {}}
         for r, _agent_data in _agent.new.items():
             region = r
-            _type = 'New'
+            _type = "New"
             params = [
                 _agent_data.share,
                 _agent_data.decision_method,
                 _agent_data.search_rule,
                 _agent_data.quantity,
                 _agent_data.budget,
-                _agent_data.maturity_threshold
+                _agent_data.maturity_threshold,
             ]
-            for obj in (_agent_data.objective_1, _agent_data.objective_2, _agent_data.objective_3):
+            for obj in (
+                _agent_data.objective_1,
+                _agent_data.objective_2,
+                _agent_data.objective_3,
+            ):
                 if obj:
-                    params.extend([obj.objective_type, obj.objective_data, obj.objective_sort])
+                    params.extend(
+                        [obj.objective_type, obj.objective_data, obj.objective_sort]
+                    )
                 else:
-                    params.extend(['', '', ''])
+                    params.extend(["", "", ""])
 
             _values[_type][region] = params
 
         for r, _agent_data in _agent.retrofit.items():
             region = r
-            _type = 'Retrofit'
+            _type = "Retrofit"
             params = [
                 _agent_data.share,
                 _agent_data.decision_method,
                 _agent_data.search_rule,
                 _agent_data.quantity,
                 _agent_data.budget,
-                _agent_data.maturity_threshold
+                _agent_data.maturity_threshold,
             ]
-            for obj in (_agent_data.objective_1, _agent_data.objective_2, _agent_data.objective_3):
+            for obj in (
+                _agent_data.objective_1,
+                _agent_data.objective_2,
+                _agent_data.objective_3,
+            ):
                 if obj:
-                    params.extend([obj.objective_type, obj.objective_data, obj.objective_sort])
+                    params.extend(
+                        [obj.objective_type, obj.objective_data, obj.objective_sort]
+                    )
                 else:
-                    params.extend(['', '', ''])
+                    params.extend(["", "", ""])
 
             _values[_type][region] = params
 
         sort_keys = sorted(rows)
         return {
             t: [
-                [k] + (_values[t][k] if k in _values[t] else ['' for _ in range(NCOLS)] )
+                [k] + (_values[t][k] if k in _values[t] else ["" for _ in range(NCOLS)])
                 for k in sort_keys
-            ] for t in _values
+            ]
+            for t in _values
         }
+
 
 class AgentInfo(BaseWidget):
     def __init__(self, key: Optional[str] = None):
         super().__init__(key)
 
         self._editing = None
+
     def enable_editing(self, window, force=False):
         if not self._editing or force:
             # Enable form fields
-            window[self._prefixf('name')](disabled=False)
-            window[self._prefixf('sectors')](disabled=False)
-            window[self._prefixf('edit_sectors')](disabled=False)
+            window[self._prefixf("name")](disabled=False)
+            window[self._prefixf("sectors")](disabled=False)
+            window[self._prefixf("edit_sectors")](disabled=False)
 
             self._editing = True
 
     def disable_editing(self, window, force=False):
         if self._editing or force:
             # Enable form fields
-            window[self._prefixf('name')](disabled=True)
-            window[self._prefixf('sectors')](disabled=True)
-            window[self._prefixf('edit_sectors')](disabled=True)
+            window[self._prefixf("name")](disabled=True)
+            window[self._prefixf("sectors")](disabled=True)
+            window[self._prefixf("edit_sectors")](disabled=True)
 
             self._editing = False
 
     def _set_textbox_with_list(self, window, key: str, val: List):
-        _text = ','.join(val)
-        _text = textwrap.fill(_text, 20, max_lines=2, placeholder='...')
+        _text = ",".join(val)
+        _text = textwrap.fill(_text, 20, max_lines=2, placeholder="...")
         window[self._prefixf(key)](_text)
 
     def set_sectors(self, window, val):
-        self._set_textbox_with_list(window, 'sectors', val)
+        self._set_textbox_with_list(window, "sectors", val)
 
     def bind_handlers(self):
         pass
@@ -152,7 +207,7 @@ class AgentInfo(BaseWidget):
     def update(self, window, _agent: Agent):
 
         # Update name
-        window[self._prefixf('name')].update(value=_agent.name)
+        window[self._prefixf("name")].update(value=_agent.name)
 
         # Update list of sectors
         _sectors = sorted(list(dict.fromkeys(x for x in _agent.sectors)))
@@ -165,31 +220,34 @@ class AgentInfo(BaseWidget):
             # Layout form
             _layout = [
                 [
-                    sg.Text('Name', size=(6, 1)),
-                    sg.Text(':', auto_size_text=True),
-                    sg.Input('', size=(20, 1), key=self._prefixf('name')),
-                    sg.Frame('Sectors',[
+                    sg.Text("Name", size=(6, 1)),
+                    sg.Text(":", auto_size_text=True),
+                    sg.Input("", size=(20, 1), key=self._prefixf("name")),
+                    sg.Frame(
+                        "Sectors",
                         [
-                            sg.Multiline(
-                                '',
-                                size=(20, 2),
-                                disabled=True,
-                                write_only=True,
-                                no_scrollbar=True,
-                                key=self._prefixf('sectors')
-                            ),
-                            sg.Button('Change', key=self._prefixf('edit_sectors'))
-                        ]
-                    ], element_justification='center'),
+                            [
+                                sg.Multiline(
+                                    "",
+                                    size=(20, 2),
+                                    disabled=True,
+                                    write_only=True,
+                                    no_scrollbar=True,
+                                    key=self._prefixf("sectors"),
+                                ),
+                                sg.Button("Change", key=self._prefixf("edit_sectors")),
+                            ]
+                        ],
+                        element_justification="center",
+                    ),
                 ]
             ]
-            self._layout = [
-                [sg.Column(_layout)]
-            ]
+            self._layout = [[sg.Column(_layout)]]
         return self._layout
 
+
 class AgentTables(BaseWidget):
-    def __init__(self, tab_headings:List[str], key: Optional[str] = None):
+    def __init__(self, tab_headings: List[str], key: Optional[str] = None):
         super().__init__(key)
         self._tab_headings = tab_headings
         self._tables = self._create_tables()
@@ -222,19 +280,30 @@ class AgentTables(BaseWidget):
                 _agent_table_layout = []
                 for k in self._tables:
                     if k.endswith(h.lower()):
-                        _agent_table_layout += [[sg.Text(k.split('_', 1)[0].title()), sg.HorizontalSeparator()]]
+                        _agent_table_layout += [
+                            [
+                                sg.Text(k.split("_", 1)[0].title()),
+                                sg.HorizontalSeparator(),
+                            ]
+                        ]
                         _agent_table_layout += self._tables[k].layout(self._prefixf(k))
 
-                _table_layout.append([sg.Tab(h.replace('_', ' ').title(), _agent_table_layout)])
+                _table_layout.append(
+                    [sg.Tab(h.replace("_", " ").title(), _agent_table_layout)]
+                )
 
-            self._tabgroup = sg.TabGroup(_table_layout, expand_x=True, expand_y=True, enable_events=True, key=self._prefixf('tabs'))
-            self._layout = [[
-                self._tabgroup
-            ]]
+            self._tabgroup = sg.TabGroup(
+                _table_layout,
+                expand_x=True,
+                expand_y=True,
+                enable_events=True,
+                key=self._prefixf("tabs"),
+            )
+            self._layout = [[self._tabgroup]]
         return self._layout
 
     def _get_table(self, headings: List[str], values=[[]]) -> FixedColumnTable:
-        _headings = ['Region'] + headings
+        _headings = ["Region"] + headings
         return FixedColumnTable(
             0,
             len(_headings),
@@ -242,7 +311,8 @@ class AgentTables(BaseWidget):
             pad=0,
             values=values,
             headings=_headings,
-            expand_x=True, expand_y=True,
+            expand_x=True,
+            expand_y=True,
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
@@ -256,26 +326,27 @@ class AgentTables(BaseWidget):
         return self._tables[key].values
 
     def __call__(self, window, event, values):
-        print('Agent tables view handling - ', event)
+        print("Agent tables view handling - ", event)
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
         if _event in self._tables:
             self._tables[_event](window, event, values)
             return None
 
-        if _event == 'tabs':
+        if _event == "tabs":
             # Tab switch event
-            tab_name = values[self._prefixf('tabs')]
+            tab_name = values[self._prefixf("tabs")]
             if tab_name:
-                return tab_name.lower().replace(' ', '_')
+                return tab_name.lower().replace(" ", "_")
+
 
 class AgentView(TwoColumnMixin, BaseView):
     def __init__(self, model: Datastore):
-        super().__init__('agent')
+        super().__init__("agent")
         self._datastore = model
         self._model = model.agent
         self.model = AgentModelHelper(model)
@@ -284,15 +355,15 @@ class AgentView(TwoColumnMixin, BaseView):
         self._save_edit_btns = SaveEditButtons()
         self._agent_info = AgentInfo()
         self._agent_tables = AgentTables(
-            tab_headings = ['params', 'objectives'],
+            tab_headings=["params", "objectives"],
         )
 
         # Internal state
         self.TABLE_VALUES = {
-            'new_params': [[]],
-            'new_objectives': [[]],
-            'retrofit_params': [[]],
-            'retrofit_objectives': [[]],
+            "new_params": [[]],
+            "new_objectives": [[]],
+            "retrofit_params": [[]],
+            "retrofit_objectives": [[]],
         }
         self._selected = -1
         self._sectors = []
@@ -353,34 +424,26 @@ class AgentView(TwoColumnMixin, BaseView):
     def _get_table_values_for_agent(self, _agent: Agent):
 
         _values = self.model.get_data_for_agent(_agent, self._regions)
-        _new = _values.get('New', [[]])
-        _retrofit = _values.get('Retrofit', [[]])
+        _new = _values.get("New", [[]])
+        _retrofit = _values.get("Retrofit", [[]])
 
         _new_objectives = [[]]
         _new_params = [[]]
         if _new != [[]]:
-            _new_params = [
-                r[:7] for r in _new
-            ]
-            _new_objectives = [
-                r[0:1] + r[7:] for r in _new
-            ]
+            _new_params = [r[:7] for r in _new]
+            _new_objectives = [r[0:1] + r[7:] for r in _new]
 
         _retrofit_objectives = [[]]
         _retrofit_params = [[]]
         if _retrofit != [[]]:
-            _retrofit_params = [
-                r[:7] for r in _retrofit
-            ]
-            _retrofit_objectives = [
-                r[0:1] + r[7:] for r in _retrofit
-            ]
+            _retrofit_params = [r[:7] for r in _retrofit]
+            _retrofit_objectives = [r[0:1] + r[7:] for r in _retrofit]
 
         return {
-            'new_params': _new_params,
-            'new_objectives': _new_objectives,
-            'retrofit_params': _retrofit_params,
-            'retrofit_objectives': _retrofit_objectives,
+            "new_params": _new_params,
+            "new_objectives": _new_objectives,
+            "retrofit_params": _retrofit_params,
+            "retrofit_objectives": _retrofit_objectives,
         }
 
     def _read_tables(self):
@@ -401,7 +464,7 @@ class AgentView(TwoColumnMixin, BaseView):
                 continue
             # _values[k] is a list[list]
             # Convert current table into a dictionary indexed by year, region
-            _tv = { x[0]: x[1:] for x in self.TABLE_VALUES[k]}
+            _tv = {x[0]: x[1:] for x in self.TABLE_VALUES[k]}
             for r in _values[k]:
                 _key = r[0]
                 if _key in _tv:
@@ -442,26 +505,28 @@ class AgentView(TwoColumnMixin, BaseView):
             _agent_info = self.model.get_agent(self.get_current_agent_id())
             self.set_current_agent(window, _agent_info)
 
-
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
             self.prefix = prefix
             # Left
-            self._edit_region_btn = sg.Button('Edit Region(s)', key=self._prefixf('edit_regions'))
+            self._edit_region_btn = sg.Button(
+                "Edit Region(s)", key=self._prefixf("edit_regions")
+            )
             self.column_1 = sg.Col(
-                self._agent_list.layout(self._prefixf()),
-                expand_y=True
+                self._agent_list.layout(self._prefixf()), expand_y=True
             )
             _btn_layout = self._save_edit_btns.layout(prefix=self._prefixf())
             _info_layout = self._agent_info.layout(self._prefixf())
-            _table_layout = self._agent_tables.layout(self._prefixf('tables'))
+            _table_layout = self._agent_tables.layout(self._prefixf("tables"))
             self.column_2 = sg.Col(
-                _btn_layout +
-                [[sg.HorizontalSeparator()]] +
-                _info_layout +
-                [[self._edit_region_btn, sg.Push()]] +
-                _table_layout,
-                expand_y=True, expand_x=True)
+                _btn_layout
+                + [[sg.HorizontalSeparator()]]
+                + _info_layout
+                + [[self._edit_region_btn, sg.Push()]]
+                + _table_layout,
+                expand_y=True,
+                expand_x=True,
+            )
 
             self._layout = [
                 [self.column_1, self.column_2],
@@ -473,40 +538,39 @@ class AgentView(TwoColumnMixin, BaseView):
         self._agent_tables.bind_handlers()
         self._save_edit_btns.bind_handlers()
 
-
     def __call__(self, window, event, values):
-        print('Agent view handling - ', event)
+        print("Agent view handling - ", event)
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
-        if _event == 'listbox':
+        if _event == "listbox":
             # Selection event
             indices = self._agent_list.indices
             if len(indices):
                 self.selected = indices[0]
                 self.update(window)
-        elif _event == 'edit':
+        elif _event == "edit":
             return self._handle_edit(window)
-        elif _event == 'add':
+        elif _event == "add":
             return self._handle_add(window)
-        elif _event == 'delete':
+        elif _event == "delete":
             return self._handle_delete_agent(window)
-        elif _event == 'save':
+        elif _event == "save":
             return self._handle_save(window, values)
-        elif _event == 'edit_regions':
+        elif _event == "edit_regions":
             return self._handle_edit_regions()
-        elif _event == 'edit_sectors':
+        elif _event == "edit_sectors":
             return self._handle_edit_sectors(window)
-        elif _event == 'tables':
+        elif _event == "tables":
             ret = self._agent_tables(window, event, values)
-            print('Agent tables tab returned - ', ret)
+            print("Agent tables tab returned - ", ret)
             return
 
     def _convert_tables_to_models(self, current_values: Dict[str, Any]):
-        for k in ['new', 'retrofit']:
+        for k in ["new", "retrofit"]:
             keyed_agent = {
                 x[0]: AgentData(
                     num=None,
@@ -521,35 +585,39 @@ class AgentView(TwoColumnMixin, BaseView):
                         objective_data=y[2],
                         objective_sort=y[3],
                     ),
-                    objective_2= AgentObjective(
+                    objective_2=AgentObjective(
                         objective_type=y[4],
                         objective_data=y[5],
                         objective_sort=y[6],
-                    ) if y[4] else None,
+                    )
+                    if y[4]
+                    else None,
                     objective_3=AgentObjective(
                         objective_type=y[7],
                         objective_data=y[8],
                         objective_sort=y[9],
-                    ) if y[7] else None,
-                ) for x, y in zip(
-                    self.TABLE_VALUES[f'{k}_params'],
-                    self.TABLE_VALUES[f'{k}_objectives']
-                ) if x and y
+                    )
+                    if y[7]
+                    else None,
+                )
+                for x, y in zip(
+                    self.TABLE_VALUES[f"{k}_params"],
+                    self.TABLE_VALUES[f"{k}_objectives"],
+                )
+                if x and y
             }
-            current_values[k] = {
-                x: keyed_agent[x]
-                for x in self._regions
-            }
+            current_values[k] = {x: keyed_agent[x] for x in self._regions}
         return current_values
 
     def _handle_add(self, window):
         # Create a default process
         agent = sg.popup_get_text(
-            'Please enter name of Agent to add', 'Add Agent',
-            'New Agent 1',
+            "Please enter name of Agent to add",
+            "Add Agent",
+            "New Agent 1",
         )
-        if agent == None or agent.strip() == '':
-            return None, '0 agents added'
+        if agent == None or agent.strip() == "":
+            return None, "0 agents added"
 
         # and update view
         agent = agent.strip()
@@ -579,12 +647,12 @@ class AgentView(TwoColumnMixin, BaseView):
         # Get current values from view
         self._read_tables()
         _values = {
-            'name': values[self._prefixf('name')],
-            'sectors': self._sectors,
+            "name": values[self._prefixf("name")],
+            "sectors": self._sectors,
         }
 
         # Get name in the form
-        new_name = _values['name']
+        new_name = _values["name"]
 
         # Check if it is add mode / edit mode
         _ids = self.model.agents
@@ -611,7 +679,9 @@ class AgentView(TwoColumnMixin, BaseView):
                 for d in deps:
                     if len(deps[d]):
                         # Not supporting name change for ones with forward deps
-                        raise SaveException() from RuntimeError('Changing name is not supported for agents already associated with resources')
+                        raise SaveException() from RuntimeError(
+                            "Changing name is not supported for agents already associated with resources"
+                        )
 
             _model_dict = _agent.dict()
             try:
@@ -625,38 +695,38 @@ class AgentView(TwoColumnMixin, BaseView):
                 raise SaveException() from e
 
         # Disable save, enable edit
-        self._save_edit_btns.state = 'idle'
+        self._save_edit_btns.state = "idle"
         self.disable_editing(window)
 
         self.update(window)
         # Communicate save mode to parent
-        return 'idle', self.key
+        return "idle", self.key
 
     def _handle_edit(self, window):
         if self._editing == True:
             # Already in edit state, so reset
             # Disable save, enable edit
-            self._save_edit_btns.state = 'idle'
+            self._save_edit_btns.state = "idle"
             self.disable_editing(window)
 
             self.update(window)
-            return 'idle', self.key
+            return "idle", self.key
 
         # Disable edit, enable save
-        self._save_edit_btns.state = 'edit'
+        self._save_edit_btns.state = "edit"
 
         # Enable sector info, disable list
         self.enable_editing(window)
 
         # Communicate edit mode to parent
-        return 'edit', self.key
+        return "edit", self.key
 
     def _handle_edit_regions(self):
         all_regions = self.model.regions
         _, self._regions = show_dual_listbox(
-            'Regions',
+            "Regions",
             v_one=[x for x in all_regions if x not in self._regions],
-            v_two=self._regions
+            v_two=self._regions,
         )
         self._patch_tables(self.get_current_agent())
 
@@ -664,17 +734,17 @@ class AgentView(TwoColumnMixin, BaseView):
         all_sectors = self.model.standard_sectors
 
         _, self._sectors = show_dual_listbox(
-            'Sectors',
+            "Sectors",
             v_one=[x for x in all_sectors if x not in self._sectors],
-            v_two=self._sectors
+            v_two=self._sectors,
         )
         self._agent_info.set_sectors(window, self._sectors)
 
     def _handle_delete_agent_safe(self, id):
-        '''
+        """
         Internal function that deletes the Agent
         returns True / False based on whether Agent was deleted or not
-        '''
+        """
         _agent = self.model.get_agent(id)
 
         # Compute forward dependencies
@@ -682,24 +752,22 @@ class AgentView(TwoColumnMixin, BaseView):
 
         # Check if deps are empty
         empty_deps = True
-        dep_string = ''
+        dep_string = ""
         for d in deps:
             if len(deps[d]):
                 empty_deps = False
-                dep_string += f'{d}:\n'
-                dep_string += ','.join(deps[d])
-                dep_string += '\n\n'
-
+                dep_string += f"{d}:\n"
+                dep_string += ",".join(deps[d])
+                dep_string += "\n\n"
 
         # Show popup to confirm
         if not empty_deps:
             ret = sg.popup_yes_no(
-                f'Deleting Agent {id} will result in the following being deleted:\n',
-                f'{dep_string}'
-                f'Delete anyway?\n',
+                f"Deleting Agent {id} will result in the following being deleted:\n",
+                f"{dep_string}" f"Delete anyway?\n",
                 title="Warning!",
             )
-            if ret and ret == 'Yes':
+            if ret and ret == "Yes":
                 self._model.delete(id)
                 return True
             else:
@@ -710,7 +778,7 @@ class AgentView(TwoColumnMixin, BaseView):
 
     def _handle_delete_agent(self, window):
         if self.selected == -1:
-            return None, 'Select an Agent before attempting to delete!'
+            return None, "Select an Agent before attempting to delete!"
 
         _id = self.get_current_agent_id()
 

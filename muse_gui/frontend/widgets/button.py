@@ -1,4 +1,3 @@
-from functools import partial
 from typing import List, Optional
 
 import PySimpleGUI as sg
@@ -20,12 +19,13 @@ class DoneCancelButtons(BaseWidget):
             self._layout = [
                 [
                     sg.Push(),
-                    get_btn_maker('Done')(key=self._prefixf('done')),
-                    get_btn_maker('Cancel')(key=self._prefixf('cancel')),
+                    get_btn_maker("Done")(key=self._prefixf("done")),
+                    get_btn_maker("Cancel")(key=self._prefixf("cancel")),
                     sg.Push(),
                 ],
             ]
         return self._layout
+
 
 class AddDeleteButtons(BaseWidget):
     def __init__(self, key: Optional[str] = None):
@@ -74,8 +74,8 @@ class AddDeleteButtons(BaseWidget):
         if not self._layout:
             self.prefix = prefix
 
-            self._add_btn = get_btn_maker('Add')(key=self._prefixf('add'))
-            self._delete_btn = get_btn_maker('Delete')(key=self._prefixf('delete'))
+            self._add_btn = get_btn_maker("Add")(key=self._prefixf("add"))
+            self._delete_btn = get_btn_maker("Delete")(key=self._prefixf("delete"))
 
             self._layout = [
                 [
@@ -88,18 +88,16 @@ class AddDeleteButtons(BaseWidget):
 
     def bind_handlers(self):
         pass
-class SaveEditButtons(BaseWidget):
 
+
+class SaveEditButtons(BaseWidget):
     def __init__(self, key: Optional[str] = None):
         super().__init__(key)
 
-        self._edit_btn_maker = get_btn_maker('Edit')
-        self._save_btn_maker = get_btn_maker(
-            'Save',
-            disabled=True
-        )
+        self._edit_btn_maker = get_btn_maker("Edit")
+        self._save_btn_maker = get_btn_maker("Save", disabled=True)
 
-        self._state = 'idle'
+        self._state = "idle"
 
     @property
     def state(self):
@@ -107,13 +105,13 @@ class SaveEditButtons(BaseWidget):
 
     @state.setter
     def state(self, val):
-        if val not in ['edit', 'idle']:
+        if val not in ["edit", "idle"]:
             raise ValueError(f'Expected "idle" or "edit", got {val}')
 
         if self._state == val:
             return
 
-        if val == 'edit':
+        if val == "edit":
             self._edit_btn.update(text="Discard", button_color=("red", "white"))
             self._save_btn.update(disabled=False)
         else:
@@ -126,8 +124,8 @@ class SaveEditButtons(BaseWidget):
         if not self._layout:
             self.prefix = prefix
 
-            self._edit_btn = self._edit_btn_maker(key=self._prefixf('edit'))
-            self._save_btn = self._save_btn_maker(key=self._prefixf('save'))
+            self._edit_btn = self._edit_btn_maker(key=self._prefixf("edit"))
+            self._save_btn = self._save_btn_maker(key=self._prefixf("save"))
 
             self._layout = [
                 [

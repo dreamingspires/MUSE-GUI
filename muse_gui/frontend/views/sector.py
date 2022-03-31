@@ -1,36 +1,35 @@
-from functools import partial
-from math import inf
 import random
 import string
+from functools import partial
+from math import inf
 from typing import List
+
 import PySimpleGUI as sg
-from PySimpleGUI import Element
 from pydantic import parse_obj_as
+from PySimpleGUI import Element
+
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
 from muse_gui.frontend.views.exceptions import SaveException
-
 from muse_gui.frontend.widgets.button import SaveEditButtons
+
 from ...backend.data.sector import BaseSector, Sector, StandardSector
 from ...backend.resources.datastore import Datastore
-from ..widgets.listbox import ListboxWithButtons
 from ..widgets.form import Form
+from ..widgets.listbox import ListboxWithButtons
 from .base import BaseView, TwoColumnMixin
 
+
 def get_random_string(_len=6):
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=_len))
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=_len))
+
 
 class SectorView(TwoColumnMixin, BaseView):
     def __init__(self, model: Datastore):
-        super().__init__('sector')
+        super().__init__("sector")
         self._parent_model = model
         self.model = model.sector
-        self._sector_list_maker = partial(
-            ListboxWithButtons
-        )
-        self._sector_info_maker = partial(
-            Form,
-            BaseSector
-        )
+        self._sector_list_maker = partial(ListboxWithButtons)
+        self._sector_info_maker = partial(Form, BaseSector)
         self._save_edit_btns = SaveEditButtons()
 
         self._editing = None
@@ -66,7 +65,6 @@ class SectorView(TwoColumnMixin, BaseView):
         elif self._selected == -1 and self.column_2.visible:
             self.column_2.update(visible=False)
 
-
     def _update_list(self, _sectors):
         self._sector_list.update(_sectors)
 
@@ -99,27 +97,30 @@ class SectorView(TwoColumnMixin, BaseView):
 
             # Left Column
             self.column_1 = sg.Col(
-                self._sector_list.layout(self._prefixf()),
-                expand_y=True
+                self._sector_list.layout(self._prefixf()), expand_y=True
             )
             _button_layout = self._save_edit_btns.layout(self._prefixf())
 
             _sector_info_layout = self._sector_info.layout(
                 self._prefixf(),
                 [
-                    ['name'],
-                    ['priority'],
-                    ['type'],
-                ]
+                    ["name"],
+                    ["priority"],
+                    ["type"],
+                ],
             )
 
             self.column_2 = sg.Col(
-                _button_layout + [
+                _button_layout
+                + [
                     [
                         sg.HorizontalSeparator(),
                     ]
-                ] + _sector_info_layout,
-                expand_y=True, expand_x=True)
+                ]
+                + _sector_info_layout,
+                expand_y=True,
+                expand_x=True,
+            )
 
             self._layout = [
                 [self.column_1, self.column_2],
@@ -130,20 +131,20 @@ class SectorView(TwoColumnMixin, BaseView):
         if self._editing == True:
             # Already in edit state, so reset
             # Disable save, enable edit
-            self._save_edit_btns.state = 'idle'
+            self._save_edit_btns.state = "idle"
             self.disable_editing(window)
 
             self.update(window)
-            return 'idle', self.key
+            return "idle", self.key
 
         # Disable edit, enable save
-        self._save_edit_btns.state = 'edit'
+        self._save_edit_btns.state = "edit"
 
         # Enable sector info, disable list
         self.enable_editing(window)
 
         # Communicate edit mode to parent
-        return 'edit', self.key
+        return "edit", self.key
 
     def _handle_save(self, window, values):
         # Commit to datastore
@@ -152,7 +153,7 @@ class SectorView(TwoColumnMixin, BaseView):
         _values = self._sector_info.read(values)
 
         # Get name in the form
-        new_name = _values['name']
+        new_name = _values["name"]
 
         # Check if it is add mode / edit mode
         _sector_ids = self.model.list()
@@ -172,13 +173,14 @@ class SectorView(TwoColumnMixin, BaseView):
             _sector_id = _sector_ids[self.selected]
             _sector = self.model.read(_sector_id)
 
-
             if new_name != _sector.name:
                 deps = self.model.forward_dependents(_sector)
                 for d in deps:
                     if len(deps[d]):
                         # Not supporting name change for ones with forward deps
-                        raise SaveException() from RuntimeError('Changing name is not supported for sectors already associated with resources')
+                        raise SaveException() from RuntimeError(
+                            "Changing name is not supported for sectors already associated with resources"
+                        )
 
             _model_dict = _sector.dict()
             _model_dict.update(_values)
@@ -190,21 +192,22 @@ class SectorView(TwoColumnMixin, BaseView):
                 raise SaveException() from e
 
         # Disable save, enable edit
-        self._save_edit_btns.state = 'idle'
+        self._save_edit_btns.state = "idle"
         self.disable_editing(window)
 
         self.update(window)
         # Communicate save mode to parent
-        return 'idle', self.key
+        return "idle", self.key
 
     def _handle_add_sector(self, window):
         # Create a standard sector
         sector_name = sg.popup_get_text(
-            'Please enter name of sector to add', 'Add Sector',
-            'New Sector 1',
+            "Please enter name of sector to add",
+            "Add Sector",
+            "New Sector 1",
         )
-        if sector_name == None or sector_name.strip() == '':
-            return None, '0 sectors added'
+        if sector_name == None or sector_name.strip() == "":
+            return None, "0 sectors added"
 
         # Create a dummy sector with given name
         # and update view
@@ -223,34 +226,32 @@ class SectorView(TwoColumnMixin, BaseView):
         return self._handle_edit(window)
 
     def _handle_delete_sector_safe(self, sector):
-        '''
+        """
         Internal function that deletes the sector
         returns True / False based on whether sector was deleted or not
-        '''
+        """
         _sector = self.model.read(sector)
         # Compute forward dependencies
         deps = self.model.forward_dependents_recursive(_sector)
 
         # Check if deps are empty
         empty_deps = True
-        dep_string = ''
+        dep_string = ""
         for d in deps:
             if len(deps[d]):
                 empty_deps = False
-                dep_string += f'{d}:\n'
-                dep_string += ','.join(deps[d])
-                dep_string += '\n\n'
-
+                dep_string += f"{d}:\n"
+                dep_string += ",".join(deps[d])
+                dep_string += "\n\n"
 
         # Show popup to confirm
         if not empty_deps:
             ret = sg.popup_yes_no(
-                f'Deleting region {_sector.name} will result in the following being deleted:\n',
-                f'{dep_string}'
-                f'Delete anyway?\n',
+                f"Deleting region {_sector.name} will result in the following being deleted:\n",
+                f"{dep_string}" f"Delete anyway?\n",
                 title="Warning!",
             )
-            if ret and ret == 'Yes':
+            if ret and ret == "Yes":
                 self.model.delete(sector)
                 return True
             else:
@@ -261,7 +262,7 @@ class SectorView(TwoColumnMixin, BaseView):
 
     def _handle_delete_sector(self, window):
         if self.selected == -1:
-            return None, 'Select a sector before attempting to delete!'
+            return None, "Select a sector before attempting to delete!"
 
         selected_sectors = self.model.list()[self.selected]
 
@@ -276,36 +277,36 @@ class SectorView(TwoColumnMixin, BaseView):
         pass
 
     def __call__(self, window, event, values):
-        print('Sector view handling - ', event)
+        print("Sector view handling - ", event)
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
-        if _event == 'listbox':
+        if _event == "listbox":
             # Selection event
             indices = self._sector_list.indices
             if len(indices):
                 self.selected = indices[-1]
                 self.update(window)
 
-        elif _event == 'add':
+        elif _event == "add":
             # Add sector
             return self._handle_add_sector(window)
 
-        elif _event == 'delete':
+        elif _event == "delete":
             # Delete sector
             return self._handle_delete_sector(window)
 
-        elif _event == 'edit':
+        elif _event == "edit":
             # Edit event
             return self._handle_edit(window)
 
-        elif _event == 'save':
+        elif _event == "save":
             # Save event - Commit to datastore / throw
             return self._handle_save(window, values)
         else:
-            print('Unhandled event - ', event)
+            print("Unhandled event - ", event)
 
         return None

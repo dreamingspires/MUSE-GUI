@@ -1,17 +1,19 @@
-from typing import Dict, List
-from .base import BaseDatastore
-from .exceptions import DependentNotFound, KeyNotFound
+from typing import TYPE_CHECKING, Dict, List
+
 from muse_gui.backend.data.commodity import Commodity
 
-from typing import TYPE_CHECKING
+from .base import BaseDatastore
+from .exceptions import DependentNotFound, KeyNotFound
+
 if TYPE_CHECKING:
     from . import Datastore
 
+
 class CommodityDatastore(BaseDatastore[Commodity]):
     def __init__(self, parent: "Datastore", commodities: List[Commodity] = []) -> None:
-        super().__init__(parent, 'commodity', data = commodities)
+        super().__init__(parent, "commodity", data=commodities)
 
-    def back_dependents(self, model: Commodity) -> Dict[str,List[str]]:
+    def back_dependents(self, model: Commodity) -> Dict[str, List[str]]:
         regions: List[str] = []
         available_years: List[str] = []
         for price in model.commodity_prices:
@@ -26,11 +28,11 @@ class CommodityDatastore(BaseDatastore[Commodity]):
             regions.append(region.name)
             available_years.append(str(year.year))
         return {
-            'region': list(set(regions)),
-            'available_year': list(set(available_years))
+            "region": list(set(regions)),
+            "available_year": list(set(available_years)),
         }
-    
-    def forward_dependents(self, model: Commodity) -> Dict[str,List[str]]:
+
+    def forward_dependents(self, model: Commodity) -> Dict[str, List[str]]:
         processes = []
         for key, process in self._parent.process._data.items():
             for comm_in in process.comm_in:
@@ -39,6 +41,4 @@ class CommodityDatastore(BaseDatastore[Commodity]):
             for comm_out in process.comm_in:
                 if comm_out.commodity == model.commodity:
                     processes.append(key)
-        return {
-            'process': list(set(processes))
-        }
+        return {"process": list(set(processes))}

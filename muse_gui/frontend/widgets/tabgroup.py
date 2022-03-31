@@ -1,18 +1,21 @@
 from functools import partial
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
+
 import PySimpleGUI as sg
 from PySimpleGUI import Element
+
 from .base import BaseWidget
 
 
 class TabGroup(BaseWidget):
-    def __init__(self,  tabs: Dict[str, BaseWidget], key: Optional[str] = None):
+    def __init__(self, tabs: Dict[str, BaseWidget], key: Optional[str] = None):
         super().__init__(key)
         self._tabs = tabs
         self._tab_group_maker = partial(
             sg.TabGroup,
             enable_events=True,
-            expand_x=True, expand_y=True,
+            expand_x=True,
+            expand_y=True,
         )
 
     def enable(self, window):
@@ -35,13 +38,14 @@ class TabGroup(BaseWidget):
         if not self._layout:
             self.prefix = prefix
             self._tab_group = self._tab_group_maker(
-                [[sg.Tab(k.title(), tab.layout(self._prefixf()))] for k, tab in self._tabs.items()],
-                key=self._prefixf()
+                [
+                    [sg.Tab(k.title(), tab.layout(self._prefixf()))]
+                    for k, tab in self._tabs.items()
+                ],
+                key=self._prefixf(),
             )
 
-            self._layout = [[
-                self._tab_group
-            ]]
+            self._layout = [[self._tab_group]]
         return self._layout
 
     def bind_handlers(self):
@@ -49,7 +53,7 @@ class TabGroup(BaseWidget):
             _tab.bind_handlers()
 
     def __call__(self, window, event, values):
-        print('Tab group received - ', event)
+        print("Tab group received - ", event)
         if event == self._prefixf():
             # Possibly tab switch event
             current_tab_key = self._tab_group.get()
@@ -65,17 +69,15 @@ class TabGroup(BaseWidget):
                         return ret
 
                     _ret, _ = ret
-                    if _ret == 'edit':
+                    if _ret == "edit":
                         # Disable all tabs except this one
                         current_tab_key = self._tab_group.get()
                         self.disable(window, exclude=[current_tab_key])
 
-                        return None, 'Edit & Press save to proceed'
-                    elif _ret == 'idle':
+                        return None, "Edit & Press save to proceed"
+                    elif _ret == "idle":
                         # Enable all tabs
                         self.enable(window)
-                        return None, 'Ready!'
+                        return None, "Ready!"
                     else:
                         return ret
-
-

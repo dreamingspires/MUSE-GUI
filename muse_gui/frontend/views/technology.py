@@ -1,41 +1,69 @@
+import textwrap
 from functools import partial
 from math import inf
 from typing import Any, Dict, List, Literal, Optional, Tuple
-import textwrap
+
 import PySimpleGUI as sg
-from PySimpleGUI import Element
 from pydantic import root_validator
+from PySimpleGUI import Element
+
 from muse_gui.backend.data.agent import AgentType
 from muse_gui.backend.data.sector import SectorType
 from muse_gui.backend.resources.datastore.exceptions import KeyAlreadyExists
+from muse_gui.frontend.popups import show_dual_listbox
 from muse_gui.frontend.views.exceptions import SaveException
 from muse_gui.frontend.widgets.base import BaseWidget
 from muse_gui.frontend.widgets.button import SaveEditButtons
-
 from muse_gui.frontend.widgets.utils import render
-from muse_gui.frontend.popups import show_dual_listbox
 
+from ...backend.data.process import (
+    Capacity,
+    CapacityShare,
+    CommodityFlow,
+    Cost,
+    ExistingCapacity,
+    Process,
+    Technodata,
+    Utilisation,
+)
 from ...backend.resources.datastore import Datastore
-from ...backend.data.process import Capacity, CapacityShare, CommodityFlow, Cost, ExistingCapacity, Process, Technodata, Utilisation
-
-from ..widgets.listbox import ListboxWithButtons
 from ..widgets.form import Form
+from ..widgets.listbox import ListboxWithButtons
 from ..widgets.table import FixedColumnTable
-from .base import TwoColumnMixin, BaseView
+from .base import BaseView, TwoColumnMixin
 
 FIXED_TABLES = {
-    'capacity': ['Max Addition', 'Max Growth', 'Total Limit', 'Technical Life', 'Scaling Size', 'Utilisation Factor', 'Efficiency'],
-    'cost': ['cap_par', 'cap_exp', 'fix_par', 'fix_exp', 'var_par', 'var_exp', 'Interest Rate'],
-    'existing_capacity': ['Qty'],
+    "capacity": [
+        "Max Addition",
+        "Max Growth",
+        "Total Limit",
+        "Technical Life",
+        "Scaling Size",
+        "Utilisation Factor",
+        "Efficiency",
+    ],
+    "cost": [
+        "cap_par",
+        "cap_exp",
+        "fix_par",
+        "fix_exp",
+        "var_par",
+        "var_exp",
+        "Interest Rate",
+    ],
+    "existing_capacity": ["Qty"],
 }
+
+
 class DummyProcess(Process):
     @root_validator
     def at_least_one_in_or_out(cls, values):
         # Override
         return values
 
-class TechnologyModelHelper():
-    def __init__(self, model:Datastore):
+
+class TechnologyModelHelper:
+    def __init__(self, model: Datastore):
         self._process = model.process
         self._agent = model.agent
         self._sector = model.sector
@@ -58,25 +86,24 @@ class TechnologyModelHelper():
     @property
     def available_years(self):
         return [
-            self._available_years.read(x).year
-            for x in self._available_years.list()
+            self._available_years.read(x).year for x in self._available_years.list()
         ]
 
     @property
     def standard_sectors(self):
         return [
-            x for x in self.sectors
-            if self._sector.read(x).type == SectorType.STANDARD
+            x for x in self.sectors if self._sector.read(x).type == SectorType.STANDARD
         ]
 
     @property
     def preset_sectors(self):
         return [
-            x for x in self.sectors
-            if self._sector.read(x).type == SectorType.PRESET
+            x for x in self.sectors if self._sector.read(x).type == SectorType.PRESET
         ]
 
-    def get_agent_share_map_for_regions(self, _regions: List[str]) -> Dict[Tuple[str, AgentType, str], str]:
+    def get_agent_share_map_for_regions(
+        self, _regions: List[str]
+    ) -> Dict[Tuple[str, AgentType, str], str]:
         if len(_regions) == 0:
             return {}
 
@@ -84,17 +111,22 @@ class TechnologyModelHelper():
         for x in self.agents:
             _agent = self._agent.read(x)
             # TODO Change to itertools chain?
-            share_names.update({
-                (_agent.name, 'Retrofit', r): _data.share
-                for r, _data in _agent.retrofit.items() if r in _regions
-            })
-            share_names.update({
-                (_agent.name, 'New', r): _data.share
-                for r, _data in _agent.new.items() if r in _regions
-            })
+            share_names.update(
+                {
+                    (_agent.name, "Retrofit", r): _data.share
+                    for r, _data in _agent.retrofit.items()
+                    if r in _regions
+                }
+            )
+            share_names.update(
+                {
+                    (_agent.name, "New", r): _data.share
+                    for r, _data in _agent.new.items()
+                    if r in _regions
+                }
+            )
 
         return share_names
-
 
     @property
     def commodities(self):
@@ -104,7 +136,7 @@ class TechnologyModelHelper():
     def processes(self):
         return self._process.list()
 
-    def get_process(self, id:str):
+    def get_process(self, id: str):
         return self._process.read(id)
 
     def get_technodata_regions_for_process(self, _process: Process):
@@ -115,29 +147,45 @@ class TechnologyModelHelper():
 
     def get_inputs_for_process(self, _process: Process):
         return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_in)))
+
     def get_outputs_for_process(self, _process: Process):
         return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_out)))
 
     def get_additional_inputs_for_process(self, _process: Process):
-        return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_in if x.commodity.lower() != _process.fuel.lower())))
+        return sorted(
+            list(
+                dict.fromkeys(
+                    x.commodity
+                    for x in _process.comm_in
+                    if x.commodity.lower() != _process.fuel.lower()
+                )
+            )
+        )
 
     def get_additional_outputs_for_process(self, _process: Process):
-        return sorted(list(dict.fromkeys(x.commodity for x in _process.comm_out if x.commodity.lower() != _process.end_use.lower())))
+        return sorted(
+            list(
+                dict.fromkeys(
+                    x.commodity
+                    for x in _process.comm_out
+                    if x.commodity.lower() != _process.end_use.lower()
+                )
+            )
+        )
 
-    def get_existing_capacity_for_process(self, process: Process, rows: List[Tuple[int, str]]):
+    def get_existing_capacity_for_process(
+        self, process: Process, rows: List[Tuple[int, str]]
+    ):
         if len(rows) == 0:
             return [[]]
         _values: Dict[Tuple[int, str], List[float]] = {}
         for x in process.existing_capacities:
-            _val = [ x.value ]
+            _val = [x.value]
             _key = (int(x.year), x.region)
             _values[_key] = _val
 
         sort_keys = sorted(rows)
-        return [
-            list(k) + (_values[k] if k in _values else [''])
-            for k in sort_keys
-        ]
+        return [list(k) + (_values[k] if k in _values else [""]) for k in sort_keys]
 
     def get_capacity_for_process(self, _process: Process, rows: List[Tuple[int, str]]):
         if len(rows) == 0:
@@ -159,7 +207,7 @@ class TechnologyModelHelper():
 
         sort_keys = sorted(rows)
         return [
-            list(k) + (_values[k] if k in _values else ['' for _ in range(NCOLS)])
+            list(k) + (_values[k] if k in _values else ["" for _ in range(NCOLS)])
             for k in sort_keys
         ]
 
@@ -183,31 +231,37 @@ class TechnologyModelHelper():
 
         sort_keys = sorted(rows)
         return [
-            list(k) + (_values[k] if k in _values else ['' for _ in range(NCOLS)])
+            list(k) + (_values[k] if k in _values else ["" for _ in range(NCOLS)])
             for k in sort_keys
         ]
 
     def _get_comm_table_for_process(
-            self,
-            _process: Process,
-            key: Literal['input', 'output'],
-            rows: List[Tuple[int, str]],
-            cols: List[str]) -> List[List]:
+        self,
+        _process: Process,
+        key: Literal["input", "output"],
+        rows: List[Tuple[int, str]],
+        cols: List[str],
+    ) -> List[List]:
 
         if len(rows) == 0:
             return [[]]
         # Get current process input commodities into a map from (year, region, commodity) -> commodity qty
         _values = {}
         _attribute = None
-        if key == 'input':
+        if key == "input":
             _attribute = _process.comm_in
-        elif key == 'output':
+        elif key == "output":
             _attribute = _process.comm_out
         else:
             raise ValueError(f'Only supported for keys ["input", "output"] - Got {key}')
 
         for comm in _attribute:
-            _year, _region, _commodity, _value = comm.timeslice,  comm.region, comm.commodity, comm.value
+            _year, _region, _commodity, _value = (
+                comm.timeslice,
+                comm.region,
+                comm.commodity,
+                comm.value,
+            )
             _key = (int(_year), _region)
             if _key not in _values:
                 _values[_key] = {}
@@ -218,17 +272,30 @@ class TechnologyModelHelper():
 
         lower_cols = [x.lower() for x in cols]
         return [
-            list(k) + [_values[k][x] if k in _values and x in _values[k] else '' for x in lower_cols ]
+            list(k)
+            + [
+                _values[k][x] if k in _values and x in _values[k] else ""
+                for x in lower_cols
+            ]
             for k in sort_keys
         ]
 
-    def get_commout_table_for_process(self, _process: Process, rows: List[Tuple[int, str]], cols: List[str]):
-        return self._get_comm_table_for_process(_process, 'output', rows, cols)
+    def get_commout_table_for_process(
+        self, _process: Process, rows: List[Tuple[int, str]], cols: List[str]
+    ):
+        return self._get_comm_table_for_process(_process, "output", rows, cols)
 
-    def get_commin_table_for_process(self, _process:Process, rows: List[Tuple[int, str]], cols: List[str]):
-        return self._get_comm_table_for_process(_process, 'input', rows, cols)
+    def get_commin_table_for_process(
+        self, _process: Process, rows: List[Tuple[int, str]], cols: List[str]
+    ):
+        return self._get_comm_table_for_process(_process, "input", rows, cols)
 
-    def get_agent_table_for_process(self, _process: Process, rows: List[Tuple[int, str]], cols: Dict[Tuple[str, AgentType, str], str]):
+    def get_agent_table_for_process(
+        self,
+        _process: Process,
+        rows: List[Tuple[int, str]],
+        cols: Dict[Tuple[str, AgentType, str], str],
+    ):
         if len(rows) == 0:
             return [[]]
         # Update agents
@@ -247,12 +314,14 @@ class TechnologyModelHelper():
         sort_keys = sorted(rows)
 
         return [
-            list(k) + [_values[k][x] if k in _values and x in _values[k] else 0 for x in cols ]
+            list(k)
+            + [_values[k][x] if k in _values and x in _values[k] else 0 for x in cols]
             for k in sort_keys
         ]
 
+
 class TechnologyInfo(BaseWidget):
-    def __init__(self, key:Optional[str] = None):
+    def __init__(self, key: Optional[str] = None):
         super().__init__(key)
 
         # Tech info
@@ -260,21 +329,23 @@ class TechnologyInfo(BaseWidget):
         option_menu_f_maker = partial(sg.OptionMenu, [None])
 
         self._render_fields = {
-            'sector': option_menu_f_maker,
-            'fuel': option_menu_f_maker,
-            'end_use': option_menu_f_maker,
-            'preset_sector': option_menu_f_maker,
+            "sector": option_menu_f_maker,
+            "fuel": option_menu_f_maker,
+            "end_use": option_menu_f_maker,
+            "preset_sector": option_menu_f_maker,
         }
         self._editing = None
 
     def read(self, values):
         _form_values = self._tech_info.read(values)
-        _form_values.update({
-            'sector': values[self._prefixf('sector')],
-            'fuel': values[self._prefixf('fuel')],
-            'end_use': values[self._prefixf('end_use')],
-            'preset_sector': values[self._prefixf('preset_sector')],
-        })
+        _form_values.update(
+            {
+                "sector": values[self._prefixf("sector")],
+                "fuel": values[self._prefixf("fuel")],
+                "end_use": values[self._prefixf("end_use")],
+                "preset_sector": values[self._prefixf("preset_sector")],
+            }
+        )
         return _form_values
 
     def enable_editing(self, window, force=False):
@@ -282,15 +353,15 @@ class TechnologyInfo(BaseWidget):
             # Enable form fields
             self._tech_info.enable(window)
 
-            window[self._prefixf('sector')](disabled=False)
-            window[self._prefixf('fuel')](disabled=False)
-            window[self._prefixf('end_use')](disabled=False)
-            window[self._prefixf('preset_sector')](disabled=False)
+            window[self._prefixf("sector")](disabled=False)
+            window[self._prefixf("fuel")](disabled=False)
+            window[self._prefixf("end_use")](disabled=False)
+            window[self._prefixf("preset_sector")](disabled=False)
 
             # Enable association buttons
-            window[self._prefixf('edit_regions')](disabled=False)
-            window[self._prefixf('edit_inputs')](disabled=False)
-            window[self._prefixf('edit_outputs')](disabled=False)
+            window[self._prefixf("edit_regions")](disabled=False)
+            window[self._prefixf("edit_inputs")](disabled=False)
+            window[self._prefixf("edit_outputs")](disabled=False)
 
             self._editing = True
 
@@ -299,42 +370,41 @@ class TechnologyInfo(BaseWidget):
             # Enable form fields
             self._tech_info.disable(window)
 
-            window[self._prefixf('sector')](disabled=True)
-            window[self._prefixf('fuel')](disabled=True)
-            window[self._prefixf('end_use')](disabled=True)
-            window[self._prefixf('preset_sector')](disabled=True)
+            window[self._prefixf("sector")](disabled=True)
+            window[self._prefixf("fuel")](disabled=True)
+            window[self._prefixf("end_use")](disabled=True)
+            window[self._prefixf("preset_sector")](disabled=True)
 
             # Enable association buttons
-            window[self._prefixf('edit_regions')](disabled=True)
-            window[self._prefixf('edit_inputs')](disabled=True)
-            window[self._prefixf('edit_outputs')](disabled=True)
+            window[self._prefixf("edit_regions")](disabled=True)
+            window[self._prefixf("edit_inputs")](disabled=True)
+            window[self._prefixf("edit_outputs")](disabled=True)
 
             self._editing = False
 
-
     def _set_textbox_with_list(self, window, key: str, val: List):
-        _text = ','.join(val)
-        _text = textwrap.fill(_text, 20, max_lines=2, placeholder='...')
+        _text = ",".join(val)
+        _text = textwrap.fill(_text, 20, max_lines=2, placeholder="...")
         window[self._prefixf(key)](_text)
 
     def set_regions(self, window, val):
-        self._set_textbox_with_list(window, 'regions', val)
+        self._set_textbox_with_list(window, "regions", val)
 
     def set_inputs(self, window, val):
-        self._set_textbox_with_list(window, 'commin', val)
+        self._set_textbox_with_list(window, "commin", val)
 
     def set_outputs(self, window, val):
-        self._set_textbox_with_list(window, 'commout', val)
+        self._set_textbox_with_list(window, "commout", val)
 
     def set_sector_options(self, window, val):
-        window[self._prefixf('sector')](values=val)
+        window[self._prefixf("sector")](values=val)
 
     def set_preset_options(self, window, val):
-        window[self._prefixf('preset_sector')](values=val)
+        window[self._prefixf("preset_sector")](values=val)
 
     def set_commodity_options(self, window, val):
-        window[self._prefixf('fuel')](values=val)
-        window[self._prefixf('end_use')](values=val)
+        window[self._prefixf("fuel")](values=val)
+        window[self._prefixf("end_use")](values=val)
 
     def bind_handlers(self):
         pass
@@ -347,22 +417,37 @@ class TechnologyInfo(BaseWidget):
         _fuel = process.fuel
         _end_use = process.end_use
         # Update sectors, fuel, enduse
-        window[self._prefixf('sector')].update(value=process.sector)
-        window[self._prefixf('fuel')].update(value=_fuel)
-        window[self._prefixf('end_use')].update(value=_end_use)
-        window[self._prefixf('preset_sector')].update(value=process.preset_sector)
+        window[self._prefixf("sector")].update(value=process.sector)
+        window[self._prefixf("fuel")].update(value=_fuel)
+        window[self._prefixf("end_use")].update(value=_end_use)
+        window[self._prefixf("preset_sector")].update(value=process.preset_sector)
 
         # Update commin commout
         _regions = sorted(list(dict.fromkeys(x.region for x in process.technodatas)))
         self.set_regions(window, _regions)
 
         # TODO Why is the string in fuel and commodity are different?
-        _inputs = sorted(list(dict.fromkeys(x.commodity for x in process.comm_in if x.commodity.lower() != _fuel.lower())))
+        _inputs = sorted(
+            list(
+                dict.fromkeys(
+                    x.commodity
+                    for x in process.comm_in
+                    if x.commodity.lower() != _fuel.lower()
+                )
+            )
+        )
         self.set_inputs(window, _inputs)
 
-        _outputs = sorted(list(dict.fromkeys(x.commodity for x in process.comm_out if x.commodity.lower() != _end_use.lower())))
+        _outputs = sorted(
+            list(
+                dict.fromkeys(
+                    x.commodity
+                    for x in process.comm_out
+                    if x.commodity.lower() != _end_use.lower()
+                )
+            )
+        )
         self.set_outputs(window, _outputs)
-        pass
 
     def layout(self, prefix):
         if not self._layout:
@@ -372,62 +457,76 @@ class TechnologyInfo(BaseWidget):
             _tech_info_layout = self._tech_info.layout(
                 self._prefixf(),
                 [
-                    ['name' ],
-                    ['type'],
-                ]
+                    ["name"],
+                    ["type"],
+                ],
             )
 
             # Layout option menu
             _tech_options_layout = render(self._render_fields, _prefix=self._prefixf())
 
-            _column1 = sg.Column(_tech_info_layout + _tech_options_layout, expand_y=True)
+            _column1 = sg.Column(
+                _tech_info_layout + _tech_options_layout, expand_y=True
+            )
             # Layout associations
             _tech_associations_layout = [
                 [
-                    sg.Frame('Addn. Inputs',[
+                    sg.Frame(
+                        "Addn. Inputs",
                         [
-                            sg.Multiline(
-                                '',
-                                size=(20, 2),
-                                disabled=True,
-                                write_only=True,
-                                no_scrollbar=True,
-                                key=self._prefixf('commin')
-                            ),
-                            sg.Button('Change', key=self._prefixf('edit_inputs'))
-                        ]
-                    ], element_justification='center'),
+                            [
+                                sg.Multiline(
+                                    "",
+                                    size=(20, 2),
+                                    disabled=True,
+                                    write_only=True,
+                                    no_scrollbar=True,
+                                    key=self._prefixf("commin"),
+                                ),
+                                sg.Button("Change", key=self._prefixf("edit_inputs")),
+                            ]
+                        ],
+                        element_justification="center",
+                    ),
                 ],
                 [
-                    sg.Frame('Addn. Outputs', [
+                    sg.Frame(
+                        "Addn. Outputs",
                         [
-                            sg.Multiline(
-                                '',
-                                size=(20, 2),
-                                disabled=True,
-                                write_only=True,
-                                no_scrollbar=True,
-                                key=self._prefixf('commout')
-                            ),
-                            sg.Button('Change', key=self._prefixf('edit_outputs'))
-                        ]
-                    ], element_justification='center'),
+                            [
+                                sg.Multiline(
+                                    "",
+                                    size=(20, 2),
+                                    disabled=True,
+                                    write_only=True,
+                                    no_scrollbar=True,
+                                    key=self._prefixf("commout"),
+                                ),
+                                sg.Button("Change", key=self._prefixf("edit_outputs")),
+                            ]
+                        ],
+                        element_justification="center",
+                    ),
                 ],
                 [
-                    sg.Frame('Regions', [
+                    sg.Frame(
+                        "Regions",
                         [
-                            sg.Multiline(
-                                '',
-                                size=(20, 2),
-                                disabled=True,
-                                write_only=True,
-                                no_scrollbar=True,
-                                key=self._prefixf('regions')
-                            ),
-                            sg.Button('Change', key=self._prefixf('edit_regions'))
-                        ]
-                    ], element_justification='center'),
-                ]
+                            [
+                                sg.Multiline(
+                                    "",
+                                    size=(20, 2),
+                                    disabled=True,
+                                    write_only=True,
+                                    no_scrollbar=True,
+                                    key=self._prefixf("regions"),
+                                ),
+                                sg.Button("Change", key=self._prefixf("edit_regions")),
+                            ]
+                        ],
+                        element_justification="center",
+                    ),
+                ],
             ]
             _column2 = sg.Column(_tech_associations_layout, expand_y=True)
 
@@ -437,8 +536,9 @@ class TechnologyInfo(BaseWidget):
 
         return self._layout
 
+
 class TechnologyTables(BaseWidget):
-    def __init__(self, tab_headings:List[str], key: Optional[str] = None):
+    def __init__(self, tab_headings: List[str], key: Optional[str] = None):
         super().__init__(key)
         self._tab_headings = tab_headings
         self._tables = self._create_tables()
@@ -447,13 +547,13 @@ class TechnologyTables(BaseWidget):
     def disable_tabs(self, window):
         current_tab = self._tabgroup.get()
         for k in self._tab_headings:
-            _tabkey = self._tabgroup.find_key_from_tab_name(k.replace('_', ' ').title())
+            _tabkey = self._tabgroup.find_key_from_tab_name(k.replace("_", " ").title())
             if _tabkey and _tabkey != current_tab:
                 window[_tabkey](disabled=True)
 
     def enable_tabs(self, window):
         for k in self._tab_headings:
-            _tabkey = self._tabgroup.find_key_from_tab_name(k.replace('_', ' ').title())
+            _tabkey = self._tabgroup.find_key_from_tab_name(k.replace("_", " ").title())
             if _tabkey:
                 window[_tabkey](disabled=False)
 
@@ -485,39 +585,57 @@ class TechnologyTables(BaseWidget):
                 if k in FIXED_TABLES:
                     _table_layout = self._tables[k].layout(self._prefixf(k))
                 else:
-                    _table_layout = [[
-                        sg.Frame('', [[
-                            sg.Text('Table opened in  new window. Close to proceed')
-                        ]], expand_x=True, expand_y=True, vertical_alignment='center', element_justification='center')
-                    ]]
+                    _table_layout = [
+                        [
+                            sg.Frame(
+                                "",
+                                [
+                                    [
+                                        sg.Text(
+                                            "Table opened in  new window. Close to proceed"
+                                        )
+                                    ]
+                                ],
+                                expand_x=True,
+                                expand_y=True,
+                                vertical_alignment="center",
+                                element_justification="center",
+                            )
+                        ]
+                    ]
 
-                _tech_table_layout.append([sg.Tab(k.replace('_', ' ').title(), _table_layout)])
+                _tech_table_layout.append(
+                    [sg.Tab(k.replace("_", " ").title(), _table_layout)]
+                )
 
-            self._tabgroup = sg.TabGroup(_tech_table_layout, expand_x=True, expand_y=True, enable_events=True, key=self._prefixf('tabs'))
-            self._layout = [[
-                self._tabgroup
-            ]]
+            self._tabgroup = sg.TabGroup(
+                _tech_table_layout,
+                expand_x=True,
+                expand_y=True,
+                enable_events=True,
+                key=self._prefixf("tabs"),
+            )
+            self._layout = [[self._tabgroup]]
         return self._layout
 
     def __call__(self, window, event, values):
-        print('Technology tables view handling - ', event)
+        print("Technology tables view handling - ", event)
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
         if _event in FIXED_TABLES:
             self._tables[_event](window, event, values)
             return None
 
-        if _event == 'tabs':
+        if _event == "tabs":
             # Tab switch event
-            return values[self._prefixf('tabs')].lower().replace(' ', '_')
-
+            return values[self._prefixf("tabs")].lower().replace(" ", "_")
 
     def _get_table(self, headings: List[str], values=[[]]) -> FixedColumnTable:
-        _headings = ['Year', 'Region'] + headings
+        _headings = ["Year", "Region"] + headings
         return FixedColumnTable(
             0,
             len(_headings),
@@ -525,43 +643,48 @@ class TechnologyTables(BaseWidget):
             pad=0,
             values=values,
             headings=_headings,
-            expand_x=True, expand_y=True,
+            expand_x=True,
+            expand_y=True,
             select_mode=sg.TABLE_SELECT_MODE_NONE,
             enable_click_events=True,
         )
 
     def _create_tables(self) -> Dict[str, FixedColumnTable]:
-        return {
-            k: self._get_table(FIXED_TABLES[k]) for k in FIXED_TABLES
-        }
+        return {k: self._get_table(FIXED_TABLES[k]) for k in FIXED_TABLES}
 
     def read(self, key: str):
         return self._tables[key].values
 
-    def show_table(self, key: str, values: List[List], headings=None, disabled=True) -> Optional[List[List]]:
+    def show_table(
+        self, key: str, values: List[List], headings=None, disabled=True
+    ) -> Optional[List[List]]:
         if key in self._tables:
             self._tables[key].values = values
             self._tables[key].disabled = disabled
             return None
 
         if headings is None:
-            raise ValueError('Headings must be provided')
+            raise ValueError("Headings must be provided")
 
         return self._show_table(key, headings, values, disabled)
 
-    def _show_table(self, key: str, headings: List[str], values: List[List], disabled: bool):
+    def _show_table(
+        self, key: str, headings: List[str], values: List[List], disabled: bool
+    ):
 
         _table = self._get_table(headings, [[]])
         _layout = _table.layout(self._prefixf(key))
         if not disabled:
-            _layout = [
-                [
-                    sg.Push(),
-                    sg.Button('Save', key='save')
-                ]
-            ] + _layout
-        window = sg.Window('MUSE', layout=_layout, finalize=True, font='roman 16',
-                       resizable=True, auto_size_buttons=True, auto_size_text=True)
+            _layout = [[sg.Push(), sg.Button("Save", key="save")]] + _layout
+        window = sg.Window(
+            "MUSE",
+            layout=_layout,
+            finalize=True,
+            font="roman 16",
+            resizable=True,
+            auto_size_buttons=True,
+            auto_size_text=True,
+        )
         w, h = window.size
         window.set_min_size((max(512, w), max(256, h)))
         _table.disabled = disabled
@@ -571,15 +694,15 @@ class TechnologyTables(BaseWidget):
             while True:
                 event, _ = window.read()
                 print(event)
-                if event == sg.WIN_CLOSED or event == 'Exit':
+                if event == sg.WIN_CLOSED or event == "Exit":
                     break
-                if event == 'save':
+                if event == "save":
                     _table.commit()
                     return _table.values
                 if _table.should_handle_event(event):
                     _table(window, event, values)
                 else:
-                    print('Unhandled event in table window ', event)
+                    print("Unhandled event in table window ", event)
 
             return values
         finally:
@@ -588,31 +711,30 @@ class TechnologyTables(BaseWidget):
 
 class TechnologyView(TwoColumnMixin, BaseView):
     def __init__(self, model: Datastore):
-        super().__init__('technology')
+        super().__init__("technology")
         self._datastore = model
         self._model = model.process
         self.model = TechnologyModelHelper(model)
 
         self.TABLE_VALUES = {
-            'cost': [[]],
-            'capacity': [[]],
-            'input': [[]],
-            'output': [[]],
-            'agent': [[]],
-            'existing_capacity': [[]],
+            "cost": [[]],
+            "capacity": [[]],
+            "input": [[]],
+            "output": [[]],
+            "agent": [[]],
+            "existing_capacity": [[]],
         }
 
         # Widgets
         self._tech_info = TechnologyInfo()
         self._tech_tables = TechnologyTables(
-            tab_headings=[x for x in self.TABLE_VALUES] + ['demand']
+            tab_headings=[x for x in self.TABLE_VALUES] + ["demand"]
         )
         self._tech_list = ListboxWithButtons()
         self._save_edit_btns = SaveEditButtons()
 
         # Internal State
         self._selected = -1
-
 
         self._years = []
         self._commin = []
@@ -688,36 +810,32 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
         _values = {}
 
-        _available_year_region = [(x, y) for x in self.model.available_years for y in self._regions]
-        _values['existing_capacity'] = \
-            self.model.get_existing_capacity_for_process(_process, _available_year_region)
+        _available_year_region = [
+            (x, y) for x in self.model.available_years for y in self._regions
+        ]
+        _values["existing_capacity"] = self.model.get_existing_capacity_for_process(
+            _process, _available_year_region
+        )
 
-        _values['capacity'] = \
-            self.model.get_capacity_for_process(_process, year_region)
+        _values["capacity"] = self.model.get_capacity_for_process(_process, year_region)
 
-        _values['cost'] = \
-            self.model.get_cost_for_process(_process, year_region)
+        _values["cost"] = self.model.get_cost_for_process(_process, year_region)
 
-        _values['input'] = \
-            self.model.get_commin_table_for_process(
-                _process,
-                year_region,
-                [ _fuel ]+ self._commin,
-            )
+        _values["input"] = self.model.get_commin_table_for_process(
+            _process,
+            year_region,
+            [_fuel] + self._commin,
+        )
 
-        _values['output'] = \
-            self.model.get_commout_table_for_process(
-                _process,
-                year_region,
-                [ _enduse ] + self._commout
-            )
+        _values["output"] = self.model.get_commout_table_for_process(
+            _process, year_region, [_enduse] + self._commout
+        )
 
-        _values['agent'] = \
-            self.model.get_agent_table_for_process(
-                _process,
-                year_region,
-                self.model.get_agent_share_map_for_regions(self._regions)
-            )
+        _values["agent"] = self.model.get_agent_table_for_process(
+            _process,
+            year_region,
+            self.model.get_agent_share_map_for_regions(self._regions),
+        )
         return _values
 
     def _read_tables(self):
@@ -738,7 +856,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 continue
             # _values[k] is a list[list]
             # Convert current table into a dictionary indexed by year, region
-            _tv = { (int(x[0]), str(x[1])): x[2:] for x in self.TABLE_VALUES[k]}
+            _tv = {(int(x[0]), str(x[1])): x[2:] for x in self.TABLE_VALUES[k]}
             for r in _values[k]:
                 _key = (int(r[0]), str(r[1]))
                 if _key in _tv:
@@ -782,22 +900,25 @@ class TechnologyView(TwoColumnMixin, BaseView):
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
             self.prefix = prefix
-            self._edit_year_btn = sg.Button('Edit Year(s)', key=self._prefixf('edit_year'))
+            self._edit_year_btn = sg.Button(
+                "Edit Year(s)", key=self._prefixf("edit_year")
+            )
             # Left Column
             self.column_1 = sg.Col(
-                self._tech_list.layout(self._prefixf()),
-                expand_y=True
+                self._tech_list.layout(self._prefixf()), expand_y=True
             )
             _btn_layout = self._save_edit_btns.layout(prefix=self._prefixf())
             _tech_info_layout = self._tech_info.layout(self._prefixf())
-            _tech_table_layout = self._tech_tables.layout(self._prefixf('tables'))
+            _tech_table_layout = self._tech_tables.layout(self._prefixf("tables"))
             self.column_2 = sg.Col(
-                _btn_layout +
-                [[sg.HorizontalSeparator()]] +
-                _tech_info_layout +
-                [[self._edit_year_btn, sg.Push()]] +
-                _tech_table_layout,
-                expand_y=True, expand_x=True)
+                _btn_layout
+                + [[sg.HorizontalSeparator()]]
+                + _tech_info_layout
+                + [[self._edit_year_btn, sg.Push()]]
+                + _tech_table_layout,
+                expand_y=True,
+                expand_x=True,
+            )
 
             self._layout = [
                 [self.column_1, self.column_2],
@@ -810,41 +931,41 @@ class TechnologyView(TwoColumnMixin, BaseView):
         self._save_edit_btns.bind_handlers()
 
     def __call__(self, window, event, values):
-        print('Technology view handling - ', event)
+        print("Technology view handling - ", event)
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
-        if _event == 'listbox':
+        if _event == "listbox":
             # Selection event
             indices = self._tech_list.indices
             if len(indices):
                 self.selected = indices[0]
                 self.update(window)
-        elif _event == 'edit':
+        elif _event == "edit":
             return self._handle_edit(window)
-        elif _event == 'add':
+        elif _event == "add":
             return self._handle_add(window)
-        elif _event == 'delete':
+        elif _event == "delete":
             return self._handle_delete_process(window)
-        elif _event == 'save':
+        elif _event == "save":
             return self._handle_save(window, values)
-        elif _event == 'edit_year':
+        elif _event == "edit_year":
             return self._handle_edit_year()
-        elif _event == 'edit_regions':
+        elif _event == "edit_regions":
             return self._handle_edit_regions(window)
-        elif _event == 'edit_inputs':
+        elif _event == "edit_inputs":
             return self._handle_edit_inputs(window, values)
-        elif _event == 'edit_outputs':
+        elif _event == "edit_outputs":
             return self._handle_edit_outputs(window, values)
-        elif _event == 'tables':
+        elif _event == "tables":
             ret = self._tech_tables(window, event, values)
             if not ret:
                 return
 
-            print('Tables tabs returned', ret)
+            print("Tables tabs returned", ret)
             if ret not in self.TABLE_VALUES:
                 return
 
@@ -854,7 +975,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
             self._current_key = ret
             if ret in FIXED_TABLES:
-                #self._tech_tables.show_table(ret, self.TABLE_VALUES[ret])
+                # self._tech_tables.show_table(ret, self.TABLE_VALUES[ret])
                 return
 
             # Disable tab group
@@ -863,24 +984,32 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 _headings = []
 
                 _form_values = self._tech_info.read(values)
-                if ret == 'input':
-                    _fuel = _form_values.get('fuel', '')
-                    _headings = [ _fuel ] + [ x for x in self._commin if x.lower() != _fuel.lower()]
+                if ret == "input":
+                    _fuel = _form_values.get("fuel", "")
+                    _headings = [_fuel] + [
+                        x for x in self._commin if x.lower() != _fuel.lower()
+                    ]
 
-                elif ret == 'output':
-                    _end_use = _form_values.get('end_use', '')
-                    _headings = [ _end_use ] + [ x for x in self._commout if x.lower() != _end_use.lower()]
+                elif ret == "output":
+                    _end_use = _form_values.get("end_use", "")
+                    _headings = [_end_use] + [
+                        x for x in self._commout if x.lower() != _end_use.lower()
+                    ]
 
-                elif ret == 'agent':
-                    _headings = list(self.model.get_agent_share_map_for_regions(self._regions).values())
+                elif ret == "agent":
+                    _headings = list(
+                        self.model.get_agent_share_map_for_regions(
+                            self._regions
+                        ).values()
+                    )
                 else:
-                    raise ValueError('Unknown value')
+                    raise ValueError("Unknown value")
                 # Show next table
                 _values = self._tech_tables.show_table(
                     self._current_key,
                     self.TABLE_VALUES[self._current_key],
                     _headings,
-                    not self._editing
+                    not self._editing,
                 )
                 self.TABLE_VALUES[self._current_key] = _values
             finally:
@@ -889,30 +1018,45 @@ class TechnologyView(TwoColumnMixin, BaseView):
     def _convert_tables_to_models(self, current_values: Dict[str, Any]):
         # comm_in, comm_out
         all_commodities = self.model.commodities
-        _fuel = next((x for x in all_commodities if x.lower() == current_values['fuel'].lower()), '')
-        _end_use = next((x for x in all_commodities if x.lower() == current_values['end_use'].lower()), '')
-        comm_in = [ _fuel ] + [ x for x in self._commin if x.lower() != _fuel.lower()]
-        comm_out = [ _end_use ] + [ x for x in self._commout if x.lower() != _end_use.lower()]
-
-
-        current_values['comm_in'] = [
-            CommodityFlow(
-                commodity=comm_in[i],
-                level='fixed',
-                region=x[1],
-                timeslice=x[0],
-                value=v
-            ) for x in self.TABLE_VALUES['input'] for i, v in enumerate(x[2:])
+        _fuel = next(
+            (x for x in all_commodities if x.lower() == current_values["fuel"].lower()),
+            "",
+        )
+        _end_use = next(
+            (
+                x
+                for x in all_commodities
+                if x.lower() == current_values["end_use"].lower()
+            ),
+            "",
+        )
+        comm_in = [_fuel] + [x for x in self._commin if x.lower() != _fuel.lower()]
+        comm_out = [_end_use] + [
+            x for x in self._commout if x.lower() != _end_use.lower()
         ]
 
-        current_values['comm_out'] = [
+        current_values["comm_in"] = [
             CommodityFlow(
-                commodity=comm_out[i],
-                level='fixed',
+                commodity=comm_in[i],
+                level="fixed",
                 region=x[1],
                 timeslice=x[0],
-                value=v
-            ) for x in self.TABLE_VALUES['output'] for i, v in enumerate(x[2:])
+                value=v,
+            )
+            for x in self.TABLE_VALUES["input"]
+            for i, v in enumerate(x[2:])
+        ]
+
+        current_values["comm_out"] = [
+            CommodityFlow(
+                commodity=comm_out[i],
+                level="fixed",
+                region=x[1],
+                timeslice=x[0],
+                value=v,
+            )
+            for x in self.TABLE_VALUES["output"]
+            for i, v in enumerate(x[2:])
         ]
 
         # Normalize keys to str, str as reading from
@@ -927,13 +1071,17 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 var_par=x[6],
                 var_exp=x[7],
                 interest_rate=x[8],
-            ) for x in self.TABLE_VALUES['cost'] if x
+            )
+            for x in self.TABLE_VALUES["cost"]
+            if x
         }
         keyed_utilisation = {
             (str(x[0]), x[1]): Utilisation(
                 utilization_factor=x[-2],
                 efficiency=x[-1],
-            ) for x in self.TABLE_VALUES['capacity'] if x
+            )
+            for x in self.TABLE_VALUES["capacity"]
+            if x
         }
 
         keyed_capacity = {
@@ -943,11 +1091,13 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 total_capacity_limit=x[4],
                 technical_life=x[5],
                 scaling_size=x[6],
-            ) for x in self.TABLE_VALUES['capacity'] if x
+            )
+            for x in self.TABLE_VALUES["capacity"]
+            if x
         }
         keyed_agents = {}
         _share_names = self.model.get_agent_share_map_for_regions(self._regions)
-        for x in self.TABLE_VALUES['agent']:
+        for x in self.TABLE_VALUES["agent"]:
             if len(x) == 0:
                 continue
             _x_year, _x_region = str(x[0]), x[1]
@@ -960,34 +1110,32 @@ class TechnologyView(TwoColumnMixin, BaseView):
                     continue
                 _name, _type, _ = k
                 capacity_share = CapacityShare(
-                    agent_name=_name,
-                    agent_type=_type,
-                    region=_x_region,
-                    share=v
+                    agent_name=_name, agent_type=_type, region=_x_region, share=v
                 )
                 keyed_agents[_x_year, _x_region].append(capacity_share)
 
         # technodatas
         # cost, capacity, utilisation
-        year_region = [ (str(year), region) for year in self._years for region in self._regions]
-        current_values['technodatas'] = [
+        year_region = [
+            (str(year), region) for year in self._years for region in self._regions
+        ]
+        current_values["technodatas"] = [
             Technodata(
                 time=x[0],
                 region=x[1],
                 cost=keyed_cost[x],
                 utilisation=keyed_utilisation[x],
                 capacity=keyed_capacity[x],
-                agents=keyed_agents[x]
-            ) for x in year_region
+                agents=keyed_agents[x],
+            )
+            for x in year_region
         ]
 
         # TODO Values are being discarded if missing
-        current_values['existing_capacities'] = [
-            ExistingCapacity(
-                region=x[1],
-                year=x[0],
-                value=x[2]
-            ) for x in self.TABLE_VALUES['existing_capacity'] if x and x[2]
+        current_values["existing_capacities"] = [
+            ExistingCapacity(region=x[1], year=x[0], value=x[2])
+            for x in self.TABLE_VALUES["existing_capacity"]
+            if x and x[2]
         ]
         return current_values
 
@@ -999,9 +1147,9 @@ class TechnologyView(TwoColumnMixin, BaseView):
         available_years = self.model.available_years
 
         _, self._years = show_dual_listbox(
-            'Data Years',
-            v_one = sorted([x for x in available_years if x not in current_years]),
-            v_two = sorted(self._years),
+            "Data Years",
+            v_one=sorted([x for x in available_years if x not in current_years]),
+            v_two=sorted(self._years),
         )
 
         self._years = [int(x) for x in self._years]
@@ -1012,27 +1160,28 @@ class TechnologyView(TwoColumnMixin, BaseView):
     def _handle_add(self, window):
         # Create a default process
         technology = sg.popup_get_text(
-            'Please enter name of technology to add', 'Add Technology',
-            'New Technology 1',
+            "Please enter name of technology to add",
+            "Add Technology",
+            "New Technology 1",
         )
-        if technology == None or technology.strip() == '':
-            return None, '0 technologies added'
+        if technology == None or technology.strip() == "":
+            return None, "0 technologies added"
 
         # and update view
         technology = technology.strip()
         _process = DummyProcess(
             name=technology,
-            sector='',
+            sector="",
             preset_sector=None,
-            fuel='',
-            end_use='',
-            type='energy',
+            fuel="",
+            end_use="",
+            type="energy",
             technodatas=[],
             demands=[],
             existing_capacities=[],
             comm_in=[],
             comm_out=[],
-            capacity_unit='PJ/y',
+            capacity_unit="PJ/y",
         )
 
         _processes = self.model.processes
@@ -1057,14 +1206,14 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
         # Handle preset_sector case
         # TODO move this to process model as santisation step?
-        _preset_sector = _values.pop('preset_sector', None)
-        if not _preset_sector or _preset_sector == 'None':
+        _preset_sector = _values.pop("preset_sector", None)
+        if not _preset_sector or _preset_sector == "None":
             # Empty string, None, or 'None' should be None
             _preset_sector = None
-        _values['preset_sector'] = _preset_sector
+        _values["preset_sector"] = _preset_sector
 
         # Get name in the form
-        new_name = _values['name']
+        new_name = _values["name"]
 
         # Check if it is add mode / edit mode
         _ids = self.model.processes
@@ -1074,12 +1223,14 @@ class TechnologyView(TwoColumnMixin, BaseView):
             try:
                 _values = self._convert_tables_to_models(_values)
                 # TODO: Move it out.
-                _values['demands'] = []
-                _values['capacity_unit'] = 'PJ/y'
+                _values["demands"] = []
+                _values["capacity_unit"] = "PJ/y"
                 process = Process.parse_obj(_values)
                 self._model.create(process)
             except KeyAlreadyExists:
-                raise SaveException(f'Technology with name "{new_name}" already exists!')
+                raise SaveException(
+                    f'Technology with name "{new_name}" already exists!'
+                )
             except Exception as e:
                 raise SaveException() from e
         else:
@@ -1093,7 +1244,9 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 for d in deps:
                     if len(deps[d]):
                         # Not supporting name change for ones with forward deps
-                        raise SaveException() from RuntimeError('Changing name is not supported for technologies already associated with resources')
+                        raise SaveException() from RuntimeError(
+                            "Changing name is not supported for technologies already associated with resources"
+                        )
 
             _model_dict = _process.dict()
             try:
@@ -1107,31 +1260,31 @@ class TechnologyView(TwoColumnMixin, BaseView):
                 raise SaveException() from e
 
         # Disable save, enable edit
-        self._save_edit_btns.state = 'idle'
+        self._save_edit_btns.state = "idle"
         self.disable_editing(window)
 
         self.update(window)
         # Communicate save mode to parent
-        return 'idle', self.key
+        return "idle", self.key
 
     def _handle_edit(self, window):
         if self._editing == True:
             # Already in edit state, so reset
             # Disable save, enable edit
-            self._save_edit_btns.state = 'idle'
+            self._save_edit_btns.state = "idle"
             self.disable_editing(window)
 
             self.update(window)
-            return 'idle', self.key
+            return "idle", self.key
 
         # Disable edit, enable save
-        self._save_edit_btns.state = 'edit'
+        self._save_edit_btns.state = "edit"
 
         # Enable sector info, disable list
         self.enable_editing(window)
 
         # Communicate edit mode to parent
-        return 'edit', self.key
+        return "edit", self.key
 
     def _handle_edit_inputs(self, window, values):
         current_comm_in = self._commin[:]
@@ -1141,11 +1294,13 @@ class TechnologyView(TwoColumnMixin, BaseView):
         _values = self._tech_info.read(values)
         all_commodities = self.model.commodities
 
-        comm_in_with_fuel = [ _values.get('fuel', '').lower() ] + [x.lower() for x in self._commin]
+        comm_in_with_fuel = [_values.get("fuel", "").lower()] + [
+            x.lower() for x in self._commin
+        ]
         _, self._commin = show_dual_listbox(
-            'CommIn',
+            "CommIn",
             v_one=[x for x in all_commodities if x.lower() not in comm_in_with_fuel],
-            v_two=self._commin
+            v_two=self._commin,
         )
 
         self._tech_info.set_inputs(window, self._commin)
@@ -1153,86 +1308,86 @@ class TechnologyView(TwoColumnMixin, BaseView):
         # Read table from UI
         self._read_tables()
 
-        if self.TABLE_VALUES['input'] == [[]]:
+        if self.TABLE_VALUES["input"] == [[]]:
             return
 
         # Expand / Contract / Reorder table columns
         # Based on comm_in order
-        _table = self.TABLE_VALUES['input']
+        _table = self.TABLE_VALUES["input"]
 
-        columns = list(zip(*self.TABLE_VALUES['input']))
-        empty_column = ['' for _ in range(len(_table))]
-        comm_in_map = {
-            x: columns[i + 3]
-            for i, x in enumerate(current_comm_in)
-        }
-        self.TABLE_VALUES['input'] = list(zip(*([
-                columns[0], columns[1], columns[2]
-            ] + [
-                comm_in_map[x]
-                if x in comm_in_map else empty_column
-                for x in self._commin
-            ])
-        ))
-        self._tech_tables.update(
-            {'input': self.TABLE_VALUES['input']}
+        columns = list(zip(*self.TABLE_VALUES["input"]))
+        empty_column = ["" for _ in range(len(_table))]
+        comm_in_map = {x: columns[i + 3] for i, x in enumerate(current_comm_in)}
+        self.TABLE_VALUES["input"] = list(
+            zip(
+                *(
+                    [columns[0], columns[1], columns[2]]
+                    + [
+                        comm_in_map[x] if x in comm_in_map else empty_column
+                        for x in self._commin
+                    ]
+                )
+            )
         )
+        self._tech_tables.update({"input": self.TABLE_VALUES["input"]})
 
     def _handle_edit_outputs(self, window, values):
         current_comm_out = self._commout[:]
         all_commodities = self.model.commodities
         _values = self._tech_info.read(values)
-        comm_out_with_end_use = [ _values.get('end_use', '').lower() ] + [x.lower() for x in self._commout]
+        comm_out_with_end_use = [_values.get("end_use", "").lower()] + [
+            x.lower() for x in self._commout
+        ]
         _, self._commout = show_dual_listbox(
-            'CommOut',
-            v_one=[x for x in all_commodities if x.lower() not in comm_out_with_end_use],
-            v_two=self._commout
+            "CommOut",
+            v_one=[
+                x for x in all_commodities if x.lower() not in comm_out_with_end_use
+            ],
+            v_two=self._commout,
         )
         self._tech_info.set_outputs(window, self._commout)
 
         self._read_tables()
-        if self.TABLE_VALUES['output'] == [[]]:
+        if self.TABLE_VALUES["output"] == [[]]:
             return
 
         # Expand / Contract / Reorder table columns
         # Based on comm_in order
-        _table = self.TABLE_VALUES['output']
+        _table = self.TABLE_VALUES["output"]
 
         columns = list(zip(*_table))
-        empty_column = ['' for _ in range(len(_table))]
-        comm_out_map = {
-            x: columns[i + 3]
-            for i, x in enumerate(current_comm_out)
-        }
-        self.TABLE_VALUES['output'] = list(zip(*([
-                columns[0], columns[1], columns[2]
-            ] + [
-                comm_out_map[x]
-                if x in comm_out_map else empty_column
-                for x in self._commout
-            ])
-        ))
-        self._tech_tables.update(
-            {'output': self.TABLE_VALUES['output']}
+        empty_column = ["" for _ in range(len(_table))]
+        comm_out_map = {x: columns[i + 3] for i, x in enumerate(current_comm_out)}
+        self.TABLE_VALUES["output"] = list(
+            zip(
+                *(
+                    [columns[0], columns[1], columns[2]]
+                    + [
+                        comm_out_map[x] if x in comm_out_map else empty_column
+                        for x in self._commout
+                    ]
+                )
+            )
         )
+        self._tech_tables.update({"output": self.TABLE_VALUES["output"]})
 
     def _handle_edit_regions(self, window):
         _process = self.get_current_process()
         all_regions = self.model.regions
 
         _, self._regions = show_dual_listbox(
-            'Regions',
+            "Regions",
             v_one=[x for x in all_regions if x not in self._regions],
-            v_two=self._regions
+            v_two=self._regions,
         )
         self._tech_info.set_regions(window, self._regions)
         self._patch_tables(_process)
 
     def _handle_delete_process_safe(self, id):
-        '''
+        """
         Internal function that deletes the technology
         returns True / False based on whether technology was deleted or not
-        '''
+        """
         _process = self.model.get_process(id)
 
         # Compute forward dependencies
@@ -1240,24 +1395,22 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
         # Check if deps are empty
         empty_deps = True
-        dep_string = ''
+        dep_string = ""
         for d in deps:
             if len(deps[d]):
                 empty_deps = False
-                dep_string += f'{d}:\n'
-                dep_string += ','.join(deps[d])
-                dep_string += '\n\n'
-
+                dep_string += f"{d}:\n"
+                dep_string += ",".join(deps[d])
+                dep_string += "\n\n"
 
         # Show popup to confirm
         if not empty_deps:
             ret = sg.popup_yes_no(
-                f'Deleting technology {id} will result in the following being deleted:\n',
-                f'{dep_string}'
-                f'Delete anyway?\n',
+                f"Deleting technology {id} will result in the following being deleted:\n",
+                f"{dep_string}" f"Delete anyway?\n",
                 title="Warning!",
             )
-            if ret and ret == 'Yes':
+            if ret and ret == "Yes":
                 self._model.delete(id)
                 return True
             else:
@@ -1268,7 +1421,7 @@ class TechnologyView(TwoColumnMixin, BaseView):
 
     def _handle_delete_process(self, window):
         if self.selected == -1:
-            return None, 'Select a technology before attempting to delete!'
+            return None, "Select a technology before attempting to delete!"
 
         _process_id = self.get_current_process_id()
 

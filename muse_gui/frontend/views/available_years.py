@@ -1,26 +1,24 @@
 from functools import partial
 from typing import List
+
 import PySimpleGUI as sg
 from PySimpleGUI import Element
 
 from muse_gui.frontend.views.exceptions import SaveException
 
+from ...backend.data.timeslice import AvailableYear
 from ...backend.resources.datastore import Datastore
 from ...backend.resources.datastore.exceptions import KeyAlreadyExists
-from ...backend.data.timeslice import AvailableYear
-
 from ..widgets.listbox import ListboxWithButtons
 from .base import BaseView, TwoColumnMixin
 
 
 class AvailableYearsView(TwoColumnMixin, BaseView):
     def __init__(self, model: Datastore):
-        super().__init__('available_years')
+        super().__init__("available_years")
         self._parent_model = model
         self.model = model.available_year
-        self._year_list_maker = partial(
-            ListboxWithButtons
-        )
+        self._year_list_maker = partial(ListboxWithButtons)
         self._selected = None
 
     def update(self, window=None):
@@ -40,7 +38,6 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
         self._year_list.values = sorted_years
         self._year_list.indices = selection_index
 
-
     def layout(self, prefix) -> List[List[Element]]:
         if not self._layout:
             self.prefix = prefix
@@ -49,99 +46,94 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
 
             # Right Column
             _help = (
-                'Simulation years:\n'
-                '\n'
-                'Years over which you would like to define parameters and run the simulation for.\n'
-                'Tip:\n'
-                '\n'
+                "Simulation years:\n"
+                "\n"
+                "Years over which you would like to define parameters and run the simulation for.\n"
+                "Tip:\n"
+                "\n"
                 'Add new years by using the "Add" button.\n'
-                '\n'
+                "\n"
                 'You can run the simulation for a subset of years (see "Run" tab)\n'
             )
             _right = [
-                [sg.Multiline(
-                    _help,
-                    size=(25, 12),
-                    expand_x=True,
-                    disabled=True,
-                    write_only=True,
-                    no_scrollbar=True,
-                )],
+                [
+                    sg.Multiline(
+                        _help,
+                        size=(25, 12),
+                        expand_x=True,
+                        disabled=True,
+                        write_only=True,
+                        no_scrollbar=True,
+                    )
+                ],
             ]
             self.column_1 = sg.Column(
-                self._year_list.layout(self._prefixf()),
-                expand_y=True
+                self._year_list.layout(self._prefixf()), expand_y=True
             )
-            self.column_2 = sg.Column(
-                _right,
-                expand_x=True, expand_y=True
-            )
-            self._layout = [
-                [self.column_1, self.column_2]
-            ]
+            self.column_2 = sg.Column(_right, expand_x=True, expand_y=True)
+            self._layout = [[self.column_1, self.column_2]]
         return self._layout
 
     def bind_handlers(self):
         pass
 
     def __call__(self, window, event, values):
-        print('Region view handling - ', event)
+        print("Region view handling - ", event)
 
         address = event
         if event[0] and isinstance(event[0], tuple):
             address = event[0]
 
-        _event = address[len(self._prefixf()):][0]
+        _event = address[len(self._prefixf()) :][0]
 
-        if _event == 'listbox':
+        if _event == "listbox":
             # Selection event
             selected = self._year_list.selected
             if len(selected):
                 self._selected = selected[-1]
 
-        elif _event == 'add':
+        elif _event == "add":
             # Add event
             # Show pop up and add years to datastore
             return self._handle_add_years()
 
-        elif _event == 'delete':
+        elif _event == "delete":
             # Delete event
             # Show popup with dependents and confirm delete
             return self._handle_delete_years()
         else:
             # Pass it down?
-            print('Unhandled event - ', event)
+            print("Unhandled event - ", event)
         return None
 
     def _handle_delete_year_internal(self, year):
-        '''
+        """
         Internal function that deletes the year
         returns True / False based on whether year was deleted or not
-        '''
+        """
         # Compute forward dependencies
         deps = self.model.forward_dependents_recursive(self.model.read(year))
 
         # Check if deps are empty
         empty_deps = True
-        dep_string = ''
+        dep_string = ""
         for d in deps:
             if len(deps[d]):
                 empty_deps = False
-                dep_string += f'{d}:\n'
-                dep_string += ','.join(deps[d])
-                dep_string += '\n\n'
-
+                dep_string += f"{d}:\n"
+                dep_string += ",".join(deps[d])
+                dep_string += "\n\n"
 
         # Show popup to confirm
         if not empty_deps:
             ret = sg.popup_yes_no(
-                f'Deleting years {year} will result in deleting the following:\n',
-                f'{dep_string}'
+                f"Deleting years {year} will result in deleting the following:\n",
+                f"{dep_string}"
                 f'(You can possibly filter the simulation years instead in the "Run" tab)\n\n'
-                f'Delete anyway?\n',
+                f"Delete anyway?\n",
                 title="Warning!",
             )
-            if ret and ret == 'Yes':
+            if ret and ret == "Yes":
                 self.model.delete(year)
                 return True
             else:
@@ -173,16 +165,17 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
                 self._selected = view_years[new_idx]
             self.update()
 
-        return None, f'{counter} year(s) deleted'
+        return None, f"{counter} year(s) deleted"
 
     def _handle_add_years(self):
         years = sg.popup_get_text(
-            'Please enter year(s) to add, seperated by commas', 'Add Simulation Year(s)')
-        if years == None or years.strip() == '':
-            return None, '0 years added'
+            "Please enter year(s) to add, seperated by commas", "Add Simulation Year(s)"
+        )
+        if years == None or years.strip() == "":
+            return None, "0 years added"
         try:
             counter = 0
-            for x in years.split(','):
+            for x in years.split(","):
                 _year = x.strip()
                 if not _year:
                     # Empty values?
@@ -191,11 +184,11 @@ class AvailableYearsView(TwoColumnMixin, BaseView):
                     self.model.create(AvailableYear(year=_year))
                     counter += 1
                     self._selected = _year
-                except KeyAlreadyExists as e:
+                except KeyAlreadyExists:
                     pass
 
             self.update()
-            return None, f'{counter} year(s) added'
+            return None, f"{counter} year(s) added"
 
         except Exception as e:
-            raise SaveException('Add Year(s) failed!') from e
+            raise SaveException("Add Year(s) failed!") from e
