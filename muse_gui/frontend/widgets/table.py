@@ -215,6 +215,8 @@ class EditableTable(BaseWidget):
         print(e, rest)
         if e == '+CLICKED+':
             cell = row, col = rest[0]
+            if row is None:
+                return self._bind_resize_handler()
             if self.nrows == 0 or self.ncols == 0:
                 # Clicking on an empty table
                 return None
@@ -224,8 +226,6 @@ class EditableTable(BaseWidget):
                     self.cell_text = self._input.get()
 
                 return self.edit_cell(row + 1, col)
-            elif row is None:
-                return self._bind_resize_handler()
         elif e == 'configure':
             return self._update_cell_position()
         elif e == 'configure-done':
